@@ -1,0 +1,190 @@
+# RaidCanvas
+
+> **Interactive TypeScript Diagram Canvas for AOAIM Visual Modeling & Ontological SVG Synchronization**  
+> *Burkhardt / RaidCanvas*
+
+[![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-orange.svg)](https://pnpm.io/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
+[![AntV X6](https://img.shields.io/badge/AntV%20X6-2.18-indigo.svg)](https://x6.antv.vision/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+---
+
+## 1. Vision & Architectural Heritage
+
+### Alan Kay & The Dynabook Spirit
+> *"The best way to predict the future is to invent it."* — Alan Kay
+
+**RaidCanvas** is engineered under the worldview of dynamic, malleable media: software systems should not be static, opaque text files, but living visual objects that communicate through clear message protocols, respond immediately to direct human manipulation, and reflect deep semantic truth.
+
+### Heritage to C++ `GrafObj`
+In preceding decades, Rainer Burkhardt's C++ **`GrafObj`** library pioneered object-oriented interactive diagramming, establishing foundational patterns for graphical object hierarchies, orthogonal connector routing, port docking, and event-driven canvas manipulation.
+
+**RaidCanvas** is the modern TypeScript / Web heir to `GrafObj`:
+* Replaces legacy desktop C++ graphics loops with modern hardware-accelerated SVG/Canvas rendering via **AntV X6**.
+* Bridges client-side interactive direct manipulation with server-side semantic reasoning engines.
+* Upholds strict object boundaries and deterministic layout fidelity.
+
+---
+
+## 2. The Ecosystem Companion: `.raid` & .NET `RaiDiagram`
+
+In the Burkhardt AOAIM (Activity-Object-AI Model) platform architecture, diagramming adheres to a four-tier separation of concerns:
+
+```
+┌────────────────────────────────────────────────────────┐
+│ 1. Semantic Model (.raid)                              │
+│    Canonical JSON/JSON5 facts (nodes, roles, edges)   │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+┌──────────────────────────▼─────────────────────────────┐
+│ 2. Structural Notation (.puml)                         │
+│    Clean PlantUML DSL source (presentation-free)       │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+             ┌─────────────┴─────────────┐
+             ▼                           ▼
+┌─────────────────────────┐ ┌────────────────────────────┐
+│ 3A. RaiDiagram (.NET C#)│ │ 3B. RaidCanvas (TypeScript)│
+│     Batch generation,   │ │     Interactive editor,    │
+│     PlantUML compilation│ │     AntV X6 canvas,        │
+│     Headless SVG export │ │     Live bend point routing│
+└────────────┬────────────┘ └────────────┬───────────────┘
+             │                           │
+             └─────────────┬─────────────┘
+                           │
+┌──────────────────────────▼─────────────────────────────┐
+│ 4. Ontological Vector Contract (.svg)                  │
+│    Interactive SVG enriched with 'aim-*' attributes    │
+└────────────────────────────────────────────────────────┘
+```
+
+* **`.NET RaiDiagram` (`RAIkeep`):** Governs headless manifest compilation, semantic validation, and server-side static vector delivery.
+* **`RaidCanvas`:** Delivers rich in-browser manipulation, orthogonal Manhattan edge routing, user-editable bend points, and real-time bidirectional synchronization back to `.raid` manifests and `aim-*` SVG documents.
+
+---
+
+## 3. The `aim-*` Ontological SVG Contract
+
+RaidCanvas treats SVG as a **first-class semantic document**, not a dumb pixel dump. Any SVG generated or consumed by RaidCanvas implements the **`aim-*` ontological contract**, decorating standard SVG elements with typed domain attributes:
+
+### Node Attributes
+| Attribute | Type | Description |
+| :--- | :--- | :--- |
+| `aim-node` | `boolean` | Flags the SVG `<g>` or shape as an ontological entity node. |
+| `aim-id` | `string` | Unique entity identifier (e.g. `SignContract_UC`, `Contract_OD`). |
+| `aim-kind` | `AimOntologyKind` | Entity archetype: `'uc'` \| `'act'` \| `'cls'` \| `'obj'` \| `'per'`. |
+| `aim-display-name` | `string` | Human-readable label rendered inside the node. |
+| `aim-stereotype` | `string?` | Optional ontological stereotype (e.g. `«initiates»`, `«executes»`). |
+
+#### The 5 Canonical `AimOntologyKind` Archetypes
+1. **`uc` (UseCase):** Elliptical boundary with **Cascais Net Gold** accent border (`#F59E0B`), Chalk White fill, bold centered title.
+2. **`act` (Activity):** Process step with rounded rectangle boundary ($r=12$), **Heraldic Green** accent (`#10B981`), Canvas Cream fill.
+3. **`cls` (Class):** Multi-compartment class card with header, attributes, and methods compartments in **Warm Graphite** (`#1F2937`).
+4. **`obj` (Object / Instance):** Runtime instance card with underlined header (`<u>name: Class</u>`) and property-slot list.
+5. **`per` (Person / Actor):** Actor role glyph (stick-figure or role card) distinguishing Initiating Roles (gold) from Defined Roles (graphite).
+
+### Edge Attributes
+| Attribute | Type | Description |
+| :--- | :--- | :--- |
+| `aim-edge` | `boolean` | Flags the SVG element/group as an ontological relationship edge. |
+| `aim-id` | `string` | Unique edge identifier. |
+| `aim-edge-kind` | `AimEdgeKind` | `'association'` \| `'dependency'` \| `'generalization'` \| `'realization'`. |
+| `aim-source` | `string` | ID of the source node. |
+| `aim-target` | `string` | ID of the target node. |
+| `aim-bends` | `string` | Semicolon-separated orthogonal bend points: `"x1,y1; x2,y2; x3,y3"`. |
+
+---
+
+## 4. AntV X6 Canvas Integration
+
+RaidCanvas configures AntV X6 with production-grade visual systems engineering:
+* **Orthogonal Manhattan Router:** Smart edge routing that avoids obstacle nodes and creates clean 90-degree paths.
+* **Interactive Bend Points:** Draggable vertices allowing architects to tune edge layout without breaking orthogonality.
+* **Cascais Design Tokens:** Cohesive heraldic palette adhering to the AIA Platform styling standard.
+* **Bidirectional Sync (`RaiBridge`):**
+  * `RaiBridge.hydrateFromSvg(svg, graph)`: Inflates an AntV X6 interactive graph directly from raw SVG markup.
+  * `RaiBridge.serializeToSvg(graph, baseSvg?)`: Writes updated node bounds and user-adjusted bend points back into the `aim-*` SVG contract.
+
+---
+
+## 5. Monorepo Structure
+
+```text
+RaidCanvas/
+├── pnpm-workspace.yaml        # Monorepo package declaration
+├── package.json               # Root scripts (build, test, lint, dev)
+├── .gitignore                 # Standard repository ignores
+├── README.md                  # This architecture guide
+├── packages/
+│   └── canvas/                # Core library: @burkhardt/raid-canvas
+│       ├── package.json
+│       ├── tsconfig.json
+│       └── src/
+│           ├── types.ts       # Ontological metamodel & SVG contract types
+│           ├── X6Shapes.ts    # Custom AntV X6 shapes & Manhattan routing
+│           ├── RaiBridge.ts   # Bidirectional SVG <-> X6 synchronization
+│           ├── index.ts       # Public exports
+│           └── styles/
+│               └── aoaim-theme.css  # Semantic CSS theme
+└── apps/                      # (Future workbench & showcase apps)
+```
+
+---
+
+## 6. Getting Started & Development
+
+### Prerequisites
+* **Node.js:** `>= 20.0.0`
+* **pnpm:** `>= 9.0.0`
+
+### Installation & Build
+```bash
+# Install all workspace dependencies
+pnpm install
+
+# Build all packages
+pnpm build
+
+# Run typechecks
+pnpm typecheck
+
+# Execute test suite
+pnpm test
+```
+
+### Consuming `@burkhardt/raid-canvas`
+```typescript
+import { Graph } from '@antv/x6';
+import { registerAimShapes, RaiBridge, AimOntologyKind } from '@burkhardt/raid-canvas';
+import '@burkhardt/raid-canvas/styles';
+
+// 1. Initialize custom X6 shapes
+registerAimShapes();
+
+// 2. Instantiate graph container
+const graph = new Graph({
+  container: document.getElementById('canvas-container')!,
+  grid: true,
+  connecting: {
+    router: 'manhattan',
+    connector: { name: 'rounded', args: { radius: 8 } },
+  },
+});
+
+// 3. Hydrate live model from SVG carrying aim-* attributes
+const bridge = new RaiBridge();
+const metamodel = bridge.hydrateFromSvg(rawSvgString, graph);
+
+// 4. On canvas edits, serialize coordinates and bend points back to SVG
+graph.on('cell:changed', () => {
+  const updatedSvg = bridge.serializeToSvg(graph, rawSvgString);
+  console.log('Synchronized SVG:', updatedSvg);
+});
+```
+
+---
+
+## 7. License
+
+MIT © Dr. Rainer Burkhardt & The AIA Architecture Team.

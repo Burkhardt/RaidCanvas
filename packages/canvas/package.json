@@ -1,0 +1,38 @@
+{
+  "name": "@burkhardt/raid-canvas",
+  "version": "0.1.0",
+  "description": "Interactive AntV X6 diagram canvas for AOAIM (.raid) models and ontological SVG contracts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles": "./src/styles/aoaim-theme.css",
+    "./styles/*": "./src/styles/*"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"Testing @burkhardt/raid-canvas...\""
+  },
+  "dependencies": {
+    "@antv/x6": "^2.18.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.5",
+    "typescript": "^5.6.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,205 @@
+/**
+ * aoaim-theme.css
+ * Semantic CSS design tokens and component styling for the RaidCanvas AOAIM visual modeler.
+ * Adheres to the Cascais Heraldry palette and the aim-* ontological contract.
+ */
+
+:root {
+  /* Cascais Heraldry Design Tokens */
+  --aim-net-gold: #F59E0B;
+  --aim-heraldic-green: #10B981;
+  --aim-warm-graphite: #1F2937;
+  --aim-graphite-muted: #4B5563;
+  --aim-silver-line: #E5E7EB;
+  --aim-silver-line-dark: #D1D5DB;
+  --aim-chalk-white: #FFFFFF;
+  --aim-canvas-cream: #F8FAFC;
+  --aim-accent-blue: #3B82F6;
+  --aim-danger-crimson: #EF4444;
+
+  /* Typography */
+  --aim-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --aim-font-mono: 'JetBrains Mono', 'Menlo', 'Courier New', monospace;
+
+  /* Node Dimensions & Radii */
+  --aim-radius-act: 12px;
+  --aim-radius-card: 6px;
+  --aim-radius-round: 9999px;
+
+  /* Shadows */
+  --aim-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --aim-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --aim-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --aim-shadow-glow-gold: 0 0 0 3px rgba(245, 158, 11, 0.35);
+  --aim-shadow-glow-green: 0 0 0 3px rgba(16, 185, 129, 0.35);
+  --aim-shadow-glow-blue: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+
+/* Canvas Container */
+.aim-canvas {
+  background-color: var(--aim-canvas-cream);
+  font-family: var(--aim-font-family);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Base Ontological Node */
+.aim-node {
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+
+.aim-node:hover {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08));
+}
+
+.aim-node.aim-selected {
+  outline: none;
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.4));
+}
+
+/* 1. UseCase Nodes ('uc') */
+.aim-node[aim-uc],
+.aim-node[aim-kind="uc"],
+.aim-uc {
+  fill: var(--aim-chalk-white);
+  stroke: var(--aim-net-gold);
+  stroke-width: 2px;
+}
+
+.aim-node[aim-uc]:hover,
+.aim-node[aim-kind="uc"]:hover {
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4));
+}
+
+/* 2. Activity Nodes ('act') */
+.aim-node[aim-act],
+.aim-node[aim-kind="act"],
+.aim-act {
+  fill: var(--aim-canvas-cream);
+  stroke: var(--aim-heraldic-green);
+  stroke-width: 2px;
+  rx: var(--aim-radius-act);
+  ry: var(--aim-radius-act);
+}
+
+.aim-node[aim-act]:hover,
+.aim-node[aim-kind="act"]:hover {
+  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.4));
+}
+
+/* 3. Class Specification Nodes ('cls') */
+.aim-node[aim-cls],
+.aim-node[aim-kind="cls"],
+.aim-cls {
+  fill: var(--aim-chalk-white);
+  stroke: var(--aim-warm-graphite);
+  stroke-width: 1.5px;
+}
+
+.aim-node[aim-cls] .aim-cls-header {
+  fill: var(--aim-canvas-cream);
+}
+
+.aim-node[aim-cls] .aim-cls-divider {
+  stroke: var(--aim-silver-line);
+  stroke-width: 1px;
+}
+
+/* 4. Object Instance Nodes ('obj') */
+.aim-node[aim-obj],
+.aim-node[aim-kind="obj"],
+.aim-obj {
+  fill: var(--aim-chalk-white);
+  stroke: var(--aim-silver-line-dark);
+  stroke-width: 1.5px;
+}
+
+/* 5. Person / Actor Nodes ('per') */
+.aim-node[aim-per],
+.aim-node[aim-kind="per"],
+.aim-per {
+  fill: var(--aim-canvas-cream);
+  stroke: var(--aim-warm-graphite);
+  stroke-width: 1.5px;
+  rx: var(--aim-radius-card);
+  ry: var(--aim-radius-card);
+}
+
+.aim-node[aim-per][aim-role="initiating"] {
+  stroke: var(--aim-net-gold);
+  stroke-width: 2px;
+}
+
+/* Relationship Edges */
+.aim-edge {
+  fill: none;
+  stroke: var(--aim-warm-graphite);
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease;
+}
+
+.aim-edge:hover {
+  stroke: var(--aim-accent-blue);
+  stroke-width: 2.5px;
+  cursor: pointer;
+}
+
+.aim-edge[aim-edge-kind="dependency"] {
+  stroke-dasharray: 5, 5;
+}
+
+.aim-edge[aim-edge-kind="realization"] {
+  stroke-dasharray: 6, 4;
+}
+
+/* Orthogonal Port Docking Magnets */
+.aim-port-body {
+  fill: var(--aim-chalk-white);
+  stroke: var(--aim-warm-graphite);
+  stroke-width: 1.5px;
+  transition: transform 0.1s ease, fill 0.1s ease;
+}
+
+.aim-port-body:hover {
+  fill: var(--aim-net-gold);
+  stroke: var(--aim-warm-graphite);
+  transform: scale(1.4);
+  cursor: crosshair;
+}
+
+/* User-Editable Edge Bend Point Vertices */
+.x6-edge-tool-vertex {
+  fill: var(--aim-chalk-white);
+  stroke: var(--aim-accent-blue);
+  stroke-width: 2px;
+  cursor: move;
+}
+
+.x6-edge-tool-vertex:hover {
+  fill: var(--aim-accent-blue);
+  transform: scale(1.3);
+}
+
+/* Dark Mode Overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --aim-canvas-cream: #0F172A;
+    --aim-chalk-white: #1E293B;
+    --aim-warm-graphite: #94A3B8;
+    --aim-silver-line: #334155;
+    --aim-silver-line-dark: #475569;
+    --aim-text-primary: #F8FAFC;
+    --aim-text-secondary: #94A3B8;
+  }
+
+  .aim-canvas {
+    background-color: var(--aim-canvas-cream);
+  }
+
+  .aim-edge {
+    stroke: var(--aim-warm-graphite);
+  }
+}
