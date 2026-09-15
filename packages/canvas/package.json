@@ -25,7 +25,7 @@
   "scripts": {
     "build": "tsc -b --force",
     "typecheck": "tsc --noEmit",
-    "test": "node --test test/canvas.test.mjs test/RaidCanvas.test.mjs"
+    "test": "node --test test/canvas.test.mjs test/RaidCanvas.test.mjs test/semanticRules.test.mjs"
   },
   "dependencies": {
     "@antv/x6": "^2.18.1"

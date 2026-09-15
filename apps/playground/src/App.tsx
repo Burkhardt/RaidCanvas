@@ -1,14 +1,18 @@
-import React, { useState, useMemo } from 'react';
-import { RaidCanvas, type AimOntologyKind } from '@dr2rai/raid-canvas';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import {
+  RaidCanvas,
+  type RaidCanvasHandle,
+  type RaidNodeData,
+  type RaidEdgeData,
+} from '@dr2rai/raid-canvas';
 import { PRESETS } from './presets';
-
-interface SelectedEntity {
-  id: string;
-  kind: AimOntologyKind;
-  label: string;
-}
+import { StencilDrawer } from './components/StencilDrawer';
+import { PropertyInspector, type SelectedEntityData } from './components/PropertyInspector';
+import { StudioToolbar } from './components/StudioToolbar';
 
 export const App: React.FC = () => {
+  const canvasRef = useRef<RaidCanvasHandle | null>(null);
+
   const [selectedPresetId, setSelectedPresetId] = useState<string>(PRESETS[0]!.id);
   const currentPreset = useMemo(
     () => PRESETS.find((p) => p.id === selectedPresetId) ?? PRESETS[0]!,
@@ -17,9 +21,17 @@ export const App: React.FC = () => {
 
   const [svg, setSvg] = useState<string>(currentPreset.svg);
   const [readOnly, setReadOnly] = useState<boolean>(false);
-  const [selectedEntity, setSelectedEntity] = useState<SelectedEntity | null>(null);
-  const [activeTab, setActiveTab] = useState<'svg' | 'selection' | 'metamodel'>('svg');
+  const [selectedEntity, setSelectedEntity] = useState<SelectedEntityData | null>(null);
+  const [activeTab, setActiveTab] = useState<'inspector' | 'svg' | 'metamodel'>('inspector');
   const [copied, setCopied] = useState<boolean>(false);
+  const [stencilCollapsed, setStencilCollapsed] = useState<boolean>(false);
+
+  // Undo / Redo SVG Snapshot History
+  const [history, setHistory] = useState<string[]>([currentPreset.svg]);
+  const [historyIndex, setHistoryIndex] = useState<number>(0);
+
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
 
   const handleSelectPreset = (presetId: string) => {
     setSelectedPresetId(presetId);
@@ -27,21 +39,164 @@ export const App: React.FC = () => {
     if (target) {
       setSvg(target.svg);
       setSelectedEntity(null);
+      setHistory([target.svg]);
+      setHistoryIndex(0);
     }
   };
 
-  const handleReset = () => {
-    setSvg(currentPreset.svg);
-    setSelectedEntity(null);
+  const handleCanvasChange = (updatedSvg: string) => {
+    if (updatedSvg === svg) return;
+    setSvg(updatedSvg);
+
+    setHistory((prev) => {
+      const truncated = prev.slice(0, historyIndex + 1);
+      return [...truncated, updatedSvg];
+    });
+    setHistoryIndex((prev) => prev + 1);
+
+    // Refresh selected entity data if active
+    if (selectedEntity) {
+      refreshSelectedEntity(selectedEntity.id);
+    }
   };
 
+  const handleUndo = useCallback(() => {
+    if (!canUndo) return;
+    const targetIndex = historyIndex - 1;
+    const targetSvg = history[targetIndex]!;
+    setHistoryIndex(targetIndex);
+    setSvg(targetSvg);
+    setSelectedEntity(null);
+  }, [canUndo, history, historyIndex]);
+
+  const handleRedo = useCallback(() => {
+    if (!canRedo) return;
+    const targetIndex = historyIndex + 1;
+    const targetSvg = history[targetIndex]!;
+    setHistoryIndex(targetIndex);
+    setSvg(targetSvg);
+    setSelectedEntity(null);
+  }, [canRedo, history, historyIndex]);
+
+  const refreshSelectedEntity = (id: string) => {
+    const graph = canvasRef.current?.getGraph();
+    if (!graph) return;
+    const cell = graph.getCellById(id);
+    if (!cell) {
+      setSelectedEntity(null);
+      return;
+    }
+
+    if (cell.isNode()) {
+      const nodeData = (cell.getData() ?? {}) as Partial<RaidNodeData>;
+      setSelectedEntity({
+        id,
+        type: 'node',
+        nodeData: {
+          ...nodeData,
+          displayName:
+            nodeData.displayName ??
+            (cell.getAttrByPath('label/text') as string) ??
+            (cell.getAttrByPath('title/text') as string) ??
+            id,
+          bounds: {
+            x: cell.getPosition().x,
+            y: cell.getPosition().y,
+            width: cell.getSize().width,
+            height: cell.getSize().height,
+          },
+        },
+      });
+    } else if (cell.isEdge()) {
+      const edgeData = (cell.getData() ?? {}) as Partial<RaidEdgeData>;
+      setSelectedEntity({
+        id,
+        type: 'edge',
+        edgeData: {
+          ...edgeData,
+          sourceId: cell.getSourceCellId(),
+          targetId: cell.getTargetCellId(),
+          label:
+            edgeData.label ??
+            (cell.getLabels()?.[0]?.attrs?.['text']?.['text'] as string) ??
+            '',
+        },
+      });
+    }
+  };
+
+  const handleSelectionChange = (selectedIds: string[]) => {
+    if (selectedIds.length === 0 || !selectedIds[0]) {
+      setSelectedEntity(null);
+      return;
+    }
+    const id = selectedIds[0];
+    refreshSelectedEntity(id);
+    setActiveTab('inspector');
+  };
+
+  // Keyboard shortcut listener (Ctrl+Z, Ctrl+Y)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if (
+        ((e.ctrlKey || e.metaKey) && e.key === 'y') ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')
+      ) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [handleUndo, handleRedo]);
+
+  // Export Suite Handlers
   const handleCopySvg = () => {
     navigator.clipboard.writeText(svg);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
 
-  // Quick parser to extract summary facts for Tab 3
+  const handleDownloadSvg = () => {
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentPreset.id || 'aoaim-diagram'}.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPng = () => {
+    const img = new Image();
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 800;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const pngUrl = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = `${currentPreset.id || 'aoaim-diagram'}.png`;
+        a.click();
+      }
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  };
+
+  // Quick parser to extract summary facts
   const summaryFacts = useMemo(() => {
     const nodeMatches = svg.match(/aim-node="true"/g) ?? [];
     const edgeMatches = svg.match(/aim-edge="true"/g) ?? [];
@@ -55,153 +210,90 @@ export const App: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#F8FAFC' }}>
-      {/* Top Navigation Bar */}
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 24px',
-          background: '#FFFFFF',
-          borderBottom: '1px solid #E2E8F0',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>🎨</span>
-            <h1 style={{ fontSize: '16px', fontWeight: '700', color: '#0F172A', letterSpacing: '-0.02em' }}>
-              RaidCanvas Playground
-            </h1>
-          </div>
-          <span
-            style={{
-              padding: '2px 8px',
-              fontSize: '11px',
-              fontWeight: '600',
-              borderRadius: '9999px',
-              background: '#EFF6FF',
-              color: '#2563EB',
-            }}
-          >
-            v0.1.0 • Dynabook Spirit
-          </span>
-        </div>
+      {/* Studio Header & Top Toolbar */}
+      <StudioToolbar
+        presets={PRESETS}
+        selectedPresetId={selectedPresetId}
+        onSelectPreset={handleSelectPreset}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onDeleteSelected={() => canvasRef.current?.deleteSelection()}
+        onClear={() => canvasRef.current?.clear()}
+        onCenter={() => canvasRef.current?.center()}
+        onFit={() => canvasRef.current?.zoomToFit()}
+        onDownloadSvg={handleDownloadSvg}
+        onExportPng={handleExportPng}
+        onCopySvg={handleCopySvg}
+        copied={copied}
+        readOnly={readOnly}
+        onToggleReadOnly={setReadOnly}
+      />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {/* Preset Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label htmlFor="preset-select" style={{ fontSize: '13px', fontWeight: '500', color: '#64748B' }}>
-              Preset:
-            </label>
-            <select
-              id="preset-select"
-              value={selectedPresetId}
-              onChange={(e) => handleSelectPreset(e.target.value)}
-              style={{
-                padding: '6px 12px',
-                fontSize: '13px',
-                fontWeight: '500',
-                borderRadius: '6px',
-                border: '1px solid #CBD5E1',
-                background: '#FFFFFF',
-                color: '#0F172A',
-                cursor: 'pointer',
-              }}
-            >
-              {PRESETS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* ReadOnly Toggle */}
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '13px',
-              fontWeight: '500',
-              color: '#334155',
-              cursor: 'pointer',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={readOnly}
-              onChange={(e) => setReadOnly(e.target.checked)}
-              style={{ cursor: 'pointer', accentColor: '#2563EB' }}
-            />
-            Read Only (Pan/Zoom)
-          </label>
-
-          {/* Reset Button */}
-          <button
-            onClick={handleReset}
-            style={{
-              padding: '6px 12px',
-              fontSize: '13px',
-              fontWeight: '500',
-              borderRadius: '6px',
-              border: '1px solid #E2E8F0',
-              background: '#F1F5F9',
-              color: '#475569',
-              cursor: 'pointer',
-            }}
-          >
-            Reset
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content Split Area */}
+      {/* Main 3-Column IDE Layout */}
       <main style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left: Interactive Canvas Host */}
+        {/* Left Column: AOAIM Stencil Drawer (Drag-and-Drop Palette) */}
+        <StencilDrawer
+          onAddNode={(kind) => canvasRef.current?.addNode(kind)}
+          collapsed={stencilCollapsed}
+          onToggleCollapse={() => setStencilCollapsed((c) => !c)}
+        />
+
+        {/* Center Column: Interactive Visual Canvas */}
         <div
           style={{
-            flex: 6,
+            flex: 1,
             display: 'flex',
             flexDirection: 'column',
             position: 'relative',
-            borderRight: '1px solid #E2E8F0',
             background: '#FFFFFF',
           }}
         >
+          {/* Sub-header status strip */}
           <div
             style={{
-              padding: '8px 16px',
+              padding: '6px 16px',
               background: '#F8FAFC',
               borderBottom: '1px solid #F1F5F9',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              fontSize: '12px',
+              fontSize: '11px',
               color: '#64748B',
             }}
           >
             <span>
-              <strong>Canvas:</strong> {currentPreset.name} • {readOnly ? 'Viewer Mode' : 'Direct Manipulation Mode (Drag nodes, adjust orthogonal bends)'}
+              <strong>Active Model:</strong> {currentPreset.name} • {readOnly ? 'Viewer Mode' : 'Direct Manipulation (Anti-Entropy Wiring Enabled)'}
             </span>
             <span>
               {summaryFacts.nodeCount} Nodes • {summaryFacts.edgeCount} Edges
             </span>
           </div>
 
+          {/* Canvas Host */}
           <div style={{ flex: 1, position: 'relative' }}>
             <RaidCanvas
+              ref={canvasRef}
               svg={svg}
               readOnly={readOnly}
-              onChange={(updated) => setSvg(updated)}
-              onSelect={(selection) => setSelectedEntity(selection)}
+              onChange={handleCanvasChange}
+              onSelectionChange={handleSelectionChange}
             />
           </div>
         </div>
 
-        {/* Right: Live Inspector & Code Panel */}
-        <div style={{ flex: 4, display: 'flex', flexDirection: 'column', background: '#0F172A', color: '#F8FAFC' }}>
+        {/* Right Column: Multi-tab Drawer (Inspector, Live SVG, Metamodel Facts) */}
+        <div
+          style={{
+            width: 360,
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#0F172A',
+            color: '#F8FAFC',
+            borderLeft: '1px solid #1E293B',
+          }}
+        >
           {/* Tab Bar */}
           <div
             style={{
@@ -212,10 +304,26 @@ export const App: React.FC = () => {
             }}
           >
             <button
+              onClick={() => setActiveTab('inspector')}
+              style={{
+                flex: 1,
+                padding: '10px 8px',
+                fontSize: '12px',
+                fontWeight: '600',
+                border: 'none',
+                background: activeTab === 'inspector' ? '#0F172A' : 'transparent',
+                color: activeTab === 'inspector' ? '#38BDF8' : '#94A3B8',
+                cursor: 'pointer',
+                borderBottom: activeTab === 'inspector' ? '2px solid #38BDF8' : 'none',
+              }}
+            >
+              Inspector {selectedEntity ? `(${selectedEntity.id})` : ''}
+            </button>
+            <button
               onClick={() => setActiveTab('svg')}
               style={{
                 flex: 1,
-                padding: '10px 12px',
+                padding: '10px 8px',
                 fontSize: '12px',
                 fontWeight: '600',
                 border: 'none',
@@ -228,26 +336,10 @@ export const App: React.FC = () => {
               Live aim-* SVG
             </button>
             <button
-              onClick={() => setActiveTab('selection')}
-              style={{
-                flex: 1,
-                padding: '10px 12px',
-                fontSize: '12px',
-                fontWeight: '600',
-                border: 'none',
-                background: activeTab === 'selection' ? '#0F172A' : 'transparent',
-                color: activeTab === 'selection' ? '#38BDF8' : '#94A3B8',
-                cursor: 'pointer',
-                borderBottom: activeTab === 'selection' ? '2px solid #38BDF8' : 'none',
-              }}
-            >
-              Selection Inspector {selectedEntity ? `(${selectedEntity.id})` : ''}
-            </button>
-            <button
               onClick={() => setActiveTab('metamodel')}
               style={{
                 flex: 1,
-                padding: '10px 12px',
+                padding: '10px 8px',
                 fontSize: '12px',
                 fontWeight: '600',
                 border: 'none',
@@ -257,17 +349,39 @@ export const App: React.FC = () => {
                 borderBottom: activeTab === 'metamodel' ? '2px solid #38BDF8' : 'none',
               }}
             >
-              Metamodel Facts
+              Metamodel
             </button>
           </div>
 
           {/* Tab Content */}
-          <div style={{ flex: 1, overflow: 'auto', padding: '16px', position: 'relative' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px', position: 'relative' }}>
+            {activeTab === 'inspector' && (
+              <PropertyInspector
+                selection={selectedEntity}
+                onUpdateNode={(id, updates) => {
+                  canvasRef.current?.updateNode(id, updates);
+                  refreshSelectedEntity(id);
+                }}
+                onUpdateEdge={(id, updates) => {
+                  canvasRef.current?.updateEdge(id, updates);
+                  refreshSelectedEntity(id);
+                }}
+                onDeleteSelected={() => canvasRef.current?.deleteSelection()}
+              />
+            )}
+
             {activeTab === 'svg' && (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px',
+                  }}
+                >
                   <span style={{ fontSize: '11px', color: '#94A3B8' }}>
-                    Real-time SVG document synchronized with canvas manipulation:
+                    Synchronized aim-* XML Contract:
                   </span>
                   <button
                     onClick={handleCopySvg}
@@ -281,13 +395,13 @@ export const App: React.FC = () => {
                       cursor: 'pointer',
                     }}
                   >
-                    {copied ? '✓ Copied' : 'Copy SVG'}
+                    {copied ? '✓ Copied' : 'Copy'}
                   </button>
                 </div>
                 <pre
                   style={{
                     fontFamily: '"JetBrains Mono", Consolas, monospace',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     lineHeight: '1.5',
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-all',
@@ -300,49 +414,6 @@ export const App: React.FC = () => {
                 >
                   {svg}
                 </pre>
-              </div>
-            )}
-
-            {activeTab === 'selection' && (
-              <div>
-                {selectedEntity ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#38BDF8' }}>
-                      Selected Graph Entity
-                    </div>
-                    <div style={{ background: '#1E293B', padding: '12px', borderRadius: '6px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '12px', color: '#94A3B8' }}>ID:</span>
-                        <code style={{ fontSize: '12px', color: '#F8FAFC' }}>{selectedEntity.id}</code>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '12px', color: '#94A3B8' }}>Ontological Kind:</span>
-                        <span
-                          style={{
-                            padding: '2px 8px',
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            borderRadius: '4px',
-                            background: selectedEntity.kind === 'uc' ? '#F59E0B' : selectedEntity.kind === 'act' ? '#10B981' : '#3B82F6',
-                            color: '#FFFFFF',
-                          }}
-                        >
-                          {selectedEntity.kind.toUpperCase()}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '12px', color: '#94A3B8' }}>Label:</span>
-                        <span style={{ fontSize: '12px', color: '#F8FAFC', fontWeight: '500' }}>
-                          {selectedEntity.label}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '40px 16px', color: '#64748B', fontSize: '13px' }}>
-                    Click on any node or edge on the canvas to inspect its ontological properties.
-                  </div>
-                )}
               </div>
             )}
 

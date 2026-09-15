@@ -147,6 +147,8 @@ export class RaiBridge {
         ...(targetPort !== undefined ? { targetPort } : {}),
         ...(label !== undefined ? { label } : {}),
         ...(customData.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
+        ...(customData.sourceCardinality !== undefined ? { sourceCardinality: customData.sourceCardinality } : {}),
+        ...(customData.targetCardinality !== undefined ? { targetCardinality: customData.targetCardinality } : {}),
         bendPoints,
       };
 
@@ -322,6 +324,11 @@ export class RaiBridge {
             Math.abs(bendPoints[0]!.x - (sourceNode.bounds.x + sourceNode.bounds.width / 2)) < 40));
       const effectiveBendPoints = isTerminalOnly ? [] : bendPoints;
 
+      const sourceCardinality =
+        el.getAttribute('aim-source-cardinality') ?? undefined;
+      const targetCardinality =
+        el.getAttribute('aim-target-cardinality') ?? undefined;
+
       edges.push({
         id,
         kind,
@@ -330,6 +337,8 @@ export class RaiBridge {
         ...(sourcePort !== undefined ? { sourcePort } : {}),
         ...(targetPort !== undefined ? { targetPort } : {}),
         ...(label !== undefined ? { label } : {}),
+        ...(sourceCardinality !== undefined ? { sourceCardinality } : {}),
+        ...(targetCardinality !== undefined ? { targetCardinality } : {}),
         bendPoints: effectiveBendPoints,
       });
     }
@@ -424,6 +433,16 @@ export class RaiBridge {
         el.setAttribute(AimSvgContract.ATTR_BENDS, bendsString);
         el.setAttribute(AimSvgContract.ATTR_EDGE, 'true');
         el.setAttribute(AimSvgContract.ATTR_EDGE_KIND, edge.kind);
+
+        if (edge.stereotype !== undefined) {
+          el.setAttribute(AimSvgContract.ATTR_STEREOTYPE, edge.stereotype);
+        }
+        if (edge.sourceCardinality !== undefined) {
+          el.setAttribute('aim-source-cardinality', edge.sourceCardinality);
+        }
+        if (edge.targetCardinality !== undefined) {
+          el.setAttribute('aim-target-cardinality', edge.targetCardinality);
+        }
       }
     }
 

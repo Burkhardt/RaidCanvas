@@ -7,6 +7,8 @@
  * - 4-way orthogonal ports and Manhattan router integration.
  * - Cascais Heraldry design tokens and theme styling.
  * - Bidirectional RaiBridge for hydrating from and serializing to the aim-* SVG contract.
+ * - Anti-entropy semantic connection validation and wiring rules.
+ * - Reusable <RaidCanvas /> React component with Dnd and imperative control handle.
  */
 
 // Core Metamodel & SVG Contract Types
@@ -33,10 +35,28 @@ export {
   configureAimGraph,
   createAimNode,
   createAimEdge,
+  getDefaultNodeBounds,
+  getDefaultNodeName,
 } from './X6Shapes.js';
+
+// Anti-Entropy Semantic Connection Rules
+export {
+  SEMANTIC_RULES_MATRIX,
+  validateSemanticConnection,
+  getSemanticEdgeKind,
+  getSemanticEdgeStereotype,
+  getSemanticRuleDescription,
+  getAvailableStereotypes,
+  type SemanticRule,
+  type StereotypeOption,
+} from './semanticRules.js';
 
 // Bidirectional SVG <-> X6 Synchronization Bridge
 export { RaiBridge } from './RaiBridge.js';
 
-// Reusable React Canvas Component
-export { RaidCanvas, type RaidCanvasProps } from './RaidCanvas.js';
+// Reusable React Canvas Component & Ref Handle
+export {
+  RaidCanvas,
+  type RaidCanvasProps,
+  type RaidCanvasHandle,
+} from './RaidCanvas.js';

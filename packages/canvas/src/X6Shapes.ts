@@ -11,10 +11,12 @@
 
 import { Graph, Shape, Node, Edge } from '@antv/x6';
 import type {
+  AimOntologyKind,
   AimEdgeKind,
   RaidNodeData,
   RaidEdgeData,
   OrthogonalPortId,
+  Bounds,
 } from './types.js';
 
 /**
@@ -574,3 +576,48 @@ function getEdgeStyling(kind: AimEdgeKind): Record<string, unknown> {
       };
   }
 }
+
+/**
+ * Returns default Cartesian bounds for an instantiated AOAIM archetype.
+ */
+export function getDefaultNodeBounds(
+  kind: AimOntologyKind | string,
+  x: number = 100,
+  y: number = 100,
+): Bounds {
+  switch (kind) {
+    case 'uc':
+      return { x, y, width: 140, height: 70 };
+    case 'act':
+      return { x, y, width: 150, height: 60 };
+    case 'cls':
+      return { x, y, width: 180, height: 110 };
+    case 'obj':
+      return { x, y, width: 160, height: 80 };
+    case 'per':
+      return { x, y, width: 120, height: 70 };
+    default:
+      return { x, y, width: 140, height: 60 };
+  }
+}
+
+/**
+ * Returns a canonical default display name for an instantiated AOAIM archetype.
+ */
+export function getDefaultNodeName(kind: AimOntologyKind | string): string {
+  switch (kind) {
+    case 'uc':
+      return 'New UseCase';
+    case 'act':
+      return 'New Activity';
+    case 'cls':
+      return 'NewClass';
+    case 'obj':
+      return 'new Object';
+    case 'per':
+      return 'Actor';
+    default:
+      return 'Entity';
+  }
+}
+
