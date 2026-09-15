@@ -1,5 +1,5 @@
 {
-  "name": "@burkhardt/raid-canvas",
+  "name": "@dr2rai/raid-canvas",
   "version": "0.1.0",
   "description": "Interactive AntV X6 diagram canvas for AOAIM (.raid) models and ontological SVG contracts",
   "type": "module",
@@ -23,7 +23,7 @@
     "NOTICE"
   ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b --force",
     "typecheck": "tsc --noEmit",
     "test": "node --test test/canvas.test.mjs"
   },

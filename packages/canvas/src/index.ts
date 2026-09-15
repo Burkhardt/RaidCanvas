@@ -1,6 +1,6 @@
 /**
  * @file index.ts
- * @description Main public entry point for @burkhardt/raid-canvas.
+ * @description Main public entry point for @dr2rai/raid-canvas.
  *
  * Provides:
  * - AntV X6 custom shape registrations for AOAIM ontological entities.

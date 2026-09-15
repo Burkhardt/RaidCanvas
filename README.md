@@ -117,7 +117,7 @@ RaidCanvas/
 ├── .gitignore                 # Standard repository ignores
 ├── README.md                  # This architecture guide
 ├── packages/
-│   └── canvas/                # Core library: @burkhardt/raid-canvas
+│   └── canvas/                # Core library: @dr2rai/raid-canvas
 │       ├── package.json
 │       ├── tsconfig.json
 │       └── src/
@@ -140,7 +140,10 @@ RaidCanvas/
 
 ### Installation & Build
 ```bash
-# Install all workspace dependencies
+# Install in your application
+pnpm add @dr2rai/raid-canvas
+
+# Workspace development install
 pnpm install
 
 # Build all packages
@@ -153,11 +156,11 @@ pnpm typecheck
 pnpm test
 ```
 
-### Consuming `@burkhardt/raid-canvas`
+### Consuming `@dr2rai/raid-canvas`
 ```typescript
 import { Graph } from '@antv/x6';
-import { registerAimShapes, RaiBridge, AimOntologyKind } from '@burkhardt/raid-canvas';
-import '@burkhardt/raid-canvas/styles';
+import { registerAimShapes, RaiBridge, AimOntologyKind } from '@dr2rai/raid-canvas';
+import '@dr2rai/raid-canvas/styles';
 
 // 1. Initialize custom X6 shapes
 registerAimShapes();
