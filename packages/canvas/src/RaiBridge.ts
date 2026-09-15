@@ -266,8 +266,61 @@ export class RaiBridge {
       const bendsAttr = el.getAttribute(AimSvgContract.ATTR_BENDS) ?? '';
       const bendPoints = this.parseBendPoints(bendsAttr);
 
-      const sourcePort = el.getAttribute(AimSvgContract.ATTR_SOURCE_PORT) ?? undefined;
-      const targetPort = el.getAttribute(AimSvgContract.ATTR_TARGET_PORT) ?? undefined;
+      const label =
+        el.getAttribute('aim-label') ??
+        el.querySelector('text')?.textContent?.trim() ??
+        undefined;
+
+      let sourcePort = el.getAttribute(AimSvgContract.ATTR_SOURCE_PORT) ?? undefined;
+      let targetPort = el.getAttribute(AimSvgContract.ATTR_TARGET_PORT) ?? undefined;
+
+      const sourceNode = nodes.find((n) => n.id === sourceId);
+      const targetNode = nodes.find((n) => n.id === targetId);
+
+      // Infer optimal orthogonal docking ports if not explicitly declared
+      if (sourceNode && targetNode) {
+        const dx =
+          targetNode.bounds.x +
+          targetNode.bounds.width / 2 -
+          (sourceNode.bounds.x + sourceNode.bounds.width / 2);
+        const dy =
+          targetNode.bounds.y +
+          targetNode.bounds.height / 2 -
+          (sourceNode.bounds.y + sourceNode.bounds.height / 2);
+
+        if (!sourcePort) {
+          sourcePort =
+            Math.abs(dx) >= Math.abs(dy)
+              ? dx >= 0
+                ? 'port-right'
+                : 'port-left'
+              : dy >= 0
+                ? 'port-bottom'
+                : 'port-top';
+        }
+        if (!targetPort) {
+          targetPort =
+            Math.abs(dx) >= Math.abs(dy)
+              ? dx >= 0
+                ? 'port-left'
+                : 'port-right'
+              : dy >= 0
+                ? 'port-top'
+                : 'port-bottom';
+        }
+      }
+
+      // If bendPoints contains only the 2 terminal endpoints of a straight connector,
+      // clear them so the orthogonal router doesn't treat the terminals as obstacle waypoints
+      const isTerminalOnly =
+        bendPoints.length === 2 &&
+        sourceNode &&
+        targetNode &&
+        ((Math.abs(bendPoints[0]!.y - bendPoints[1]!.y) < 2 &&
+          Math.abs(bendPoints[0]!.y - (sourceNode.bounds.y + sourceNode.bounds.height / 2)) < 40) ||
+          (Math.abs(bendPoints[0]!.x - bendPoints[1]!.x) < 2 &&
+            Math.abs(bendPoints[0]!.x - (sourceNode.bounds.x + sourceNode.bounds.width / 2)) < 40));
+      const effectiveBendPoints = isTerminalOnly ? [] : bendPoints;
 
       edges.push({
         id,
@@ -276,7 +329,8 @@ export class RaiBridge {
         targetId,
         ...(sourcePort !== undefined ? { sourcePort } : {}),
         ...(targetPort !== undefined ? { targetPort } : {}),
-        bendPoints,
+        ...(label !== undefined ? { label } : {}),
+        bendPoints: effectiveBendPoints,
       });
     }
 

@@ -9,7 +9,7 @@
  * - Cascais Heraldry design tokens.
  */
 
-import { Graph, Node, Edge } from '@antv/x6';
+import { Graph, Shape, Node, Edge } from '@antv/x6';
 import type {
   AimEdgeKind,
   RaidNodeData,
@@ -105,9 +105,9 @@ export function registerAimShapes(): void {
   }
 
   // 1. AimUseCaseNode ('uc') — Ellipse with Net Gold border
-  Node.define({
+  Shape.Ellipse.define({
     shape: 'aim-uc',
-    inherit: 'ellipse',
+    overwrite: true,
     width: 140,
     height: 70,
     attrs: {
@@ -115,8 +115,6 @@ export function registerAimShapes(): void {
         fill: CascaisPalette.ChalkWhite,
         stroke: CascaisPalette.NetGold,
         strokeWidth: 2,
-        rx: 70,
-        ry: 35,
         class: 'aim-node aim-uc',
       },
       label: {
@@ -133,9 +131,9 @@ export function registerAimShapes(): void {
   });
 
   // 2. AimActivityNode ('act') — Rounded rectangle with Heraldic Green border
-  Node.define({
+  Shape.Rect.define({
     shape: 'aim-act',
-    inherit: 'rect',
+    overwrite: true,
     width: 150,
     height: 60,
     attrs: {
@@ -161,9 +159,9 @@ export function registerAimShapes(): void {
   });
 
   // 3. AimClassNode ('cls') — Compartmentalized class card
-  Node.define({
+  Shape.Rect.define({
     shape: 'aim-cls',
-    inherit: 'rect',
+    overwrite: true,
     width: 180,
     height: 100,
     markup: [
@@ -258,9 +256,9 @@ export function registerAimShapes(): void {
   });
 
   // 4. AimObjectNode ('obj') — Instance card with underlined title
-  Node.define({
+  Shape.Rect.define({
     shape: 'aim-obj',
-    inherit: 'rect',
+    overwrite: true,
     width: 160,
     height: 80,
     attrs: {
@@ -271,7 +269,7 @@ export function registerAimShapes(): void {
         class: 'aim-node aim-obj',
       },
       label: {
-        text: '<u>instance: Type</u>',
+        text: 'instance: Type',
         fill: CascaisPalette.TextPrimary,
         fontSize: 12,
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -283,9 +281,9 @@ export function registerAimShapes(): void {
   });
 
   // 5. AimPersonNode ('per') — Person / Actor role card
-  Node.define({
+  Shape.Rect.define({
     shape: 'aim-per',
-    inherit: 'rect',
+    overwrite: true,
     width: 120,
     height: 70,
     attrs: {
@@ -311,9 +309,9 @@ export function registerAimShapes(): void {
   });
 
   // 6. AimEdge — Orthogonal Manhattan edge with rounded corners
-  Edge.define({
+  Shape.Edge.define({
     shape: 'aim-edge',
-    inherit: 'edge',
+    overwrite: true,
     router: {
       name: 'manhattan',
       args: {
@@ -509,8 +507,11 @@ function getEdgeStyling(kind: AimEdgeKind): Record<string, unknown> {
         strokeWidth: 1.5,
         strokeDasharray: '5,5',
         targetMarker: {
-          name: 'open',
-          size: 8,
+          name: 'block',
+          args: {
+            size: 8,
+            open: true,
+          },
         },
       };
 

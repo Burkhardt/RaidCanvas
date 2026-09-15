@@ -245,6 +245,7 @@ export const RaidCanvas: React.FC<RaidCanvasProps> = ({
       try {
         bridgeRef.current.hydrateFromSvg(svgPropRef.current, graph);
         lastSerializedSvgRef.current = svgPropRef.current;
+        graph.centerContent();
       } catch (err) {
         console.error('RaidCanvas hydration error:', err);
       } finally {
@@ -279,6 +280,7 @@ export const RaidCanvas: React.FC<RaidCanvasProps> = ({
     try {
       bridgeRef.current.hydrateFromSvg(activeSvg, graph);
       lastSerializedSvgRef.current = activeSvg;
+      graph.centerContent();
     } catch (err) {
       console.error('RaidCanvas re-hydration error:', err);
     } finally {

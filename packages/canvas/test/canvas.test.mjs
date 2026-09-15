@@ -113,8 +113,26 @@ describe('RaidCanvas Core Tests', () => {
       getEdges: () => [],
     }, undefined, {});
 
-    // Directly test fresh SVG generation logic through metamodelFromGraph mock or serialize
     assert.ok(svg.includes('<svg'));
     assert.ok(svg.includes('id="RaidDiagram"'));
   });
+
+  test('registered AOAIM shapes define valid SVG markup in X6 registry', async () => {
+    const { Node, Edge } = await import('@antv/x6');
+    const kinds = ['aim-uc', 'aim-act', 'aim-cls', 'aim-obj', 'aim-per'];
+    for (const kind of kinds) {
+      const Ctor = Node.registry.get(kind);
+      assert.ok(Ctor, `Shape ${kind} should be registered in Node registry`);
+      const instance = new Ctor();
+      assert.ok(instance.markup, `Shape ${kind} must have defined markup`);
+      assert.ok(Array.isArray(instance.markup), `Shape ${kind} markup must be an array`);
+      assert.ok(instance.markup.length > 0, `Shape ${kind} markup must not be empty`);
+    }
+
+    const EdgeCtor = Edge.registry.get('aim-edge');
+    assert.ok(EdgeCtor, 'aim-edge should be registered in Edge registry');
+    const edgeInstance = new EdgeCtor();
+    assert.ok(edgeInstance.markup, 'aim-edge must have defined markup');
+  });
 });
+
