@@ -9,27 +9,44 @@ describe('RaidCanvas React Component Export & Contracts', () => {
     assert.equal(RaidCanvas.name, 'RaidCanvas');
   });
 
-  test('RaidCanvas can be created as a React element', () => {
+  test('RaidCanvas accepts Adele Sprint 2638 props (svgContent, onSave, onSelectionChange)', () => {
     const sampleSvg = `<svg id="test-canvas" xmlns="http://www.w3.org/2000/svg">
       <g aim-node="true" aim-id="UC_Test" aim-kind="uc" transform="translate(10, 20)">
         <text>Test UseCase</text>
       </g>
     </svg>`;
 
+    const onSave = (s) => {};
+    const onSelectionChange = (ids) => {};
+
     const element = React.createElement(RaidCanvas, {
-      svg: sampleSvg,
+      svgContent: sampleSvg,
       readOnly: true,
+      showToolbar: true,
+      onSave,
+      onSelectionChange,
       className: 'custom-class',
       style: { height: 500 },
+    });
+
+    assert.equal(element.type, RaidCanvas);
+    assert.equal(element.props.svgContent, sampleSvg);
+    assert.equal(element.props.readOnly, true);
+    assert.equal(element.props.showToolbar, true);
+    assert.equal(element.props.onSave, onSave);
+    assert.equal(element.props.onSelectionChange, onSelectionChange);
+  });
+
+  test('RaidCanvas can be created with legacy svg and onSelect props', () => {
+    const sampleSvg = `<svg id="test-canvas" xmlns="http://www.w3.org/2000/svg" />`;
+    const element = React.createElement(RaidCanvas, {
+      svg: sampleSvg,
       onChange: () => {},
       onSelect: () => {},
     });
 
     assert.equal(element.type, RaidCanvas);
     assert.equal(element.props.svg, sampleSvg);
-    assert.equal(element.props.readOnly, true);
-    assert.equal(element.props.className, 'custom-class');
-    assert.deepEqual(element.props.style, { height: 500 });
   });
 
   test('RaiBridge correctly serializes aim-* contracts for RaidCanvas consumption', () => {
