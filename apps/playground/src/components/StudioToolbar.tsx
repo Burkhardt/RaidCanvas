@@ -17,6 +17,8 @@ interface StudioToolbarProps {
   onExportPng: () => void;
   onCopySvg: () => void;
   copied: boolean;
+  routingMode: 'manhattan' | 'normal' | 'smooth';
+  onChangeRoutingMode: (mode: 'manhattan' | 'normal' | 'smooth') => void;
   readOnly: boolean;
   onToggleReadOnly: (val: boolean) => void;
 }
@@ -37,6 +39,8 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
   onExportPng,
   onCopySvg,
   copied,
+  routingMode,
+  onChangeRoutingMode,
   readOnly,
   onToggleReadOnly,
 }) => {
@@ -157,6 +161,64 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
         >
           ⛶ Fit
         </button>
+
+        <div style={{ width: 1, height: 16, background: '#E2E8F0', margin: '0 4px' }} />
+
+        {/* Routing Mode Switch */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            background: '#F1F5F9',
+            padding: '2px',
+            borderRadius: 6,
+            border: '1px solid #E2E8F0',
+            gap: 2,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => onChangeRoutingMode('manhattan')}
+            title="Manhattan Routing: Obstacle-avoiding 90° orthogonal bends"
+            style={{
+              ...routingBtnStyle,
+              background: routingMode === 'manhattan' ? '#FFFFFF' : 'transparent',
+              color: routingMode === 'manhattan' ? '#0F172A' : '#64748B',
+              boxShadow: routingMode === 'manhattan' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+              fontWeight: routingMode === 'manhattan' ? 700 : 500,
+            }}
+          >
+            ⮡ Manhattan
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangeRoutingMode('normal')}
+            title="Straight Routing: Direct point-to-point lines"
+            style={{
+              ...routingBtnStyle,
+              background: routingMode === 'normal' ? '#FFFFFF' : 'transparent',
+              color: routingMode === 'normal' ? '#0F172A' : '#64748B',
+              boxShadow: routingMode === 'normal' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+              fontWeight: routingMode === 'normal' ? 700 : 500,
+            }}
+          >
+            ╲ Straight
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangeRoutingMode('smooth')}
+            title="Curved Routing: Smooth cubic bezier splines"
+            style={{
+              ...routingBtnStyle,
+              background: routingMode === 'smooth' ? '#FFFFFF' : 'transparent',
+              color: routingMode === 'smooth' ? '#0F172A' : '#64748B',
+              boxShadow: routingMode === 'smooth' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+              fontWeight: routingMode === 'smooth' ? 700 : 500,
+            }}
+          >
+            ∿ Curved
+          </button>
+        </div>
       </div>
 
       {/* Right: Export Suite & Modes */}
@@ -231,6 +293,15 @@ const btnStyle: React.CSSProperties = {
   border: '1px solid #E2E8F0',
   background: '#F8FAFC',
   color: '#334155',
+  cursor: 'pointer',
+  transition: 'all 0.15s ease',
+};
+
+const routingBtnStyle: React.CSSProperties = {
+  border: 'none',
+  padding: '4px 8px',
+  fontSize: 11,
+  borderRadius: 4,
   cursor: 'pointer',
   transition: 'all 0.15s ease',
 };

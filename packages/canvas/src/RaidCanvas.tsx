@@ -16,12 +16,13 @@ import React, {
   useCallback,
   useImperativeHandle,
 } from 'react';
-import { Graph, Shape } from '@antv/x6';
+import { Graph, Shape, Edge } from '@antv/x6';
 import { RaiBridge } from './RaiBridge.js';
 import {
   registerAimShapes,
   configureAimGraph,
   createAimNode,
+  applyEdgeRouting,
   CascaisPalette,
   getDefaultNodeBounds,
   getDefaultNodeName,
@@ -31,7 +32,7 @@ import {
   getSemanticEdgeKind,
   getSemanticEdgeStereotype,
 } from './semanticRules.js';
-import type { AimOntologyKind, RaidNodeData, RaidEdgeData } from './types.js';
+import type { AimOntologyKind, AimRoutingMode, RaidNodeData, RaidEdgeData } from './types.js';
 
 export interface RaidCanvasProps {
   /** The raw SVG string carrying aim-* ontological attributes (preferred) */
@@ -40,6 +41,8 @@ export interface RaidCanvasProps {
   svgContent?: string;
   /** Whether the canvas allows dragging and editing, or behaves as a pan/zoom viewer */
   readOnly?: boolean;
+  /** Default routing mode for edges ('manhattan', 'normal', 'smooth'). Default: 'manhattan' */
+  defaultRouting?: AimRoutingMode;
   /** Optional CSS class name for the outer wrapper */
   className?: string;
   /** Optional inline styles for outer wrapper */
@@ -72,8 +75,12 @@ export interface RaidCanvasHandle {
   ) => string;
   /** Update properties of an existing node (label, stereotype, dimensions, etc.) */
   updateNode: (id: string, updates: Partial<RaidNodeData>) => void;
-  /** Update properties of an existing edge (kind, label, stereotype) */
+  /** Update properties of an existing edge (kind, label, stereotype, routing, ports) */
   updateEdge: (id: string, updates: Partial<RaidEdgeData>) => void;
+  /** Set routing mode across the canvas or for new edges */
+  setRoutingMode: (mode: AimRoutingMode, applyToAllEdges?: boolean) => void;
+  /** Get the current active canvas routing mode */
+  getRoutingMode: () => AimRoutingMode;
   /** Delete currently selected cell(s) */
   deleteSelection: () => void;
   /** Clear all cells on the canvas */
@@ -100,6 +107,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
       svg,
       svgContent,
       readOnly = false,
+      defaultRouting = 'manhattan',
       className,
       style,
       onChange,
@@ -118,6 +126,9 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
     const isHydratingRef = useRef<boolean>(false);
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const selectedCellIdRef = useRef<string | null>(null);
+    const clearEdgeToolsRef = useRef<(() => void) | null>(null);
+    const routingModeRef = useRef<AimRoutingMode>(defaultRouting);
+    routingModeRef.current = defaultRouting;
 
     const [zoomLevel, setZoomLevel] = useState<number>(100);
     const [isDragOver, setIsDragOver] = useState<boolean>(false);
@@ -302,6 +313,24 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
           const nextData = { ...currentData, ...updates };
           edge.setData(nextData);
 
+          if (updates.routing !== undefined) {
+            applyEdgeRouting(edge, updates.routing);
+          }
+
+          if (updates.sourcePort !== undefined) {
+            const currentSource = edge.getSource() as { cell?: string };
+            if (currentSource.cell) {
+              edge.setSource({ cell: currentSource.cell, port: updates.sourcePort });
+            }
+          }
+
+          if (updates.targetPort !== undefined) {
+            const currentTarget = edge.getTarget() as { cell?: string };
+            if (currentTarget.cell) {
+              edge.setTarget({ cell: currentTarget.cell, port: updates.targetPort });
+            }
+          }
+
           if (updates.label !== undefined || updates.stereotype !== undefined) {
             const text = updates.label ?? updates.stereotype ?? '';
             edge.setLabels(
@@ -324,12 +353,25 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
           triggerDebouncedChange();
         },
+        setRoutingMode: (mode, applyToAll = true) => {
+          routingModeRef.current = mode;
+          if (applyToAll && graphRef.current) {
+            for (const edge of graphRef.current.getEdges()) {
+              applyEdgeRouting(edge, mode);
+              const currentData = (edge.getData() ?? {}) as RaidEdgeData;
+              edge.setData({ ...currentData, routing: mode });
+            }
+            triggerDebouncedChange();
+          }
+        },
+        getRoutingMode: () => routingModeRef.current,
         deleteSelection: () => {
           const graph = graphRef.current;
           if (!graph || readOnly) return;
           if (selectedCellIdRef.current) {
             const cell = graph.getCellById(selectedCellIdRef.current);
             if (cell) {
+              clearEdgeToolsRef.current?.();
               graph.removeCell(cell);
               selectedCellIdRef.current = null;
               onSelectRef.current?.(null);
@@ -455,9 +497,11 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
             return validateSemanticConnection(sourceKind, targetKind);
           },
           createEdge() {
-            return new Shape.Edge({
+            const edge = new Shape.Edge({
               shape: 'aim-edge',
             });
+            applyEdgeRouting(edge, routingModeRef.current);
+            return edge;
           },
         },
       });
@@ -465,9 +509,66 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
       configureAimGraph(graph);
       graphRef.current = graph;
 
-      // Handle new edge connections with automatic semantic wiring
+      let activeToolEdge: Edge | null = null;
+
+      const clearEdgeTools = () => {
+        if (activeToolEdge) {
+          try {
+            activeToolEdge.removeTools();
+          } catch {
+            // Ignore if cell was already removed
+          }
+          activeToolEdge = null;
+        }
+      };
+      clearEdgeToolsRef.current = clearEdgeTools;
+
+      const setEdgeTools = (edge: Edge) => {
+        clearEdgeTools();
+        if (readOnly) return;
+        activeToolEdge = edge;
+        try {
+          edge.addTools([
+            {
+              name: 'source-arrowhead',
+              args: {
+                attrs: {
+                  fill: CascaisPalette.NetGold,
+                  stroke: '#FFFFFF',
+                  strokeWidth: 2,
+                  cursor: 'grab',
+                },
+              },
+            },
+            {
+              name: 'target-arrowhead',
+              args: {
+                attrs: {
+                  fill: CascaisPalette.NetGold,
+                  stroke: '#FFFFFF',
+                  strokeWidth: 2,
+                  cursor: 'grab',
+                },
+              },
+            },
+            {
+              name: 'vertices',
+              args: {
+                attrs: {
+                  fill: CascaisPalette.WarmGraphite,
+                  stroke: '#FFFFFF',
+                  strokeWidth: 1.5,
+                },
+              },
+            },
+          ]);
+        } catch {
+          // Fallback if tools fail to attach
+        }
+      };
+
+      // Handle edge connections and re-connections with automatic semantic wiring
       graph.on('edge:connected', ({ edge, isNew }) => {
-        if (!isNew) return;
         const sourceCell = edge.getSourceCell();
         const targetCell = edge.getTargetCell();
         if (sourceCell?.isNode() && targetCell?.isNode()) {
@@ -479,33 +580,44 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
           ) as AimOntologyKind;
 
           const edgeKind = getSemanticEdgeKind(sourceKind, targetKind);
-          const stereotype = getSemanticEdgeStereotype(sourceKind, targetKind);
+          const currentData = (edge.getData() ?? {}) as Partial<RaidEdgeData>;
+          const stereotype = currentData.stereotype ?? getSemanticEdgeStereotype(sourceKind, targetKind);
 
           edge.setData({
+            ...currentData,
             id: edge.id,
             kind: edgeKind,
             sourceId: sourceCell.id,
             targetId: targetCell.id,
             sourcePort: edge.getSourcePortId(),
             targetPort: edge.getTargetPortId(),
-            label: stereotype,
+            label: currentData.label ?? stereotype,
             stereotype,
-            bendPoints: [],
+            routing: currentData.routing ?? routingModeRef.current,
+            bendPoints: currentData.bendPoints ?? [],
           });
 
-          if (stereotype) {
-            edge.setLabels([
-              {
-                attrs: {
-                  text: {
-                    text: stereotype,
-                    fill: CascaisPalette.TextSecondary,
-                    fontSize: 11,
+          if (isNew) {
+            applyEdgeRouting(edge, routingModeRef.current);
+            if (stereotype) {
+              edge.setLabels([
+                {
+                  attrs: {
+                    text: {
+                      text: stereotype,
+                      fill: CascaisPalette.TextSecondary,
+                      fontSize: 11,
+                    },
                   },
+                  position: 0.5,
                 },
-                position: 0.5,
-              },
-            ]);
+              ]);
+            }
+          } else {
+            // Re-anchored: if edge was selected, re-attach tools
+            if (selectedCellIdRef.current === edge.id) {
+              setEdgeTools(edge);
+            }
           }
         }
         triggerDebouncedChange();
@@ -515,8 +627,15 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
       graph.on('node:change:position', triggerDebouncedChange);
       graph.on('node:change:size', triggerDebouncedChange);
       graph.on('edge:change:vertices', triggerDebouncedChange);
+      graph.on('edge:change:source', triggerDebouncedChange);
+      graph.on('edge:change:target', triggerDebouncedChange);
       graph.on('cell:added', triggerDebouncedChange);
-      graph.on('cell:removed', triggerDebouncedChange);
+      graph.on('cell:removed', ({ cell }) => {
+        if (cell === activeToolEdge) {
+          activeToolEdge = null;
+        }
+        triggerDebouncedChange();
+      });
 
       // Zoom listener to keep toolbar indicator accurate
       graph.on('scale', () => {
@@ -529,6 +648,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
         selectedCellIdRef.current = id;
 
         if (cell.isNode()) {
+          clearEdgeTools();
           const data = (cell.getData() ?? {}) as Partial<RaidNodeData>;
           const kind = (data.kind ?? 'act') as AimOntologyKind;
           const label =
@@ -538,6 +658,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
             id;
           onSelectRef.current?.({ id, kind, label });
         } else if (cell.isEdge()) {
+          setEdgeTools(cell);
           const data = (cell.getData() ?? {}) as Partial<RaidEdgeData>;
           const label =
             data.label ??
@@ -550,6 +671,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
       });
 
       graph.on('blank:click', () => {
+        clearEdgeTools();
         selectedCellIdRef.current = null;
         onSelectRef.current?.(null);
         onSelectionChangeRef.current?.([]);
@@ -572,6 +694,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
             const cell = graphRef.current.getCellById(selectedCellIdRef.current);
             if (cell) {
               e.preventDefault();
+              clearEdgeTools();
               graphRef.current.removeCell(cell);
               selectedCellIdRef.current = null;
               onSelectRef.current?.(null);
@@ -617,6 +740,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
         }
         window.removeEventListener('keydown', handleKeyDown);
         resizeObserver.disconnect();
+        clearEdgeToolsRef.current = null;
         graph.dispose();
         graphRef.current = null;
       };

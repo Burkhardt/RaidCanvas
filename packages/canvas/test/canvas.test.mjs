@@ -134,5 +134,108 @@ describe('RaidCanvas Core Tests', () => {
     const edgeInstance = new EdgeCtor();
     assert.ok(edgeInstance.markup, 'aim-edge must have defined markup');
   });
+
+  test('createAimEdge respects routing modes (manhattan, normal, smooth)', async () => {
+    const edgeManhattan = createAimEdge({
+      id: 'e1',
+      kind: 'association',
+      sourceId: 'n1',
+      targetId: 'n2',
+      routing: 'manhattan',
+      bendPoints: [],
+    });
+    assert.equal(edgeManhattan.router?.name, 'manhattan');
+    assert.equal(edgeManhattan.connector?.name, 'rounded');
+
+    const edgeNormal = createAimEdge({
+      id: 'e2',
+      kind: 'association',
+      sourceId: 'n1',
+      targetId: 'n2',
+      routing: 'normal',
+      bendPoints: [],
+    });
+    assert.equal(edgeNormal.router?.name, 'normal');
+    assert.equal(edgeNormal.connector?.name, 'normal');
+
+    const edgeSmooth = createAimEdge({
+      id: 'e3',
+      kind: 'association',
+      sourceId: 'n1',
+      targetId: 'n2',
+      routing: 'smooth',
+      bendPoints: [],
+    });
+    assert.equal(edgeSmooth.router?.name, 'normal');
+    assert.equal(edgeSmooth.connector?.name, 'smooth');
+  });
+
+  test('RaiBridge serializes aim-routing and port attributes into SVG', () => {
+    const bridge = new RaiBridge();
+    const model = {
+      diagramId: 'TestDiagram',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'A',
+          kind: 'act',
+          displayName: 'Step A',
+          bounds: { x: 10, y: 10, width: 100, height: 50 },
+        },
+        {
+          id: 'B',
+          kind: 'act',
+          displayName: 'Step B',
+          bounds: { x: 200, y: 10, width: 100, height: 50 },
+        },
+      ],
+      edges: [
+        {
+          id: 'edge_normal',
+          kind: 'association',
+          sourceId: 'A',
+          targetId: 'B',
+          sourcePort: 'port-right',
+          targetPort: 'port-left',
+          routing: 'normal',
+          bendPoints: [],
+        },
+      ],
+    };
+
+    const svg = bridge.serializeToSvg({
+      getNodes: () => [],
+      getEdges: () => [],
+    }, undefined, {});
+
+    // Directly test fresh SVG generation with edge data
+    const freshSvg = bridge.generateFreshSvg
+      ? bridge.generateFreshSvg(model, {})
+      : bridge.serializeToSvg({
+          getNodes: () => model.nodes.map(n => ({
+            id: n.id,
+            shape: 'aim-act',
+            getPosition: () => ({ x: n.bounds.x, y: n.bounds.y }),
+            getSize: () => ({ width: n.bounds.width, height: n.bounds.height }),
+            getData: () => n,
+          })),
+          getEdges: () => model.edges.map(e => ({
+            id: e.id,
+            getSourceCell: () => ({ id: e.sourceId }),
+            getTargetCell: () => ({ id: e.targetId }),
+            getSourcePortId: () => e.sourcePort,
+            getTargetPortId: () => e.targetPort,
+            getVertices: () => [],
+            getLabels: () => [],
+            getRouter: () => ({ name: 'normal' }),
+            getConnector: () => ({ name: 'normal' }),
+            getData: () => e,
+          })),
+        });
+
+    assert.ok(freshSvg.includes('aim-routing="normal"'));
+    assert.ok(freshSvg.includes('aim-source-port="port-right"'));
+    assert.ok(freshSvg.includes('aim-target-port="port-left"'));
+  });
 });
 

@@ -25,6 +25,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'inspector' | 'svg' | 'metamodel'>('inspector');
   const [copied, setCopied] = useState<boolean>(false);
   const [stencilCollapsed, setStencilCollapsed] = useState<boolean>(false);
+  const [routingMode, setRoutingMode] = useState<'manhattan' | 'normal' | 'smooth'>('manhattan');
 
   // Undo / Redo SVG Snapshot History
   const [history, setHistory] = useState<string[]>([currentPreset.svg]);
@@ -116,6 +117,9 @@ export const App: React.FC = () => {
           ...edgeData,
           sourceId: cell.getSourceCellId(),
           targetId: cell.getTargetCellId(),
+          sourcePort: cell.getSourcePortId() ?? edgeData.sourcePort,
+          targetPort: cell.getTargetPortId() ?? edgeData.targetPort,
+          routing: edgeData.routing,
           label:
             edgeData.label ??
             (cell.getLabels()?.[0]?.attrs?.['text']?.['text'] as string) ??
@@ -208,6 +212,11 @@ export const App: React.FC = () => {
     };
   }, [svg]);
 
+  const handleChangeRoutingMode = (mode: 'manhattan' | 'normal' | 'smooth') => {
+    setRoutingMode(mode);
+    canvasRef.current?.setRoutingMode(mode, true);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#F8FAFC' }}>
       {/* Studio Header & Top Toolbar */}
@@ -227,6 +236,8 @@ export const App: React.FC = () => {
         onExportPng={handleExportPng}
         onCopySvg={handleCopySvg}
         copied={copied}
+        routingMode={routingMode}
+        onChangeRoutingMode={handleChangeRoutingMode}
         readOnly={readOnly}
         onToggleReadOnly={setReadOnly}
       />
@@ -277,6 +288,7 @@ export const App: React.FC = () => {
               ref={canvasRef}
               svg={svg}
               readOnly={readOnly}
+              defaultRouting={routingMode}
               onChange={handleCanvasChange}
               onSelectionChange={handleSelectionChange}
             />

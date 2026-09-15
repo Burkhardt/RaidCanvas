@@ -319,14 +319,126 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
             </div>
           </div>
 
+          {/* Edge Routing Style */}
+          <div>
+            <label style={labelStyle}>Routing Style</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
+              <button
+                type="button"
+                onClick={() => onUpdateEdge(selection.id, { routing: 'manhattan' })}
+                style={{
+                  ...chipStyle,
+                  textAlign: 'center',
+                  background: (edge.routing ?? 'manhattan') === 'manhattan' ? '#2563EB30' : '#1E293B',
+                  borderColor: (edge.routing ?? 'manhattan') === 'manhattan' ? '#38BDF8' : '#334155',
+                  color: (edge.routing ?? 'manhattan') === 'manhattan' ? '#38BDF8' : '#94A3B8',
+                  fontWeight: (edge.routing ?? 'manhattan') === 'manhattan' ? 700 : 500,
+                }}
+              >
+                ⮡ Manhattan
+              </button>
+              <button
+                type="button"
+                onClick={() => onUpdateEdge(selection.id, { routing: 'normal' })}
+                style={{
+                  ...chipStyle,
+                  textAlign: 'center',
+                  background: edge.routing === 'normal' ? '#2563EB30' : '#1E293B',
+                  borderColor: edge.routing === 'normal' ? '#38BDF8' : '#334155',
+                  color: edge.routing === 'normal' ? '#38BDF8' : '#94A3B8',
+                  fontWeight: edge.routing === 'normal' ? 700 : 500,
+                }}
+              >
+                ╲ Straight
+              </button>
+              <button
+                type="button"
+                onClick={() => onUpdateEdge(selection.id, { routing: 'smooth' })}
+                style={{
+                  ...chipStyle,
+                  textAlign: 'center',
+                  background: edge.routing === 'smooth' ? '#2563EB30' : '#1E293B',
+                  borderColor: edge.routing === 'smooth' ? '#38BDF8' : '#334155',
+                  color: edge.routing === 'smooth' ? '#38BDF8' : '#94A3B8',
+                  fontWeight: edge.routing === 'smooth' ? 700 : 500,
+                }}
+              >
+                ∿ Curved
+              </button>
+            </div>
+          </div>
+
+          {/* Connection Ports (Origin & Destination) */}
+          <div>
+            <label style={labelStyle}>Origin Connector Port</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
+              {[
+                { id: 'port-top', label: 'Top' },
+                { id: 'port-right', label: 'Right' },
+                { id: 'port-bottom', label: 'Bottom' },
+                { id: 'port-left', label: 'Left' },
+              ].map((p) => {
+                const active = edge.sourcePort === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onUpdateEdge(selection.id, { sourcePort: p.id })}
+                    style={{
+                      ...chipStyle,
+                      textAlign: 'center',
+                      background: active ? '#10B98130' : '#1E293B',
+                      borderColor: active ? '#34D399' : '#334155',
+                      color: active ? '#34D399' : '#94A3B8',
+                      fontWeight: active ? 700 : 500,
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Destination Connector Port</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
+              {[
+                { id: 'port-top', label: 'Top' },
+                { id: 'port-right', label: 'Right' },
+                { id: 'port-bottom', label: 'Bottom' },
+                { id: 'port-left', label: 'Left' },
+              ].map((p) => {
+                const active = edge.targetPort === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onUpdateEdge(selection.id, { targetPort: p.id })}
+                    style={{
+                      ...chipStyle,
+                      textAlign: 'center',
+                      background: active ? '#10B98130' : '#1E293B',
+                      borderColor: active ? '#34D399' : '#334155',
+                      color: active ? '#34D399' : '#94A3B8',
+                      fontWeight: active ? 700 : 500,
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Terminals Info */}
           <div style={{ background: '#1E293B', padding: '8px 12px', borderRadius: 6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>
-              <span><strong>Source:</strong> {edge.sourceId ?? 'None'}</span>
+              <span><strong>Origin:</strong> {edge.sourceId ?? 'None'} {edge.sourcePort ? `(${edge.sourcePort.replace('port-', '')})` : ''}</span>
               {edge.sourceCardinality && <span style={{ color: '#38BDF8', fontWeight: 600 }}>[{edge.sourceCardinality}]</span>}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94A3B8' }}>
-              <span><strong>Target:</strong> {edge.targetId ?? 'None'}</span>
+              <span><strong>Destination:</strong> {edge.targetId ?? 'None'} {edge.targetPort ? `(${edge.targetPort.replace('port-', '')})` : ''}</span>
               {edge.targetCardinality && <span style={{ color: '#38BDF8', fontWeight: 600 }}>[{edge.targetCardinality}]</span>}
             </div>
           </div>

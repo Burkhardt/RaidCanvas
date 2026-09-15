@@ -16,7 +16,15 @@
  * - 'obj' : Object / Instance (runtime instance card with underlined title)
  * - 'per' : Person / Actor (Initiating or Defined role stick-figure/card)
  */
-export type AimOntologyKind = 'uc' | 'act' | 'cls' | 'obj' | 'per';
+export type AimOntologyKind = 'act' | 'uc' | 'cls' | 'obj' | 'per';
+
+/**
+ * Routing strategy for diagram edges.
+ * - 'manhattan': Obstacle-avoiding 90° orthogonal routing with rounded corners (default).
+ * - 'normal': Direct straight line point-to-point connection.
+ * - 'smooth': Curved cubic bezier spline between ports.
+ */
+export type AimRoutingMode = 'manhattan' | 'normal' | 'smooth';
 
 /**
  * Ontological relationship classifications in AOAIM.
@@ -126,6 +134,9 @@ export interface RaidEdgeData {
   /** Multiplicity / Cardinality at the target end (e.g., '0..1', '*'). */
   readonly targetCardinality?: string;
 
+  /** Routing strategy for this edge ('manhattan', 'normal', 'smooth'). */
+  readonly routing?: AimRoutingMode;
+
   /** User-editable or router-computed Manhattan bend points. */
   readonly bendPoints: readonly SvgBendPoint[];
 }
@@ -172,6 +183,7 @@ export const AimSvgContract = {
   ATTR_TARGET: 'aim-target',
   ATTR_SOURCE_PORT: 'aim-source-port',
   ATTR_TARGET_PORT: 'aim-target-port',
+  ATTR_ROUTING: 'aim-routing',
   ATTR_BENDS: 'aim-bends',
 
   // Selectors for DOM queries

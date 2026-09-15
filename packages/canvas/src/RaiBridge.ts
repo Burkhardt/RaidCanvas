@@ -15,6 +15,7 @@ import {
   AimSvgContract,
   type AimOntologyKind,
   type AimEdgeKind,
+  type AimRoutingMode,
   type RaidNodeData,
   type RaidEdgeData,
   type RaidMetamodel,
@@ -138,6 +139,21 @@ export class RaiBridge {
       const targetPort = edge.getTargetPortId();
       const label = (edge.getLabels()?.[0]?.attrs?.['text']?.['text'] as string | undefined) ?? customData.label;
 
+      let routing: AimRoutingMode | undefined = customData.routing;
+      if (!routing) {
+        const router = edge.getRouter();
+        const routerName = typeof router === 'string' ? router : router?.name;
+        const connector = edge.getConnector();
+        const connectorName = typeof connector === 'string' ? connector : connector?.name;
+        if (connectorName === 'smooth') {
+          routing = 'smooth';
+        } else if (routerName === 'normal') {
+          routing = 'normal';
+        } else if (routerName === 'manhattan') {
+          routing = 'manhattan';
+        }
+      }
+
       const edgeData: RaidEdgeData = {
         id: edge.id,
         kind: customData.kind ?? 'association',
@@ -145,6 +161,7 @@ export class RaiBridge {
         targetId: target.id,
         ...(sourcePort !== undefined ? { sourcePort } : {}),
         ...(targetPort !== undefined ? { targetPort } : {}),
+        ...(routing !== undefined ? { routing } : {}),
         ...(label !== undefined ? { label } : {}),
         ...(customData.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
         ...(customData.sourceCardinality !== undefined ? { sourceCardinality: customData.sourceCardinality } : {}),
@@ -328,6 +345,14 @@ export class RaiBridge {
         el.getAttribute('aim-source-cardinality') ?? undefined;
       const targetCardinality =
         el.getAttribute('aim-target-cardinality') ?? undefined;
+      const rawRouting =
+        el.getAttribute(AimSvgContract.ATTR_ROUTING) ??
+        el.getAttribute('aim-routing') ??
+        undefined;
+      const routing =
+        rawRouting === 'normal' || rawRouting === 'smooth' || rawRouting === 'manhattan'
+          ? (rawRouting as AimRoutingMode)
+          : undefined;
 
       edges.push({
         id,
@@ -336,6 +361,7 @@ export class RaiBridge {
         targetId,
         ...(sourcePort !== undefined ? { sourcePort } : {}),
         ...(targetPort !== undefined ? { targetPort } : {}),
+        ...(routing !== undefined ? { routing } : {}),
         ...(label !== undefined ? { label } : {}),
         ...(sourceCardinality !== undefined ? { sourceCardinality } : {}),
         ...(targetCardinality !== undefined ? { targetCardinality } : {}),
@@ -433,7 +459,21 @@ export class RaiBridge {
         el.setAttribute(AimSvgContract.ATTR_BENDS, bendsString);
         el.setAttribute(AimSvgContract.ATTR_EDGE, 'true');
         el.setAttribute(AimSvgContract.ATTR_EDGE_KIND, edge.kind);
-
+        if (edge.sourceId !== undefined) {
+          el.setAttribute(AimSvgContract.ATTR_SOURCE, edge.sourceId);
+        }
+        if (edge.targetId !== undefined) {
+          el.setAttribute(AimSvgContract.ATTR_TARGET, edge.targetId);
+        }
+        if (edge.sourcePort !== undefined) {
+          el.setAttribute(AimSvgContract.ATTR_SOURCE_PORT, edge.sourcePort);
+        }
+        if (edge.targetPort !== undefined) {
+          el.setAttribute(AimSvgContract.ATTR_TARGET_PORT, edge.targetPort);
+        }
+        if (edge.routing !== undefined) {
+          el.setAttribute(AimSvgContract.ATTR_ROUTING, edge.routing);
+        }
         if (edge.stereotype !== undefined) {
           el.setAttribute(AimSvgContract.ATTR_STEREOTYPE, edge.stereotype);
         }
@@ -488,7 +528,11 @@ export class RaiBridge {
         pathD = `M ${first.x} ${first.y} ` + edge.bendPoints.slice(1).map((p) => `L ${p.x} ${p.y}`).join(' ');
       }
 
-      svg += `    <g ${AimSvgContract.ATTR_EDGE}="true" ${AimSvgContract.ATTR_ID}="${edge.id}" ${AimSvgContract.ATTR_EDGE_KIND}="${edge.kind}" ${AimSvgContract.ATTR_SOURCE}="${edge.sourceId}" ${AimSvgContract.ATTR_TARGET}="${edge.targetId}" ${AimSvgContract.ATTR_BENDS}="${bendsFormatted}">\n`;
+      const sourcePortAttr = edge.sourcePort ? ` ${AimSvgContract.ATTR_SOURCE_PORT}="${edge.sourcePort}"` : '';
+      const targetPortAttr = edge.targetPort ? ` ${AimSvgContract.ATTR_TARGET_PORT}="${edge.targetPort}"` : '';
+      const routingAttr = edge.routing ? ` ${AimSvgContract.ATTR_ROUTING}="${edge.routing}"` : '';
+
+      svg += `    <g ${AimSvgContract.ATTR_EDGE}="true" ${AimSvgContract.ATTR_ID}="${edge.id}" ${AimSvgContract.ATTR_EDGE_KIND}="${edge.kind}" ${AimSvgContract.ATTR_SOURCE}="${edge.sourceId}" ${AimSvgContract.ATTR_TARGET}="${edge.targetId}"${sourcePortAttr}${targetPortAttr}${routingAttr} ${AimSvgContract.ATTR_BENDS}="${bendsFormatted}">\n`;
       if (pathD) {
         svg += `      <path d="${pathD}" class="aim-edge"${strokeDash}${markerEnd} />\n`;
       }

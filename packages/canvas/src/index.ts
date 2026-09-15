@@ -15,6 +15,7 @@
 export {
   AimSvgContract,
   type AimOntologyKind,
+  type AimRoutingMode,
   type AimEdgeKind,
   type Point,
   type SvgBendPoint,
@@ -35,6 +36,7 @@ export {
   configureAimGraph,
   createAimNode,
   createAimEdge,
+  applyEdgeRouting,
   getDefaultNodeBounds,
   getDefaultNodeName,
 } from './X6Shapes.js';

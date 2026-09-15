@@ -13,6 +13,7 @@ import { Graph, Shape, Node, Edge } from '@antv/x6';
 import type {
   AimOntologyKind,
   AimEdgeKind,
+  AimRoutingMode,
   RaidNodeData,
   RaidEdgeData,
   OrthogonalPortId,
@@ -458,16 +459,68 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
 }
 
 /**
+ * Configures the router and connector for an X6 Edge based on AimRoutingMode.
+ * - 'manhattan': Obstacle-avoiding 90° orthogonal router with rounded corners (radius: 8).
+ * - 'normal': Direct straight line point-to-point connection.
+ * - 'smooth': Curved cubic bezier spline between ports.
+ */
+export function applyEdgeRouting(edge: Edge, routing: AimRoutingMode = 'manhattan'): void {
+  switch (routing) {
+    case 'normal':
+      edge.setRouter('normal');
+      edge.setConnector('normal');
+      break;
+    case 'smooth':
+      edge.setRouter('normal');
+      edge.setConnector('smooth');
+      break;
+    case 'manhattan':
+    default:
+      edge.setRouter('manhattan', {
+        padding: 20,
+        startDirections: ['top', 'right', 'bottom', 'left'],
+        endDirections: ['top', 'right', 'bottom', 'left'],
+      });
+      edge.setConnector('rounded', { radius: 8 });
+      break;
+  }
+}
+
+/**
  * Factory creating an AntV X6 Edge model from a RaidEdgeData specification.
  */
 export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
   registerAimShapes();
 
   const edgeAttrs = getEdgeStyling(data.kind);
+  const routing = data.routing ?? 'manhattan';
+
+  let routerConfig: Edge.Metadata['router'] = {
+    name: 'manhattan',
+    args: {
+      padding: 20,
+      startDirections: ['top', 'right', 'bottom', 'left'],
+      endDirections: ['top', 'right', 'bottom', 'left'],
+    },
+  };
+  let connectorConfig: Edge.Metadata['connector'] = {
+    name: 'rounded',
+    args: { radius: 8 },
+  };
+
+  if (routing === 'normal') {
+    routerConfig = { name: 'normal' };
+    connectorConfig = { name: 'normal' };
+  } else if (routing === 'smooth') {
+    routerConfig = { name: 'normal' };
+    connectorConfig = { name: 'smooth' };
+  }
 
   return {
     id: data.id,
     shape: 'aim-edge',
+    router: routerConfig,
+    connector: connectorConfig,
     source: {
       cell: data.sourceId,
       ...(data.sourcePort !== undefined ? { port: data.sourcePort } : {}),
