@@ -190,6 +190,6 @@ graph.on('cell:changed', () => {
 
 ## 7. License
 
+Copyright © 2026 Rainer Burkhardt.  
 Licensed under the [Apache License, Version 2.0](LICENSE).
 
-© Rainer Burkhardt. All rights reserved.
