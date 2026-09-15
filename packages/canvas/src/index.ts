@@ -37,3 +37,6 @@ export {
 
 // Bidirectional SVG <-> X6 Synchronization Bridge
 export { RaiBridge } from './RaiBridge.js';
+
+// Reusable React Canvas Component
+export { RaidCanvas, type RaidCanvasProps } from './RaidCanvas.js';

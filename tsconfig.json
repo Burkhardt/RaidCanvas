@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/canvas" }
+    { "path": "./packages/canvas" },
+    { "path": "./apps/playground" }
   ]
 }
