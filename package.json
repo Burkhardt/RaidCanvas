@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Interactive TypeScript diagram canvas built with pnpm, AntV X6, and the ontological SVG contract (aim-*)",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "build": "pnpm -r run build",
@@ -13,11 +13,12 @@
     "typecheck": "pnpm -r run typecheck"
   },
   "devDependencies": {
-    "typescript": "^5.6.2"
+    "typescript": "^7.0.2"
   },
-  "packageManager": "pnpm@9.10.0",
+  "packageManager": "pnpm@12.4.1",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
-  }
+  },
+  "copyright": "© Rainer Burkhardt. All rights reserved."
 }

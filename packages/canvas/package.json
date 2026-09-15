@@ -18,21 +18,25 @@
   "files": [
     "dist",
     "src",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"Testing @burkhardt/raid-canvas...\""
+    "test": "node --test test/canvas.test.mjs"
   },
   "dependencies": {
     "@antv/x6": "^2.18.1"
   },
   "devDependencies": {
     "@types/node": "^22.5.5",
-    "typescript": "^5.6.2"
+    "typescript": "^7.0.2"
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "license": "Apache-2.0",
+  "copyright": "© Rainer Burkhardt. All rights reserved."
 }

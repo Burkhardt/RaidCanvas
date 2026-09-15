@@ -11,7 +11,6 @@
 
 import { Graph, Node, Edge } from '@antv/x6';
 import type {
-  AimOntologyKind,
   AimEdgeKind,
   RaidNodeData,
   RaidEdgeData,
@@ -471,11 +470,11 @@ export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
     shape: 'aim-edge',
     source: {
       cell: data.sourceId,
-      port: data.sourcePort,
+      ...(data.sourcePort !== undefined ? { port: data.sourcePort } : {}),
     },
     target: {
       cell: data.targetId,
-      port: data.targetPort,
+      ...(data.targetPort !== undefined ? { port: data.targetPort } : {}),
     },
     vertices: data.bendPoints.map((pt) => ({ x: pt.x, y: pt.y })),
     labels: data.label

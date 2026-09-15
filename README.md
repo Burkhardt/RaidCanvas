@@ -4,9 +4,9 @@
 > *Burkhardt / RaidCanvas*
 
 [![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-orange.svg)](https://pnpm.io/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-7.0.2-blue.svg)](https://www.typescriptlang.org/)
 [![AntV X6](https://img.shields.io/badge/AntV%20X6-2.18-indigo.svg)](https://x6.antv.vision/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 ---
 
@@ -187,4 +187,6 @@ graph.on('cell:changed', () => {
 
 ## 7. License
 
-MIT © Dr. Rainer Burkhardt & The AIA Architecture Team.
+Licensed under the [Apache License, Version 2.0](LICENSE).
+
+© Rainer Burkhardt. All rights reserved.

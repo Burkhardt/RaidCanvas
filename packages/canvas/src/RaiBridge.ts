@@ -107,17 +107,17 @@ export class RaiBridge {
         id,
         kind,
         displayName,
-        stereotype: customData.stereotype,
-        namespace: customData.namespace,
-        attributes: customData.attributes,
-        methods: customData.methods,
+        ...(customData.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
+        ...(customData.namespace !== undefined ? { namespace: customData.namespace } : {}),
+        ...(customData.attributes !== undefined ? { attributes: customData.attributes } : {}),
+        ...(customData.methods !== undefined ? { methods: customData.methods } : {}),
         bounds: {
           x: pos.x,
           y: pos.y,
           width: size.width,
           height: size.height,
         },
-        properties: customData.properties,
+        ...(customData.properties !== undefined ? { properties: customData.properties } : {}),
       };
 
       nodes.push(nodeData);
@@ -134,15 +134,19 @@ export class RaiBridge {
       const bendPoints: SvgBendPoint[] = vertices.map((v) => ({ x: v.x, y: v.y }));
       const customData = (edge.getData() ?? {}) as Partial<RaidEdgeData>;
 
+      const sourcePort = edge.getSourcePortId();
+      const targetPort = edge.getTargetPortId();
+      const label = (edge.getLabels()?.[0]?.attrs?.['text']?.['text'] as string | undefined) ?? customData.label;
+
       const edgeData: RaidEdgeData = {
         id: edge.id,
         kind: customData.kind ?? 'association',
         sourceId: source.id,
         targetId: target.id,
-        sourcePort: edge.getSourcePortId(),
-        targetPort: edge.getTargetPortId(),
-        label: (edge.getLabels()?.[0]?.attrs?.['text']?.['text'] as string) ?? customData.label,
-        stereotype: customData.stereotype,
+        ...(sourcePort !== undefined ? { sourcePort } : {}),
+        ...(targetPort !== undefined ? { targetPort } : {}),
+        ...(label !== undefined ? { label } : {}),
+        ...(customData.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
         bendPoints,
       };
 
@@ -239,7 +243,7 @@ export class RaiBridge {
         id,
         kind,
         displayName,
-        stereotype,
+        ...(stereotype !== undefined ? { stereotype } : {}),
         bounds,
       });
     }
@@ -270,8 +274,8 @@ export class RaiBridge {
         kind,
         sourceId,
         targetId,
-        sourcePort,
-        targetPort,
+        ...(sourcePort !== undefined ? { sourcePort } : {}),
+        ...(targetPort !== undefined ? { targetPort } : {}),
         bendPoints,
       });
     }
