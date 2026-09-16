@@ -38,6 +38,52 @@ export const CascaisPalette = {
 } as const;
 
 /**
+ * Formats and wraps node label text for AOAIM entities.
+ * Automatically wraps on whitespace when exceeding target length,
+ * and breaks explicitly on `<wbr>` or `<wbr/>` tags.
+ */
+export function wrapAimText(rawText: string, maxLineLength: number = 18): string {
+  if (!rawText) return '';
+
+  const lines = rawText.split('\n');
+  const resultLines: string[] = [];
+
+  for (const line of lines) {
+    if (!line) {
+      resultLines.push('');
+      continue;
+    }
+
+    // Split on <wbr> or <wbr/> tags first
+    const wbrChunks = line.split(/<wbr\s*\/?>/i);
+    for (let chunkIdx = 0; chunkIdx < wbrChunks.length; chunkIdx++) {
+      const chunk = wbrChunks[chunkIdx]!;
+      if (!chunk && chunkIdx > 0) continue;
+
+      const words = chunk.split(/\s+/).filter(Boolean);
+      if (words.length === 0) continue;
+
+      let currentLine = '';
+      for (const word of words) {
+        if (!currentLine) {
+          currentLine = word;
+        } else if (currentLine.length + word.length + 1 <= maxLineLength) {
+          currentLine += ' ' + word;
+        } else {
+          resultLines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      if (currentLine) {
+        resultLines.push(currentLine);
+      }
+    }
+  }
+
+  return resultLines.join('\n');
+}
+
+/**
  * Port configuration generating 4 orthogonal snap anchors.
  */
 export function createOrthogonalPorts() {
@@ -133,7 +179,7 @@ export function registerAimShapes(): void {
     ports: createOrthogonalPorts(),
   });
 
-  // 2. AimActivityNode ('act') — Rounded rectangle with Heraldic Green border
+  // 2. AimActivityNode ('act') — Rounded rectangle with Heraldic Green border & underlined label
   Shape.Rect.define({
     shape: 'aim-act',
     overwrite: true,
@@ -156,6 +202,11 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
+        textDecoration: 'underline',
+        textWrap: {
+          width: -16,
+          breakWord: true,
+        },
       },
     },
     ports: createOrthogonalPorts(),
@@ -278,34 +329,77 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
+        textDecoration: 'underline',
+        textWrap: {
+          width: -16,
+          breakWord: true,
+        },
       },
     },
     ports: createOrthogonalPorts(),
   });
 
-  // 5. AimPersonNode ('per') — Person / Actor role card
+  // 5. AimPersonNode ('per') — Person / Actor glyph
   Shape.Rect.define({
     shape: 'aim-per',
     overwrite: true,
-    width: 120,
-    height: 70,
+    width: 90,
+    height: 90,
+    markup: [
+      {
+        tagName: 'rect',
+        selector: 'body',
+      },
+      {
+        tagName: 'path',
+        selector: 'torso',
+      },
+      {
+        tagName: 'circle',
+        selector: 'head',
+      },
+      {
+        tagName: 'text',
+        selector: 'label',
+      },
+    ],
     attrs: {
       body: {
-        fill: CascaisPalette.CanvasCream,
-        stroke: CascaisPalette.WarmGraphite,
-        strokeWidth: 1.5,
-        rx: 6,
-        ry: 6,
+        fill: 'transparent',
+        stroke: 'transparent',
+        strokeWidth: 0,
         class: 'aim-node aim-per',
       },
+      torso: {
+        d: 'M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4',
+        fill: 'none',
+        stroke: CascaisPalette.WarmGraphite,
+        strokeWidth: 2,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+      },
+      head: {
+        cx: 45,
+        cy: 22,
+        r: 8,
+        fill: CascaisPalette.ChalkWhite,
+        stroke: CascaisPalette.WarmGraphite,
+        strokeWidth: 2,
+      },
       label: {
-        text: '«actor»\nOperator',
+        text: 'Actor',
         fill: CascaisPalette.TextPrimary,
         fontSize: 12,
         fontWeight: '500',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
-        textVerticalAnchor: 'middle',
+        textVerticalAnchor: 'top',
+        refX: 0.5,
+        refY: 62,
+        textWrap: {
+          width: -10,
+          breakWord: true,
+        },
       },
     },
     ports: createOrthogonalPorts(),
@@ -391,25 +485,30 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
 
   // Archetype-specific customization
   switch (data.kind) {
-    case 'uc':
+    case 'uc': {
+      const wrappedName = wrapAimText(data.displayName);
       return {
         ...baseMetadata,
         attrs: {
           label: {
-            text: data.stereotype ? `${data.stereotype}\n${data.displayName}` : data.displayName,
+            text: data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName,
           },
         },
       };
+    }
 
-    case 'act':
+    case 'act': {
+      const wrappedName = wrapAimText(data.displayName);
       return {
         ...baseMetadata,
         attrs: {
           label: {
-            text: data.stereotype ? `${data.stereotype}\n${data.displayName}` : data.displayName,
+            text: data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName,
+            textDecoration: 'underline',
           },
         },
       };
+    }
 
     case 'cls':
       return {
@@ -427,27 +526,35 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
         },
       };
 
-    case 'obj':
+    case 'obj': {
+      const wrappedName = wrapAimText(data.displayName);
       return {
         ...baseMetadata,
         attrs: {
           label: {
-            text: data.displayName,
+            text: data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName,
+            textDecoration: 'underline',
           },
         },
       };
+    }
 
     case 'per': {
       const isInitiating = data.stereotype?.toLowerCase().includes('initiates') ?? false;
+      const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+      const wrappedName = wrapAimText(data.displayName, 14);
+      const text = data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName;
       return {
         ...baseMetadata,
         attrs: {
-          body: {
-            stroke: isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite,
-            strokeWidth: isInitiating ? 2 : 1.5,
+          torso: {
+            stroke: strokeColor,
+          },
+          head: {
+            stroke: strokeColor,
           },
           label: {
-            text: data.stereotype ? `${data.stereotype}\n${data.displayName}` : data.displayName,
+            text,
           },
         },
       };
@@ -648,7 +755,7 @@ export function getDefaultNodeBounds(
     case 'obj':
       return { x, y, width: 160, height: 80 };
     case 'per':
-      return { x, y, width: 120, height: 70 };
+      return { x, y, width: 90, height: 90 };
     default:
       return { x, y, width: 140, height: 60 };
   }

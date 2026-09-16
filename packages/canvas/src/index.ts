@@ -39,6 +39,7 @@ export {
   applyEdgeRouting,
   getDefaultNodeBounds,
   getDefaultNodeName,
+  wrapAimText,
 } from './X6Shapes.js';
 
 // Anti-Entropy Semantic Connection Rules

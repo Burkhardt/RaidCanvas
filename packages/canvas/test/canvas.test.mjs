@@ -7,6 +7,7 @@ import {
   createAimEdge,
   RaiBridge,
   AimSvgContract,
+  wrapAimText,
 } from '../dist/index.js';
 
 describe('RaidCanvas Core Tests', () => {
@@ -236,6 +237,191 @@ describe('RaidCanvas Core Tests', () => {
     assert.ok(freshSvg.includes('aim-routing="normal"'));
     assert.ok(freshSvg.includes('aim-source-port="port-right"'));
     assert.ok(freshSvg.includes('aim-target-port="port-left"'));
+  });
+
+  test('wrapAimText wraps on spaces and breaks explicitly on <wbr>', () => {
+    // 1. Long text with spaces wraps at maxLineLength
+    const longText = 'AIA Platform Genesis & Bootstrap';
+    const wrappedSpaces = wrapAimText(longText, 18);
+    assert.deepEqual(wrappedSpaces.split('\n'), [
+      'AIA Platform',
+      'Genesis &',
+      'Bootstrap',
+    ]);
+
+    // 2. Text with <wbr> breaks immediately on <wbr>
+    const wbrText = 'AIA<wbr>Platform<wbr>Genesis';
+    const wrappedWbr = wrapAimText(wbrText);
+    assert.deepEqual(wrappedWbr.split('\n'), [
+      'AIA',
+      'Platform',
+      'Genesis',
+    ]);
+
+    // 3. Mixed spaces and <wbr>
+    const mixed = 'Create<wbr>User Account';
+    const wrappedMixed = wrapAimText(mixed, 20);
+    assert.deepEqual(wrappedMixed.split('\n'), [
+      'Create',
+      'User Account',
+    ]);
+
+    // 4. Empty text returns empty string
+    assert.equal(wrapAimText(''), '');
+  });
+
+  test('createAimNode creates Person glyph with head, torso and initiating color', () => {
+    const actor = createAimNode({
+      id: 'Actor_1',
+      kind: 'per',
+      displayName: 'Customer Role',
+      stereotype: '«initiates»',
+      bounds: { x: 50, y: 50, width: 90, height: 90 },
+    });
+
+    assert.equal(actor.shape, 'aim-per');
+    // Initiating actor gets NetGold accent
+    assert.equal(actor.attrs?.torso?.stroke, CascaisPalette.NetGold);
+    assert.equal(actor.attrs?.head?.stroke, CascaisPalette.NetGold);
+    assert.ok(actor.attrs?.label?.text?.includes('«initiates»'));
+    assert.ok(actor.attrs?.label?.text?.includes('Customer'));
+
+    const standardActor = createAimNode({
+      id: 'Actor_2',
+      kind: 'per',
+      displayName: 'Staff',
+      bounds: { x: 50, y: 50, width: 90, height: 90 },
+    });
+    assert.equal(standardActor.attrs?.torso?.stroke, CascaisPalette.WarmGraphite);
+  });
+
+  test('createAimNode configures textDecoration underline for Activity and Object instances', () => {
+    const actNode = createAimNode({
+      id: 'Act_1',
+      kind: 'act',
+      displayName: 'Sign Document',
+      bounds: { x: 0, y: 0, width: 150, height: 60 },
+    });
+    assert.equal(actNode.attrs?.label?.textDecoration, 'underline');
+
+    const objNode = createAimNode({
+      id: 'Obj_1',
+      kind: 'obj',
+      displayName: 'invoice: Invoice',
+      bounds: { x: 0, y: 0, width: 160, height: 80 },
+    });
+    assert.equal(objNode.attrs?.label?.textDecoration, 'underline');
+  });
+
+  test('RaiBridge does not infer ports by default (inferPorts: false)', () => {
+    const bridge = new RaiBridge();
+    const svgSource = `
+      <svg xmlns="http://www.w3.org/2000/svg" aim-routing="curved">
+        <g aim-node="true" aim-id="NodeA" aim-kind="act" aim-display-name="A" transform="translate(100, 100)">
+          <rect width="100" height="50" />
+        </g>
+        <g aim-node="true" aim-id="NodeB" aim-kind="act" aim-display-name="B" transform="translate(300, 100)">
+          <rect width="100" height="50" />
+        </g>
+        <g aim-edge="true" aim-id="Edge1" aim-source="NodeA" aim-target="NodeB" />
+      </svg>
+    `;
+
+    // Simulated DOM element for test environment
+    const fakeDoc = {
+      querySelectorAll: (sel) => {
+        if (sel.includes('aim-node')) {
+          return [
+            {
+              tagName: 'g',
+              getAttribute: (k) => (k === 'aim-id' ? 'NodeA' : k === 'aim-kind' ? 'act' : null),
+              querySelector: () => null,
+            },
+            {
+              tagName: 'g',
+              getAttribute: (k) => (k === 'aim-id' ? 'NodeB' : k === 'aim-kind' ? 'act' : null),
+              querySelector: () => null,
+            },
+          ];
+        }
+        if (sel.includes('aim-edge')) {
+          return [
+            {
+              getAttribute: (k) => {
+                if (k === 'aim-id') return 'Edge1';
+                if (k === 'aim-source') return 'NodeA';
+                if (k === 'aim-target') return 'NodeB';
+                return null;
+              },
+              querySelector: () => null,
+            },
+          ];
+        }
+        return [];
+      },
+      getAttribute: (k) => (k === 'aim-routing' ? 'curved' : null),
+    };
+
+    const modelDefault = bridge.extractMetamodel(fakeDoc, {});
+    // By default, terminals are unpinned (dynamic center-aiming)
+    assert.equal(modelDefault.edges[0]?.sourcePort, undefined);
+    assert.equal(modelDefault.edges[0]?.targetPort, undefined);
+    // Diagram-level routing normalized from "curved" to "smooth"
+    assert.equal(modelDefault.routing, 'smooth');
+
+    // With explicit inferPorts: true, ports are inferred
+    const modelInferred = bridge.extractMetamodel(fakeDoc, { inferPorts: true });
+    assert.equal(modelInferred.edges[0]?.sourcePort, 'port-right');
+    assert.equal(modelInferred.edges[0]?.targetPort, 'port-left');
+  });
+
+  test('RaiBridge serializes diagram-level routing and Person glyph into SVG', () => {
+    const bridge = new RaiBridge();
+    const model = {
+      diagramId: 'TestDiag',
+      archetype: 'InteractiveCanvas',
+      routing: 'smooth',
+      nodes: [
+        {
+          id: 'Per_1',
+          kind: 'per',
+          displayName: 'User<wbr>Operator',
+          bounds: { x: 50, y: 50, width: 90, height: 90 },
+        },
+        {
+          id: 'Act_1',
+          kind: 'act',
+          displayName: 'Approve',
+          bounds: { x: 200, y: 50, width: 140, height: 60 },
+        },
+      ],
+      edges: [
+        {
+          id: 'E1',
+          kind: 'association',
+          sourceId: 'Per_1',
+          targetId: 'Act_1',
+          // Unpinned (no sourcePort or targetPort)
+          bendPoints: [],
+        },
+      ],
+    };
+
+    const svg = bridge.generateFreshSvg(model, {});
+    // 1. Diagram root has aim-routing="smooth"
+    assert.ok(svg.includes('aim-routing="smooth"'));
+    // 2. Person glyph markup is generated
+    assert.ok(svg.includes('<circle cx="45" cy="22" r="8"'));
+    assert.ok(svg.includes('M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4'));
+    // 3. Underline applied to Activity
+    assert.ok(svg.includes('text-decoration="underline"'));
+    // 4. Multi-line tspan generated from <wbr>
+    assert.ok(svg.includes('<tspan x="45"'));
+    assert.ok(svg.includes('User</tspan>'));
+    assert.ok(svg.includes('Operator</tspan>'));
+    // 5. Unpinned edge does NOT output port attributes
+    assert.ok(!svg.includes('aim-source-port'));
+    assert.ok(!svg.includes('aim-target-port'));
   });
 });
 

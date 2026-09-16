@@ -371,19 +371,23 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
           {/* Connection Ports (Origin & Destination) */}
           <div>
             <label style={labelStyle}>Origin Connector Port</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
               {[
+                { id: 'auto', label: 'Auto' },
                 { id: 'port-top', label: 'Top' },
                 { id: 'port-right', label: 'Right' },
                 { id: 'port-bottom', label: 'Bottom' },
                 { id: 'port-left', label: 'Left' },
               ].map((p) => {
-                const active = edge.sourcePort === p.id;
+                const active =
+                  p.id === 'auto'
+                    ? !edge.sourcePort || edge.sourcePort === 'auto' || edge.sourcePort === ''
+                    : edge.sourcePort === p.id;
                 return (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => onUpdateEdge(selection.id, { sourcePort: p.id })}
+                    onClick={() => onUpdateEdge(selection.id, { sourcePort: p.id === 'auto' ? '' : p.id })}
                     style={{
                       ...chipStyle,
                       textAlign: 'center',
@@ -392,6 +396,7 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                       color: active ? '#34D399' : '#94A3B8',
                       fontWeight: active ? 700 : 500,
                     }}
+                    title={p.id === 'auto' ? 'Auto: Unpinned terminal, dynamic center-aiming' : `Dock to ${p.label} port`}
                   >
                     {p.label}
                   </button>
@@ -402,19 +407,23 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
 
           <div>
             <label style={labelStyle}>Destination Connector Port</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
               {[
+                { id: 'auto', label: 'Auto' },
                 { id: 'port-top', label: 'Top' },
                 { id: 'port-right', label: 'Right' },
                 { id: 'port-bottom', label: 'Bottom' },
                 { id: 'port-left', label: 'Left' },
               ].map((p) => {
-                const active = edge.targetPort === p.id;
+                const active =
+                  p.id === 'auto'
+                    ? !edge.targetPort || edge.targetPort === 'auto' || edge.targetPort === ''
+                    : edge.targetPort === p.id;
                 return (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => onUpdateEdge(selection.id, { targetPort: p.id })}
+                    onClick={() => onUpdateEdge(selection.id, { targetPort: p.id === 'auto' ? '' : p.id })}
                     style={{
                       ...chipStyle,
                       textAlign: 'center',
@@ -423,6 +432,7 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                       color: active ? '#34D399' : '#94A3B8',
                       fontWeight: active ? 700 : 500,
                     }}
+                    title={p.id === 'auto' ? 'Auto: Unpinned terminal, dynamic center-aiming' : `Dock to ${p.label} port`}
                   >
                     {p.label}
                   </button>
@@ -434,11 +444,17 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
           {/* Terminals Info */}
           <div style={{ background: '#1E293B', padding: '8px 12px', borderRadius: 6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>
-              <span><strong>Origin:</strong> {edge.sourceId ?? 'None'} {edge.sourcePort ? `(${edge.sourcePort.replace('port-', '')})` : ''}</span>
+              <span>
+                <strong>Origin:</strong> {edge.sourceId ?? 'None'}{' '}
+                {edge.sourcePort && edge.sourcePort !== 'auto' ? `(${edge.sourcePort.replace('port-', '')})` : '(Auto)'}
+              </span>
               {edge.sourceCardinality && <span style={{ color: '#38BDF8', fontWeight: 600 }}>[{edge.sourceCardinality}]</span>}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94A3B8' }}>
-              <span><strong>Destination:</strong> {edge.targetId ?? 'None'} {edge.targetPort ? `(${edge.targetPort.replace('port-', '')})` : ''}</span>
+              <span>
+                <strong>Destination:</strong> {edge.targetId ?? 'None'}{' '}
+                {edge.targetPort && edge.targetPort !== 'auto' ? `(${edge.targetPort.replace('port-', '')})` : '(Auto)'}
+              </span>
               {edge.targetCardinality && <span style={{ color: '#38BDF8', fontWeight: 600 }}>[{edge.targetCardinality}]</span>}
             </div>
           </div>

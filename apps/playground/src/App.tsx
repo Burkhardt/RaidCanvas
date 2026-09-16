@@ -291,6 +291,7 @@ export const App: React.FC = () => {
               defaultRouting={routingMode}
               onChange={handleCanvasChange}
               onSelectionChange={handleSelectionChange}
+              onRoutingModeChange={setRoutingMode}
             />
           </div>
         </div>

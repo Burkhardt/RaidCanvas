@@ -57,6 +57,8 @@ export interface RaidCanvasProps {
   onSelectionChange?: (selectedIds: string[]) => void;
   /** Callback fired when a stencil is dropped onto the canvas */
   onDropStencil?: (kind: AimOntologyKind, point: { x: number; y: number }) => void;
+  /** Callback fired when the active routing mode changes (e.g. hydrated from SVG or switched by user) */
+  onRoutingModeChange?: (mode: AimRoutingMode) => void;
   /** Whether to render built-in navigation controls (Zoom In/Out, Fit, Center, Reset). Default: true */
   showToolbar?: boolean;
 }
@@ -115,6 +117,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
       onSelect,
       onSelectionChange,
       onDropStencil,
+      onRoutingModeChange,
       showToolbar = true,
     },
     ref,
@@ -128,7 +131,6 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
     const selectedCellIdRef = useRef<string | null>(null);
     const clearEdgeToolsRef = useRef<(() => void) | null>(null);
     const routingModeRef = useRef<AimRoutingMode>(defaultRouting);
-    routingModeRef.current = defaultRouting;
 
     const [zoomLevel, setZoomLevel] = useState<number>(100);
     const [isDragOver, setIsDragOver] = useState<boolean>(false);
@@ -152,6 +154,9 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
     const onDropStencilRef = useRef(onDropStencil);
     onDropStencilRef.current = onDropStencil;
 
+    const onRoutingModeChangeRef = useRef(onRoutingModeChange);
+    onRoutingModeChangeRef.current = onRoutingModeChange;
+
     const svgPropRef = useRef(activeSvg);
     svgPropRef.current = activeSvg;
 
@@ -169,6 +174,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
         const updatedSvg = bridgeRef.current.serializeToSvg(
           graphRef.current,
           currentBaseSvg,
+          { routingMode: routingModeRef.current },
         );
         lastSerializedSvgRef.current = updatedSvg;
 
@@ -227,6 +233,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
           return bridgeRef.current.serializeToSvg(
             graphRef.current,
             svgPropRef.current,
+            { routingMode: routingModeRef.current },
           );
         },
         addNode: (kind, x, y, customData) => {
@@ -310,8 +317,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
           if (!edge || !edge.isEdge()) return;
 
           const currentData = (edge.getData() ?? {}) as RaidEdgeData;
-          const nextData = { ...currentData, ...updates };
-          edge.setData(nextData);
+          const mutableData: Record<string, unknown> = { ...currentData, ...updates };
 
           if (updates.routing !== undefined) {
             applyEdgeRouting(edge, updates.routing);
@@ -320,16 +326,30 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
           if (updates.sourcePort !== undefined) {
             const currentSource = edge.getSource() as { cell?: string };
             if (currentSource.cell) {
-              edge.setSource({ cell: currentSource.cell, port: updates.sourcePort });
+              if (updates.sourcePort === '' || updates.sourcePort === 'auto') {
+                edge.setSource({ cell: currentSource.cell });
+                delete mutableData.sourcePort;
+              } else {
+                edge.setSource({ cell: currentSource.cell, port: updates.sourcePort });
+                mutableData.sourcePort = updates.sourcePort;
+              }
             }
           }
 
           if (updates.targetPort !== undefined) {
             const currentTarget = edge.getTarget() as { cell?: string };
             if (currentTarget.cell) {
-              edge.setTarget({ cell: currentTarget.cell, port: updates.targetPort });
+              if (updates.targetPort === '' || updates.targetPort === 'auto') {
+                edge.setTarget({ cell: currentTarget.cell });
+                delete mutableData.targetPort;
+              } else {
+                edge.setTarget({ cell: currentTarget.cell, port: updates.targetPort });
+                mutableData.targetPort = updates.targetPort;
+              }
             }
           }
+
+          edge.setData(mutableData as unknown as RaidEdgeData);
 
           if (updates.label !== undefined || updates.stereotype !== undefined) {
             const text = updates.label ?? updates.stereotype ?? '';
@@ -355,6 +375,10 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
         },
         setRoutingMode: (mode, applyToAll = true) => {
           routingModeRef.current = mode;
+          if (graphRef.current) {
+            (graphRef.current as unknown as { _aimRoutingMode?: AimRoutingMode })._aimRoutingMode = mode;
+          }
+          onRoutingModeChangeRef.current?.(mode);
           if (applyToAll && graphRef.current) {
             for (const edge of graphRef.current.getEdges()) {
               applyEdgeRouting(edge, mode);
@@ -723,8 +747,13 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
       if (svgPropRef.current) {
         isHydratingRef.current = true;
         try {
-          bridgeRef.current.hydrateFromSvg(svgPropRef.current, graph);
+          const metamodel = bridgeRef.current.hydrateFromSvg(svgPropRef.current, graph, { inferPorts: false });
           lastSerializedSvgRef.current = svgPropRef.current;
+          if (metamodel.routing) {
+            routingModeRef.current = metamodel.routing;
+            (graph as unknown as { _aimRoutingMode?: AimRoutingMode })._aimRoutingMode = metamodel.routing;
+            onRoutingModeChangeRef.current?.(metamodel.routing);
+          }
           graph.centerContent();
         } catch (err) {
           console.error('RaidCanvas hydration error:', err);
@@ -760,8 +789,13 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
       isHydratingRef.current = true;
       try {
-        bridgeRef.current.hydrateFromSvg(activeSvg, graph);
+        const metamodel = bridgeRef.current.hydrateFromSvg(activeSvg, graph, { inferPorts: false });
         lastSerializedSvgRef.current = activeSvg;
+        if (metamodel.routing) {
+          routingModeRef.current = metamodel.routing;
+          (graph as unknown as { _aimRoutingMode?: AimRoutingMode })._aimRoutingMode = metamodel.routing;
+          onRoutingModeChangeRef.current?.(metamodel.routing);
+        }
         graph.centerContent();
       } catch (err) {
         console.error('RaidCanvas re-hydration error:', err);

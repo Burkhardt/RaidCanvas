@@ -160,6 +160,9 @@ export interface RaidMetamodel {
   /** Relationships connecting projected nodes. */
   readonly edges: readonly RaidEdgeData[];
 
+  /** Diagram-level edge routing mode ('manhattan', 'normal', 'smooth'). */
+  readonly routing?: AimRoutingMode;
+
   /** Additional diagram-level metadata. */
   readonly metadata?: Readonly<Record<string, unknown>>;
 }
@@ -201,6 +204,13 @@ export interface HydrationOptions {
   /** If true, automatically executes Manhattan routing if bend points are missing. Default: true. */
   readonly autoRouteEdges?: boolean;
 
+  /**
+   * If true, infers docking ports (e.g. port-right, port-left) based on node geometry when ports
+   * are omitted in the SVG. When false (default), edges bind directly to node cells without ports,
+   * enabling dynamic Manhattan center-aiming routing. Default: false.
+   */
+  readonly inferPorts?: boolean;
+
   /** Default fallback dimensions when width/height are unspecified in SVG. */
   readonly defaultNodeSize?: { readonly width: number; readonly height: number };
 }
@@ -217,4 +227,7 @@ export interface SerializationOptions {
 
   /** Inject Cascais design token CSS variables into `<defs><style>`. Default: true. */
   readonly embedStyles?: boolean;
+
+  /** Optional diagram-level routing mode to serialize onto root `<svg>` tag. */
+  readonly routingMode?: AimRoutingMode;
 }

@@ -83,6 +83,12 @@
   ry: var(--aim-radius-act);
 }
 
+.aim-node[aim-act] text,
+.aim-node[aim-kind="act"] text,
+.aim-act text {
+  text-decoration: underline;
+}
+
 .aim-node[aim-act]:hover,
 .aim-node[aim-kind="act"]:hover {
   filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.4));
@@ -115,20 +121,28 @@
   stroke-width: 1.5px;
 }
 
+.aim-node[aim-obj] text,
+.aim-node[aim-kind="obj"] text,
+.aim-obj text {
+  text-decoration: underline;
+}
+
 /* 5. Person / Actor Nodes ('per') */
 .aim-node[aim-per],
 .aim-node[aim-kind="per"],
 .aim-per {
-  fill: var(--aim-canvas-cream);
-  stroke: var(--aim-warm-graphite);
-  stroke-width: 1.5px;
-  rx: var(--aim-radius-card);
-  ry: var(--aim-radius-card);
+  fill: transparent;
+  stroke: none;
 }
 
-.aim-node[aim-per][aim-role="initiating"] {
+.aim-node[aim-per] path,
+.aim-node[aim-per] circle {
+  transition: stroke 0.15s ease;
+}
+
+.aim-node[aim-per][aim-role="initiating"] path,
+.aim-node[aim-per][aim-role="initiating"] circle {
   stroke: var(--aim-net-gold);
-  stroke-width: 2px;
 }
 
 /* Relationship Edges */

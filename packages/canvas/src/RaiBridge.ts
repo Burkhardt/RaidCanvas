@@ -24,7 +24,13 @@ import {
   type HydrationOptions,
   type SerializationOptions,
 } from './types.js';
-import { createAimNode, createAimEdge, configureAimGraph, CascaisPalette } from './X6Shapes.js';
+import {
+  createAimNode,
+  createAimEdge,
+  configureAimGraph,
+  CascaisPalette,
+  wrapAimText,
+} from './X6Shapes.js';
 
 export class RaiBridge {
   /**
@@ -172,11 +178,14 @@ export class RaiBridge {
       edges.push(edgeData);
     }
 
+    const diagramRouting = (graph as unknown as { _aimRoutingMode?: AimRoutingMode })._aimRoutingMode;
+
     return {
       diagramId: 'RaidDiagram',
       archetype: 'InteractiveCanvas',
       nodes,
       edges,
+      ...(diagramRouting !== undefined ? { routing: diagramRouting } : {}),
     };
   }
 
@@ -296,8 +305,8 @@ export class RaiBridge {
       const sourceNode = nodes.find((n) => n.id === sourceId);
       const targetNode = nodes.find((n) => n.id === targetId);
 
-      // Infer optimal orthogonal docking ports if not explicitly declared
-      if (sourceNode && targetNode) {
+      // Infer optimal orthogonal docking ports only if explicitly requested in options
+      if (options.inferPorts === true && sourceNode && targetNode) {
         const dx =
           targetNode.bounds.x +
           targetNode.bounds.width / 2 -
@@ -349,10 +358,7 @@ export class RaiBridge {
         el.getAttribute(AimSvgContract.ATTR_ROUTING) ??
         el.getAttribute('aim-routing') ??
         undefined;
-      const routing =
-        rawRouting === 'normal' || rawRouting === 'smooth' || rawRouting === 'manhattan'
-          ? (rawRouting as AimRoutingMode)
-          : undefined;
+      const routing = rawRouting ? this.normalizeRouting(rawRouting) : undefined;
 
       edges.push({
         id,
@@ -369,11 +375,18 @@ export class RaiBridge {
       });
     }
 
+    const rawDiagramRouting =
+      svgRoot.getAttribute(AimSvgContract.ATTR_ROUTING) ??
+      svgRoot.getAttribute('aim-routing') ??
+      undefined;
+    const diagramRouting = rawDiagramRouting ? this.normalizeRouting(rawDiagramRouting) : undefined;
+
     return {
       diagramId: svgRoot.getAttribute('id') ?? 'ImportedDiagram',
       archetype: svgRoot.getAttribute('aim-archetype') ?? 'AOAIMDiagram',
       nodes,
       edges,
+      ...(diagramRouting !== undefined ? { routing: diagramRouting } : {}),
     };
   }
 
@@ -397,7 +410,7 @@ export class RaiBridge {
     }
 
     // Check direct geometry attributes (rect, ellipse, circle)
-    const rect = el.querySelector('rect') ?? (el.tagName.toLowerCase() === 'rect' ? el : null);
+    const rect = el.querySelector?.('rect') ?? (el.tagName?.toLowerCase() === 'rect' ? el : null);
     if (rect) {
       if (!transform && rect.getAttribute('x')) x = parseFloat(rect.getAttribute('x')!);
       if (!transform && rect.getAttribute('y')) y = parseFloat(rect.getAttribute('y')!);
@@ -406,7 +419,7 @@ export class RaiBridge {
     }
 
     const ellipse =
-      el.querySelector('ellipse') ?? (el.tagName.toLowerCase() === 'ellipse' ? el : null);
+      el.querySelector?.('ellipse') ?? (el.tagName?.toLowerCase() === 'ellipse' ? el : null);
     if (ellipse) {
       const rx = parseFloat(ellipse.getAttribute('rx') ?? `${width / 2}`);
       const ry = parseFloat(ellipse.getAttribute('ry') ?? `${height / 2}`);
@@ -434,6 +447,12 @@ export class RaiBridge {
 
     const parser = new DOMParser();
     const doc = parser.parseFromString(baseSvg, 'image/svg+xml');
+
+    // Update diagram-level routing mode on root <svg>
+    const diagramRouting = _options.routingMode ?? model.routing;
+    if (diagramRouting) {
+      doc.documentElement.setAttribute(AimSvgContract.ATTR_ROUTING, diagramRouting);
+    }
 
     // Update node positions and transforms
     for (const node of model.nodes) {
@@ -465,11 +484,15 @@ export class RaiBridge {
         if (edge.targetId !== undefined) {
           el.setAttribute(AimSvgContract.ATTR_TARGET, edge.targetId);
         }
-        if (edge.sourcePort !== undefined) {
+        if (edge.sourcePort !== undefined && edge.sourcePort !== '' && edge.sourcePort !== 'auto') {
           el.setAttribute(AimSvgContract.ATTR_SOURCE_PORT, edge.sourcePort);
+        } else {
+          el.removeAttribute(AimSvgContract.ATTR_SOURCE_PORT);
         }
-        if (edge.targetPort !== undefined) {
+        if (edge.targetPort !== undefined && edge.targetPort !== '' && edge.targetPort !== 'auto') {
           el.setAttribute(AimSvgContract.ATTR_TARGET_PORT, edge.targetPort);
+        } else {
+          el.removeAttribute(AimSvgContract.ATTR_TARGET_PORT);
         }
         if (edge.routing !== undefined) {
           el.setAttribute(AimSvgContract.ATTR_ROUTING, edge.routing);
@@ -489,11 +512,44 @@ export class RaiBridge {
     return new XMLSerializer().serializeToString(doc);
   }
 
+  private renderSvgText(
+    text: string,
+    cx: number,
+    cy: number,
+    fontSize: number,
+    fontWeight: string,
+    fill: string,
+    underline: boolean = false,
+  ): string {
+    const wrapped = wrapAimText(text);
+    const lines = wrapped.split('\n');
+    const underlineAttr = underline ? ' text-decoration="underline"' : '';
+    const weightAttr = fontWeight !== 'normal' ? ` font-weight="${fontWeight}"` : '';
+
+    if (lines.length <= 1) {
+      return `      <text x="${cx}" y="${cy}" font-size="${fontSize}"${weightAttr} fill="${fill}" text-anchor="middle" dominant-baseline="central"${underlineAttr}>${lines[0] ?? ''}</text>\n`;
+    }
+
+    const lineHeight = fontSize * 1.25;
+    const startY = cy - ((lines.length - 1) * lineHeight) / 2;
+
+    let tspans = '';
+    lines.forEach((line, idx) => {
+      const y = Math.round(startY + idx * lineHeight);
+      tspans += `<tspan x="${cx}" y="${y}">${line}</tspan>`;
+    });
+
+    return `      <text font-size="${fontSize}"${weightAttr} fill="${fill}" text-anchor="middle" dominant-baseline="central"${underlineAttr}>${tspans}</text>\n`;
+  }
+
   private generateFreshSvg(model: RaidMetamodel, options: SerializationOptions): string {
     const width = Math.max(800, ...model.nodes.map((n) => n.bounds.x + n.bounds.width + 100));
     const height = Math.max(600, ...model.nodes.map((n) => n.bounds.y + n.bounds.height + 100));
 
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" id="${model.diagramId}" aim-archetype="${model.archetype}">\n`;
+    const diagramRouting = options.routingMode ?? model.routing;
+    const routingAttr = diagramRouting ? ` ${AimSvgContract.ATTR_ROUTING}="${diagramRouting}"` : '';
+
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" id="${model.diagramId}" aim-archetype="${model.archetype}"${routingAttr}>\n`;
 
     // Definitions & Markers
     svg += `  <defs>\n`;
@@ -509,6 +565,7 @@ export class RaiBridge {
       svg += `      .aim-node:hover { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }\n`;
       svg += `      .aim-edge { fill: none; stroke: ${CascaisPalette.WarmGraphite}; stroke-width: 1.5; }\n`;
       svg += `      text { font-family: Inter, system-ui, sans-serif; }\n`;
+      svg += `      .aim-act text, .aim-obj text { text-decoration: underline; }\n`;
       svg += `    </style>\n`;
     }
     svg += `  </defs>\n\n`;
@@ -528,8 +585,8 @@ export class RaiBridge {
         pathD = `M ${first.x} ${first.y} ` + edge.bendPoints.slice(1).map((p) => `L ${p.x} ${p.y}`).join(' ');
       }
 
-      const sourcePortAttr = edge.sourcePort ? ` ${AimSvgContract.ATTR_SOURCE_PORT}="${edge.sourcePort}"` : '';
-      const targetPortAttr = edge.targetPort ? ` ${AimSvgContract.ATTR_TARGET_PORT}="${edge.targetPort}"` : '';
+      const sourcePortAttr = edge.sourcePort && edge.sourcePort !== 'auto' ? ` ${AimSvgContract.ATTR_SOURCE_PORT}="${edge.sourcePort}"` : '';
+      const targetPortAttr = edge.targetPort && edge.targetPort !== 'auto' ? ` ${AimSvgContract.ATTR_TARGET_PORT}="${edge.targetPort}"` : '';
       const routingAttr = edge.routing ? ` ${AimSvgContract.ATTR_ROUTING}="${edge.routing}"` : '';
 
       svg += `    <g ${AimSvgContract.ATTR_EDGE}="true" ${AimSvgContract.ATTR_ID}="${edge.id}" ${AimSvgContract.ATTR_EDGE_KIND}="${edge.kind}" ${AimSvgContract.ATTR_SOURCE}="${edge.sourceId}" ${AimSvgContract.ATTR_TARGET}="${edge.targetId}"${sourcePortAttr}${targetPortAttr}${routingAttr} ${AimSvgContract.ATTR_BENDS}="${bendsFormatted}">\n`;
@@ -554,13 +611,24 @@ export class RaiBridge {
         const rx = node.bounds.width / 2;
         const ry = node.bounds.height / 2;
         svg += `      <ellipse cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGold}" stroke-width="2" />\n`;
-        svg += `      <text x="${rx}" y="${ry}" font-size="13" font-weight="bold" fill="${CascaisPalette.TextPrimary}" text-anchor="middle" dominant-baseline="central">${node.displayName}</text>\n`;
+        svg += this.renderSvgText(node.displayName, rx, ry, 13, 'bold', CascaisPalette.TextPrimary, false);
       } else if (node.kind === 'act') {
         svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" rx="12" ry="12" fill="${CascaisPalette.CanvasCream}" stroke="${CascaisPalette.HeraldicGreen}" stroke-width="2" />\n`;
-        svg += `      <text x="${node.bounds.width / 2}" y="${node.bounds.height / 2}" font-size="13" font-weight="600" fill="${CascaisPalette.TextPrimary}" text-anchor="middle" dominant-baseline="central">${node.displayName}</text>\n`;
+        svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 13, '600', CascaisPalette.TextPrimary, true);
+      } else if (node.kind === 'obj') {
+        svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
+        svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 12, 'normal', CascaisPalette.TextPrimary, true);
+      } else if (node.kind === 'per') {
+        const isInitiating = node.stereotype?.toLowerCase().includes('initiates') ?? false;
+        const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+        const cx = Math.round(node.bounds.width / 2);
+        svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="none" stroke="none" />\n`;
+        svg += `      <path d="M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />\n`;
+        svg += `      <circle cx="45" cy="22" r="8" fill="${CascaisPalette.ChalkWhite}" stroke="${strokeColor}" stroke-width="2" />\n`;
+        svg += this.renderSvgText(node.displayName, cx, 68, 12, '500', CascaisPalette.TextPrimary, false);
       } else {
         svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" />\n`;
-        svg += `      <text x="${node.bounds.width / 2}" y="${node.bounds.height / 2}" font-size="12" fill="${CascaisPalette.TextPrimary}" text-anchor="middle" dominant-baseline="central">${node.displayName}</text>\n`;
+        svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 12, 'normal', CascaisPalette.TextPrimary, false);
       }
 
       svg += `    </g>\n`;
@@ -569,6 +637,14 @@ export class RaiBridge {
     svg += `</svg>\n`;
 
     return svg;
+  }
+
+  public normalizeRouting(raw: string): AimRoutingMode {
+    const lower = raw.toLowerCase().trim();
+    if (lower === 'orthogonal' || lower === 'manhattan') return 'manhattan';
+    if (lower === 'straight' || lower === 'normal') return 'normal';
+    if (lower === 'curved' || lower === 'smooth') return 'smooth';
+    return 'manhattan';
   }
 
   private normalizeKind(kind: string): AimOntologyKind {

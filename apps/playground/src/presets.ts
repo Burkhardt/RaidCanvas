@@ -12,19 +12,20 @@ export const PRESETS: DiagramPreset[] = [
     name: 'OneUseCase Diagram',
     archetype: 'OneUseCaseDiagram',
     description: 'Initiating role, core UseCase ellipse, and downflow activity verification.',
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" id="SignContract_UCD" aim-archetype="OneUseCaseDiagram">
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" id="SignContract_UCD" aim-archetype="OneUseCaseDiagram" aim-routing="manhattan">
   <defs>
     <style>
       .aim-edge { fill: none; stroke: #1F2937; stroke-width: 1.5; }
       text { font-family: Inter, system-ui, sans-serif; }
+      .aim-act text, .aim-obj text { text-decoration: underline; }
     </style>
   </defs>
 
   <!-- Edges -->
   <g class="aim-edges-layer">
-    <g aim-edge="true" aim-id="edge-initiate" aim-edge-kind="association" aim-source="Customer_Actor" aim-target="SignContract_UC" aim-bends="130,130; 250,130">
-      <path d="M 130 130 L 250 130" class="aim-edge" />
-      <text x="190" y="122" font-size="11" fill="#4B5563" text-anchor="middle">«initiates»</text>
+    <g aim-edge="true" aim-id="edge-initiate" aim-edge-kind="association" aim-source="Customer_Actor" aim-target="SignContract_UC" aim-bends="140,130; 250,130">
+      <path d="M 140 130 L 250 130" class="aim-edge" />
+      <text x="195" y="122" font-size="11" fill="#4B5563" text-anchor="middle">«initiates»</text>
     </g>
     <g aim-edge="true" aim-id="edge-include" aim-edge-kind="dependency" aim-source="SignContract_UC" aim-target="VerifyIdentity_Act" aim-bends="390,130; 500,130">
       <path d="M 390 130 L 500 130" class="aim-edge" stroke-dasharray="5,5" />
@@ -34,9 +35,11 @@ export const PRESETS: DiagramPreset[] = [
 
   <!-- Nodes -->
   <g class="aim-nodes-layer">
-    <g aim-node="true" aim-id="Customer_Actor" aim-kind="per" aim-display-name="Customer" aim-stereotype="«initiates»" transform="translate(50, 95)">
-      <rect width="80" height="70" rx="8" ry="8" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" />
-      <text x="40" y="35" font-size="12" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central">Customer</text>
+    <g aim-node="true" aim-id="Customer_Actor" aim-kind="per" aim-display-name="Customer" aim-stereotype="«initiates»" transform="translate(50, 85)">
+      <rect width="90" height="90" fill="none" stroke="none" />
+      <path d="M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="45" cy="22" r="8" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" />
+      <text x="45" y="68" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Customer</text>
     </g>
 
     <g aim-node="true" aim-id="SignContract_UC" aim-kind="uc" aim-display-name="Sign Contract" transform="translate(250, 95)">
@@ -46,7 +49,7 @@ export const PRESETS: DiagramPreset[] = [
 
     <g aim-node="true" aim-id="VerifyIdentity_Act" aim-kind="act" aim-display-name="Verify Identity" transform="translate(500, 100)">
       <rect width="150" height="60" rx="12" ry="12" fill="#F8FAFC" stroke="#10B981" stroke-width="2" />
-      <text x="75" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central">Verify Identity</text>
+      <text x="75" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Verify Identity</text>
     </g>
   </g>
 </svg>`,

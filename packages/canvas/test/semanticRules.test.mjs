@@ -104,7 +104,7 @@ describe('AOAIM Stencil Sizing & Defaults', () => {
     assert.deepEqual(objBounds, { x: 100, y: 100, width: 160, height: 80 });
 
     const perBounds = getDefaultNodeBounds('per', 200, 200);
-    assert.deepEqual(perBounds, { x: 200, y: 200, width: 120, height: 70 });
+    assert.deepEqual(perBounds, { x: 200, y: 200, width: 90, height: 90 });
   });
 
   test('returns standard default display names per archetype', () => {

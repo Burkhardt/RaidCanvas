@@ -1,6 +1,6 @@
 {
   "name": "@dr2rai/raid-canvas",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Interactive AntV X6 diagram canvas for AOAIM (.raid) models and ontological SVG contracts",
   "type": "module",
   "main": "./dist/index.js",
