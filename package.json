@@ -3,6 +3,10 @@
   "version": "0.3.0",
   "private": true,
   "description": "Interactive TypeScript diagram canvas built with pnpm, AntV X6, and the ontological SVG contract (aim-*)",
+  "author": "Dr. Rainer Burkhardt <Rainer@Burkhardt.com> (https://github.com/Burkhardt)",
+  "contributors": [
+    "Alan (7012) <Visual Systems & Canvas Lead>"
+  ],
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {

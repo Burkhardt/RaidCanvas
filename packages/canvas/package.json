@@ -1,7 +1,11 @@
 {
   "name": "@dr2rai/raid-canvas",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Interactive AntV X6 diagram canvas for AOAIM (.raid) models and ontological SVG contracts",
+  "author": "Dr. Rainer Burkhardt <Rainer@Burkhardt.com> (https://github.com/Burkhardt)",
+  "contributors": [
+    "Alan (7012) <Visual Systems & Canvas Lead>"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -35,9 +39,11 @@
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@types/jsdom": "^30.0.0",
     "@types/node": "^22.5.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "jsdom": "^30.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "typescript": "^7.0.2"

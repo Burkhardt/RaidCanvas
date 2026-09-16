@@ -1,7 +1,9 @@
 # RaidCanvas
 
 > **Interactive TypeScript Diagram Canvas for AOAIM Visual Modeling & Ontological SVG Synchronization**  
-> *Burkhardt / RaidCanvas*
+> *Burkhardt / RaidCanvas*  
+> **Author & Principal Architect:** Dr. Rainer Burkhardt <Rainer@Burkhardt.com>  
+> **Lead Implementation Engineer:** Alan (7012), Visual Systems & Canvas Lead
 
 [![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-orange.svg)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0.2-blue.svg)](https://www.typescriptlang.org/)

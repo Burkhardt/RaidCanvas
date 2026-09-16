@@ -32,7 +32,47 @@ import {
   wrapAimText,
 } from './X6Shapes.js';
 
+/**
+ * Escapes XML special characters for safe inclusion in XML text nodes.
+ * Replaces &, <, and >.
+ */
+export function escapeXmlText(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/**
+ * Escapes XML special characters for safe inclusion in XML attribute values.
+ * Replaces &, <, >, ", and '.
+ */
+export function escapeXmlAttr(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 export class RaiBridge {
+  /**
+   * Escapes XML text content.
+   */
+  public escapeXmlText(str: string): string {
+    return escapeXmlText(str);
+  }
+
+  /**
+   * Escapes XML attribute values.
+   */
+  public escapeXmlAttr(str: string): string {
+    return escapeXmlAttr(str);
+  }
+
   /**
    * Hydrates an AntV X6 graph from an SVG source string or DOM Element.
    *
@@ -549,6 +589,9 @@ export class RaiBridge {
 
     const parser = new DOMParser();
     const doc = parser.parseFromString(baseSvg, 'image/svg+xml');
+    if (doc.documentElement.tagName.toLowerCase() === 'parsererror') {
+      throw new Error(`Failed to parse baseSvg: ${doc.documentElement.textContent}`);
+    }
 
     // Ensure defs and arrow markers exist for external vector viewers (Preview, Chrome, Safari)
     let defs = doc.querySelector('defs');
@@ -651,6 +694,9 @@ export class RaiBridge {
         `<g xmlns="http://www.w3.org/2000/svg">${innerSvg}</g>`,
         'image/svg+xml',
       );
+      if (fragmentDoc.documentElement.tagName.toLowerCase() === 'parsererror') {
+        throw new Error(`Failed to parse inner SVG for node ${node.id}: ${fragmentDoc.documentElement.textContent}`);
+      }
 
       while (el.firstChild) {
         el.removeChild(el.firstChild);
@@ -802,7 +848,8 @@ export class RaiBridge {
     const weightAttr = fontWeight !== 'normal' ? ` font-weight="${fontWeight}"` : '';
 
     if (lines.length <= 1) {
-      return `      <text x="${cx}" y="${cy}" font-size="${fontSize}"${weightAttr} fill="${fill}" text-anchor="middle" dominant-baseline="central"${underlineAttr}>${lines[0] ?? ''}</text>\n`;
+      const lineContent = lines[0] !== undefined ? escapeXmlText(lines[0]) : '';
+      return `      <text x="${cx}" y="${cy}" font-size="${fontSize}"${weightAttr} fill="${fill}" text-anchor="middle" dominant-baseline="central"${underlineAttr}>${lineContent}</text>\n`;
     }
 
     const lineHeight = fontSize * 1.25;
@@ -811,7 +858,7 @@ export class RaiBridge {
     let tspans = '';
     lines.forEach((line, idx) => {
       const y = Math.round(startY + idx * lineHeight);
-      tspans += `<tspan x="${cx}" y="${y}">${line}</tspan>`;
+      tspans += `<tspan x="${cx}" y="${y}">${escapeXmlText(line)}</tspan>`;
     });
 
     return `      <text font-size="${fontSize}"${weightAttr} fill="${fill}" text-anchor="middle" dominant-baseline="central"${underlineAttr}>${tspans}</text>\n`;
@@ -854,9 +901,9 @@ export class RaiBridge {
     const height = Math.max(600, ...model.nodes.map((n) => n.bounds.y + n.bounds.height + 100));
 
     const diagramRouting = options.routingMode ?? model.routing;
-    const routingAttr = diagramRouting ? ` ${AimSvgContract.ATTR_ROUTING}="${diagramRouting}"` : '';
+    const routingAttr = diagramRouting ? ` ${AimSvgContract.ATTR_ROUTING}="${escapeXmlAttr(diagramRouting)}"` : '';
 
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" id="${model.diagramId}" aim-archetype="${model.archetype}"${routingAttr}>\n`;
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" id="${escapeXmlAttr(model.diagramId)}" aim-archetype="${escapeXmlAttr(model.archetype)}"${routingAttr}>\n`;
 
     // Definitions & Markers
     svg += `  <defs>\n`;
@@ -898,11 +945,14 @@ export class RaiBridge {
         }
       }
 
-      const sourcePortAttr = edge.sourcePort && edge.sourcePort !== 'auto' ? ` ${AimSvgContract.ATTR_SOURCE_PORT}="${edge.sourcePort}"` : '';
-      const targetPortAttr = edge.targetPort && edge.targetPort !== 'auto' ? ` ${AimSvgContract.ATTR_TARGET_PORT}="${edge.targetPort}"` : '';
-      const routingAttr = edge.routing ? ` ${AimSvgContract.ATTR_ROUTING}="${edge.routing}"` : '';
+      const sourcePortAttr = edge.sourcePort && edge.sourcePort !== 'auto' ? ` ${AimSvgContract.ATTR_SOURCE_PORT}="${escapeXmlAttr(edge.sourcePort)}"` : '';
+      const targetPortAttr = edge.targetPort && edge.targetPort !== 'auto' ? ` ${AimSvgContract.ATTR_TARGET_PORT}="${escapeXmlAttr(edge.targetPort)}"` : '';
+      const routingAttr = edge.routing ? ` ${AimSvgContract.ATTR_ROUTING}="${escapeXmlAttr(edge.routing)}"` : '';
+      const stereotypeAttr = edge.stereotype ? ` ${AimSvgContract.ATTR_STEREOTYPE}="${escapeXmlAttr(edge.stereotype)}"` : '';
+      const sourceCardAttr = edge.sourceCardinality ? ` aim-source-cardinality="${escapeXmlAttr(edge.sourceCardinality)}"` : '';
+      const targetCardAttr = edge.targetCardinality ? ` aim-target-cardinality="${escapeXmlAttr(edge.targetCardinality)}"` : '';
 
-      svg += `    <g ${AimSvgContract.ATTR_EDGE}="true" ${AimSvgContract.ATTR_ID}="${edge.id}" ${AimSvgContract.ATTR_EDGE_KIND}="${edge.kind}" ${AimSvgContract.ATTR_SOURCE}="${edge.sourceId}" ${AimSvgContract.ATTR_TARGET}="${edge.targetId}"${sourcePortAttr}${targetPortAttr}${routingAttr} ${AimSvgContract.ATTR_BENDS}="${bendsFormatted}">\n`;
+      svg += `    <g ${AimSvgContract.ATTR_EDGE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(edge.id)}" ${AimSvgContract.ATTR_EDGE_KIND}="${escapeXmlAttr(edge.kind)}" ${AimSvgContract.ATTR_SOURCE}="${escapeXmlAttr(edge.sourceId)}" ${AimSvgContract.ATTR_TARGET}="${escapeXmlAttr(edge.targetId)}"${sourcePortAttr}${targetPortAttr}${routingAttr}${stereotypeAttr}${sourceCardAttr}${targetCardAttr} ${AimSvgContract.ATTR_BENDS}="${escapeXmlAttr(bendsFormatted)}">\n`;
       if (pathD) {
         svg += `      <path d="${pathD}" class="aim-edge" fill="none" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5"${strokeDash}${markerEnd} />\n`;
       }
@@ -921,7 +971,7 @@ export class RaiBridge {
                 }
                 return { x: 50, y: 50 };
               })();
-        svg += `      <text x="${midPoint.x}" y="${midPoint.y - 8}" font-size="11" fill="${CascaisPalette.TextSecondary}" text-anchor="middle">${edge.label}</text>\n`;
+        svg += `      <text x="${midPoint.x}" y="${midPoint.y - 8}" font-size="11" fill="${CascaisPalette.TextSecondary}" text-anchor="middle">${escapeXmlText(edge.label)}</text>\n`;
       }
       svg += `    </g>\n`;
     }
@@ -931,8 +981,8 @@ export class RaiBridge {
     svg += `  <!-- Nodes -->\n`;
     svg += `  <g class="aim-nodes-layer">\n`;
     for (const node of model.nodes) {
-      const stereotypeAttr = node.stereotype ? ` ${AimSvgContract.ATTR_STEREOTYPE}="${node.stereotype}"` : '';
-      svg += `    <g ${AimSvgContract.ATTR_NODE}="true" ${AimSvgContract.ATTR_ID}="${node.id}" ${AimSvgContract.ATTR_KIND}="${node.kind}" ${AimSvgContract.ATTR_DISPLAY_NAME}="${node.displayName}"${stereotypeAttr} transform="translate(${node.bounds.x}, ${node.bounds.y})">\n`;
+      const stereotypeAttr = node.stereotype ? ` ${AimSvgContract.ATTR_STEREOTYPE}="${escapeXmlAttr(node.stereotype)}"` : '';
+      svg += `    <g ${AimSvgContract.ATTR_NODE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(node.id)}" ${AimSvgContract.ATTR_KIND}="${escapeXmlAttr(node.kind)}" ${AimSvgContract.ATTR_DISPLAY_NAME}="${escapeXmlAttr(node.displayName)}"${stereotypeAttr} transform="translate(${node.bounds.x}, ${node.bounds.y})">\n`;
       svg += this.renderNodeInnerSvg(node);
       svg += `    </g>\n`;
     }

@@ -1,5 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { JSDOM } from 'jsdom';
 import {
   CascaisPalette,
   createOrthogonalPorts,
@@ -8,7 +9,13 @@ import {
   RaiBridge,
   AimSvgContract,
   wrapAimText,
+  escapeXmlText,
+  escapeXmlAttr,
 } from '../dist/index.js';
+
+const jsdom = new JSDOM();
+globalThis.DOMParser = jsdom.window.DOMParser;
+globalThis.XMLSerializer = jsdom.window.XMLSerializer;
 
 describe('RaidCanvas Core Tests', () => {
   test('CascaisPalette contains design tokens', () => {
@@ -534,6 +541,157 @@ describe('RaidCanvas Core Tests', () => {
     // Check Activity underline
     assert.ok(updatedSvg.includes('text-decoration="underline"'), 'Activity label has text-decoration="underline"');
     assert.ok(updatedSvg.includes('.aim-act text, .aim-obj text { text-decoration: underline; }'), 'Style includes underline rules');
+  });
+});
+
+describe('CR030 XML Text & Attribute Escaping Acceptance Tests', () => {
+  const bridge = new RaiBridge();
+
+  test('escapeXmlText and escapeXmlAttr helper functions escape characters correctly', () => {
+    assert.equal(escapeXmlText('A & B < C > D'), 'A &amp; B &lt; C &gt; D');
+    assert.equal(escapeXmlAttr('Quote: "Hello" & \'World\' <1>'), 'Quote: &quot;Hello&quot; &amp; &apos;World&apos; &lt;1&gt;');
+  });
+
+  test('Ampersand round-trip: "AIA Platform Genesis & Bootstrap" round-trips with 0 <parsererror> nodes and identical decoded text', () => {
+    const rawName = 'AIA Platform Genesis & Bootstrap';
+    const model = {
+      diagramId: 'TestDiagram',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        { id: 'Act_1', kind: 'act', displayName: rawName, bounds: { x: 50, y: 50, width: 140, height: 60 } },
+      ],
+      edges: [],
+    };
+
+    // 1. Fresh SVG export
+    const freshSvg = bridge.generateFreshSvg(model, {});
+    assert.ok(freshSvg.includes('aim-display-name="AIA Platform Genesis &amp; Bootstrap"'));
+    assert.ok(freshSvg.includes('&amp;'));
+
+    const parser = new DOMParser();
+    const freshDoc = parser.parseFromString(freshSvg, 'image/svg+xml');
+    assert.equal(freshDoc.querySelectorAll('parsererror').length, 0, 'No parsererror in fresh SVG');
+    const freshNode = freshDoc.querySelector('[aim-node="true"]');
+    assert.equal(freshNode.getAttribute('aim-display-name'), rawName, 'Attribute round-trips decoded text');
+
+    // 2. Existing SVG update
+    const baseSvg = `<svg xmlns="http://www.w3.org/2000/svg" id="TestDiagram">
+      <defs></defs>
+      <g class="aim-nodes-layer">
+        <g aim-node="true" aim-id="Act_1" aim-kind="act"><rect width="140" height="60"/><text>Old</text></g>
+      </g>
+    </svg>`;
+    const updatedSvg = bridge.updateExistingSvg(baseSvg, model, {});
+    assert.ok(updatedSvg.includes('aim-display-name="AIA Platform Genesis &amp; Bootstrap"'));
+
+    const updatedDoc = parser.parseFromString(updatedSvg, 'image/svg+xml');
+    assert.equal(updatedDoc.querySelectorAll('parsererror').length, 0, 'No parsererror in updated SVG');
+    const updatedNode = updatedDoc.querySelector('[aim-node="true"]');
+    assert.equal(updatedNode.getAttribute('aim-display-name'), rawName, 'Attribute in updated SVG round-trips decoded text');
+  });
+
+  test('Angle brackets: "<script>alert(1)</script>" renders literal text without DOM injection', () => {
+    const rawName = '<script>alert(1)</script>';
+    const model = {
+      diagramId: 'TestDiagram',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        { id: 'Act_1', kind: 'act', displayName: rawName, bounds: { x: 50, y: 50, width: 140, height: 60 } },
+      ],
+      edges: [],
+    };
+
+    const freshSvg = bridge.generateFreshSvg(model, {});
+    assert.ok(freshSvg.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
+    assert.ok(!freshSvg.includes('<script>'));
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(freshSvg, 'image/svg+xml');
+    assert.equal(doc.querySelectorAll('script').length, 0, 'No script DOM element injected');
+    const nodeEl = doc.querySelector('[aim-node="true"]');
+    assert.equal(nodeEl.getAttribute('aim-display-name'), rawName, 'Decodes back to original script tag string');
+  });
+
+  test('Quotes: \'the "Lisbon" rehearsal\' keeps attributes valid', () => {
+    const rawName = 'the "Lisbon" rehearsal';
+    const model = {
+      diagramId: 'TestDiagram',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        { id: 'Act_1', kind: 'act', displayName: rawName, bounds: { x: 50, y: 50, width: 140, height: 60 } },
+      ],
+      edges: [],
+    };
+
+    const freshSvg = bridge.generateFreshSvg(model, {});
+    assert.ok(freshSvg.includes('aim-display-name="the &quot;Lisbon&quot; rehearsal"'));
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(freshSvg, 'image/svg+xml');
+    assert.equal(doc.querySelectorAll('parsererror').length, 0);
+    const nodeEl = doc.querySelector('[aim-node="true"]');
+    assert.equal(nodeEl.getAttribute('aim-display-name'), rawName);
+  });
+
+  test('No node truncation: Diagram with ampersand in the first node retains 100% of following nodes/edges', () => {
+    const model = {
+      diagramId: 'MultiNodeDiagram',
+      archetype: 'AOAIMDiagram',
+      nodes: [
+        { id: 'act-1', kind: 'act', displayName: 'Genesis & Bootstrap', bounds: { x: 10, y: 10, width: 140, height: 60 } },
+        { id: 'act-2', kind: 'act', displayName: 'System Execution', bounds: { x: 200, y: 10, width: 140, height: 60 } },
+        { id: 'obj-1', kind: 'obj', displayName: 'Artifact Ledger', bounds: { x: 400, y: 10, width: 140, height: 60 } },
+      ],
+      edges: [
+        { id: 'e1', kind: 'association', sourceId: 'act-1', targetId: 'act-2', label: 'triggers & informs', bendPoints: [] },
+        { id: 'e2', kind: 'dependency', sourceId: 'act-2', targetId: 'obj-1', label: 'writes to', bendPoints: [] },
+      ],
+    };
+
+    // Test fresh SVG
+    const freshSvg = bridge.generateFreshSvg(model, {});
+    const parser = new DOMParser();
+    const freshDoc = parser.parseFromString(freshSvg, 'image/svg+xml');
+    assert.equal(freshDoc.querySelectorAll('[aim-node="true"]').length, 3, '100% of nodes retained in fresh SVG');
+    assert.equal(freshDoc.querySelectorAll('[aim-edge="true"]').length, 2, '100% of edges retained in fresh SVG');
+    assert.equal(freshDoc.querySelectorAll('parsererror').length, 0);
+
+    // Test updated SVG
+    const updatedSvg = bridge.updateExistingSvg(freshSvg, model, {});
+    const updatedDoc = parser.parseFromString(updatedSvg, 'image/svg+xml');
+    assert.equal(updatedDoc.querySelectorAll('[aim-node="true"]').length, 3, '100% of nodes retained in updated SVG');
+    assert.equal(updatedDoc.querySelectorAll('[aim-edge="true"]').length, 2, '100% of edges retained in updated SVG');
+    assert.equal(updatedDoc.querySelectorAll('parsererror').length, 0);
+  });
+
+  test('<wbr> seam compatibility: Labels with <wbr> break cleanly without rendering literal wbr characters', () => {
+    const rawName = 'For<wbr/>Words<wbr/>Or<wbr/>Strings<wbr/>Too<wbr/>Long<wbr/>To<wbr/>Fit';
+    const model = {
+      diagramId: 'TestDiagram',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        { id: 'Act_1', kind: 'act', displayName: rawName, bounds: { x: 50, y: 50, width: 140, height: 60 } },
+      ],
+      edges: [],
+    };
+
+    const freshSvg = bridge.generateFreshSvg(model, {});
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(freshSvg, 'image/svg+xml');
+    assert.equal(doc.querySelectorAll('parsererror').length, 0);
+
+    // Rendered text inside <text> must NOT contain the literal string 'wbr'
+    const textEl = doc.querySelector('text');
+    assert.ok(textEl, 'Text element exists');
+    assert.ok(!textEl.textContent.includes('wbr'), 'Rendered text does not contain literal wbr string');
+
+    // And soft break should have created multiple tspans
+    const tspans = textEl.querySelectorAll('tspan');
+    assert.ok(tspans.length > 1, 'Wrapped into multiple tspans');
+
+    // Model attribute preserved
+    const nodeEl = doc.querySelector('[aim-node="true"]');
+    assert.equal(nodeEl.getAttribute('aim-display-name'), rawName);
   });
 });
 

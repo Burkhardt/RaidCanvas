@@ -54,8 +54,8 @@ export {
   type StereotypeOption,
 } from './semanticRules.js';
 
-// Bidirectional SVG <-> X6 Synchronization Bridge
-export { RaiBridge } from './RaiBridge.js';
+// Bidirectional SVG <-> X6 Synchronization Bridge & XML Escaping
+export { RaiBridge, escapeXmlText, escapeXmlAttr } from './RaiBridge.js';
 
 // Reusable React Canvas Component & Ref Handle
 export {
