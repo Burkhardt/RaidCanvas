@@ -421,5 +421,73 @@ describe('RaidCanvas Core Tests', () => {
     assert.ok(!svg.includes('aim-source-port'));
     assert.ok(!svg.includes('aim-target-port'));
   });
+
+  test('RaiBridge bakes fully connected edge path geometry and arrowheads for standalone viewers', () => {
+    const bridge = new RaiBridge();
+    const model = {
+      diagramId: 'ConnectedDiagram',
+      archetype: 'InteractiveCanvas',
+      routing: 'manhattan',
+      nodes: [
+        {
+          id: 'Per_1',
+          kind: 'per',
+          displayName: 'Sales Agent',
+          bounds: { x: 50, y: 50, width: 90, height: 90 },
+        },
+        {
+          id: 'Act_1',
+          kind: 'act',
+          displayName: 'Close Deal',
+          bounds: { x: 300, y: 50, width: 140, height: 60 },
+        },
+      ],
+      edges: [
+        {
+          id: 'E1',
+          kind: 'association',
+          sourceId: 'Per_1',
+          targetId: 'Act_1',
+          bendPoints: [],
+        },
+      ],
+    };
+
+    // 1. Test generateFreshSvg fallback path generation
+    const freshSvg = bridge.generateFreshSvg(model, {});
+    assert.ok(freshSvg.includes('marker id="arrow-classic"'), 'defs should include arrow-classic marker');
+    assert.ok(freshSvg.includes('marker id="arrow-hollow"'), 'defs should include arrow-hollow marker');
+    assert.ok(freshSvg.includes('<path d="M 140 95 L 220 95 L 220 80 L 300 80" class="aim-edge" fill="none" stroke="#1F2937" stroke-width="1.5" marker-end="url(#arrow-classic)" />'), 'edge path connects source to target boundary');
+    assert.ok(freshSvg.includes('marker-end="url(#arrow-classic)"'), 'edge includes arrowhead marker');
+
+    // 2. Test updateExistingSvg with live pathData
+    const baseSvg = `<svg xmlns="http://www.w3.org/2000/svg" id="ConnectedDiagram">
+  <defs></defs>
+  <g class="aim-edges-layer">
+    <g aim-edge="true" aim-id="E1" aim-source="Per_1" aim-target="Act_1"></g>
+  </g>
+  <g class="aim-nodes-layer">
+    <g aim-node="true" aim-id="Per_1"></g>
+    <g aim-node="true" aim-id="Act_1"></g>
+  </g>
+</svg>`;
+
+    const liveModel = {
+      ...model,
+      edges: [
+        {
+          ...model.edges[0],
+          pathData: 'M 140 95 L 200 95 L 200 80 L 300 80',
+        },
+      ],
+    };
+
+    const updatedSvg = bridge.updateExistingSvg(baseSvg, liveModel, {});
+    assert.ok(updatedSvg.includes('d="M 140 95 L 200 95 L 200 80 L 300 80"'), 'live path data is baked into existing SVG');
+    assert.ok(updatedSvg.includes('marker-end="url(#arrow-classic)"'), 'arrow marker is attached');
+    assert.ok(updatedSvg.includes('id="arrow-classic"'), 'arrow-classic marker added to defs');
+    assert.ok(updatedSvg.includes('id="arrow-hollow"'), 'arrow-hollow marker added to defs');
+  });
 });
+
 

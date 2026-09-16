@@ -55,6 +55,8 @@ In v0.3.0, RaidCanvas introduced interactive Manhattan orthogonal routing, edge 
 - **Serialization**:
   - Write `aim-routing` to root `<svg>` tag.
   - If an edge has no `sourcePort` / `targetPort`, omit or remove `aim-source-port` / `aim-target-port`.
+  - Bake live router-computed path data (`d="M ... L ..."`) into `<path class="aim-edge">` tags with arrow markers (`#arrow-classic`, `#arrow-hollow`) for standalone vector viewers.
+  - Implement `computeFallbackEdgePath` for clean routing in headless environments.
   - Render `aim-per` nodes as Person glyphs in `generateFreshSvg`.
   - Render `aim-act` and `aim-obj` with `text-decoration="underline"`.
   - Render wrapped lines as centered `<tspan>` elements in SVG export.
@@ -83,9 +85,10 @@ In v0.3.0, RaidCanvas introduced interactive Manhattan orthogonal routing, edge 
      - Test Person glyph definition and SVG markup.
      - Test underlined text decoration on Activity and Object nodes.
      - Test `wrapAimText` with spaces and `<wbr>` soft breaks.
+     - Test baked edge paths and arrow markers for standalone vector rendering.
 2. **Build & Typecheck**:
    - `pnpm -r run build`
    - `pnpm -r run typecheck`
-   - `pnpm -r run test`
+   - `pnpm -r run test` (25/25 passing)
 3. **Visual Verification**:
    - Verify Person glyph, text underline, centered wrapped labels, and unpinned center-aiming in Studio playground.

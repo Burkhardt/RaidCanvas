@@ -18,7 +18,8 @@
 | **Actor / Person Glyph (`aim-per`)** | **DELIVERED** | Replaced rectangular box with canonical Person glyph (head circle + shoulder arch) matching Stencil drawer and Cascais tokens |
 | **Underlined Instance Labels** | **DELIVERED** | UML/AOAIM standard underlined labels (`text-decoration: underline`) for Activity (`aim-act`) and Object (`aim-obj`) |
 | **Centered Multi-Line Text Wrapping** | **DELIVERED** | Labels wrap on spaces `" "` and treat `<wbr>` / hyphens as soft break opportunities within unbroken words; exported as centered `<tspan>` |
-| **Automated Test Suite** | **PASSED** | **24 / 24 unit tests passing** across 4 test suites (`pnpm -r run test`) |
+| **Universal Dual-Use SVG Vector Export** | **DELIVERED** | Bakes live routed edge paths (`d="M ... L ..."`) and arrowheads (`marker-end`) into `<path class="aim-edge">` tags for flawless rendering in macOS Preview, Chrome, Safari & Keynote while preserving all `aim-*` metadata |
+| **Automated Test Suite** | **PASSED** | **25 / 25 unit tests passing** across 4 test suites (`pnpm -r run test`) |
 | **Monorepo Build & Typecheck** | **PASSED** | 0 errors across TS 7.0.2 Go native compiler and Vite bundler |
 | **Implementation Plan & Release Notes** | **COMMITTED** | Recorded in `doc/ImplementationPlan0.3.1.md` and `doc/ReleaseNotes0.3.1.md` |
 
@@ -68,6 +69,15 @@
   - Horizontally and vertically centered (`text-anchor: middle`, `dominant-baseline: central`).
   - Serialized as centered multi-line `<tspan>` elements in SVG exports for universal vector compatibility across external viewers.
 
+### G. Universal Dual-Use SVG Vector Export (Preview, Safari, Chrome & Keynote)
+* **Problem**: When diagrams were saved and opened outside RaidCanvas (such as in macOS Preview, Finder, Safari, Chrome, Keynote, or GitHub), nodes appeared but lines were disconnected or invisible. This occurred because edge paths were only computed dynamically by AntV X6 in the browser DOM and never baked into the static `<path d="...">` attribute.
+* **Solution**:
+  - `RaiBridge.metamodelFromGraph` extracts the live router-computed path geometry (`edgeView.getConnectionPathData()`) and carries it in `RaidEdgeData.pathData`.
+  - `RaiBridge.updateExistingSvg` and `RaiBridge.generateFreshSvg` bake the exact path into `<path class="aim-edge" d="..." fill="none" stroke="#1F2937" stroke-width="1.5" marker-end="url(#arrow-classic)" />`.
+  - Injects `#arrow-classic` and `#arrow-hollow` definitions into `<defs>` if absent.
+  - Implements `computeFallbackEdgePath` ensuring clean boundary-to-boundary routing even in headless CLI/unit-test environments without an active DOM.
+  - Preserves 100% of the `aim-*` ontological contract (`aim-source`, `aim-target`, `aim-routing`, `aim-bends`), allowing diagrams to be reloaded into RaidCanvas and fully recalculated/dragged at any time.
+
 ---
 
 ## 3. Verification & Test Summary
@@ -80,13 +90,14 @@
 * **Test Suite**:
   ```bash
   pnpm -r run test
-  # Output: 24 tests across 4 suites passed (0 failures)
+  # Output: 25 tests across 4 suites passed (0 failures)
   ```
-  - `wrapAimText wraps on spaces and breaks explicitly on <wbr>`: PASSED
+  - `wrapAimText wraps on spaces and treats <wbr> and hyphens as soft-break opportunities`: PASSED
   - `createAimNode creates Person glyph with head, torso and initiating color`: PASSED
   - `createAimNode configures textDecoration underline for Activity and Object instances`: PASSED
   - `RaiBridge does not infer ports by default (inferPorts: false)`: PASSED
   - `RaiBridge serializes diagram-level routing and Person glyph into SVG`: PASSED
+  - `RaiBridge bakes fully connected edge path geometry and arrowheads for standalone viewers`: PASSED
 
 ---
 

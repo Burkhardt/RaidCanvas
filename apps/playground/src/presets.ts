@@ -14,6 +14,12 @@ export const PRESETS: DiagramPreset[] = [
     description: 'Initiating role, core UseCase ellipse, and downflow activity verification.',
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" id="SignContract_UCD" aim-archetype="OneUseCaseDiagram" aim-routing="manhattan">
   <defs>
+    <marker id="arrow-classic" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1F2937" />
+    </marker>
+    <marker id="arrow-hollow" viewBox="0 0 12 12" refX="12" refY="6" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <polygon points="0 0, 12 6, 0 12" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.5" />
+    </marker>
     <style>
       .aim-edge { fill: none; stroke: #1F2937; stroke-width: 1.5; }
       text { font-family: Inter, system-ui, sans-serif; }
@@ -24,11 +30,11 @@ export const PRESETS: DiagramPreset[] = [
   <!-- Edges -->
   <g class="aim-edges-layer">
     <g aim-edge="true" aim-id="edge-initiate" aim-edge-kind="association" aim-source="Customer_Actor" aim-target="SignContract_UC" aim-bends="140,130; 250,130">
-      <path d="M 140 130 L 250 130" class="aim-edge" />
+      <path d="M 140 130 L 250 130" class="aim-edge" marker-end="url(#arrow-classic)" />
       <text x="195" y="122" font-size="11" fill="#4B5563" text-anchor="middle">«initiates»</text>
     </g>
     <g aim-edge="true" aim-id="edge-include" aim-edge-kind="dependency" aim-source="SignContract_UC" aim-target="VerifyIdentity_Act" aim-bends="390,130; 500,130">
-      <path d="M 390 130 L 500 130" class="aim-edge" stroke-dasharray="5,5" />
+      <path d="M 390 130 L 500 130" class="aim-edge" stroke-dasharray="5,5" marker-end="url(#arrow-classic)" />
       <text x="445" y="122" font-size="11" fill="#4B5563" text-anchor="middle">«includes»</text>
     </g>
   </g>

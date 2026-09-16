@@ -139,6 +139,9 @@ export interface RaidEdgeData {
 
   /** User-editable or router-computed Manhattan bend points. */
   readonly bendPoints: readonly SvgBendPoint[];
+
+  /** Precomputed or live SVG path data ('M ... L ...') for standalone vector rendering. */
+  readonly pathData?: string;
 }
 
 /**

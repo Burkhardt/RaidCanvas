@@ -160,6 +160,34 @@ export class RaiBridge {
         }
       }
 
+      // Extract live rendered SVG path data from X6 EdgeView if available
+      let pathData: string | undefined = customData.pathData;
+      if (!pathData) {
+        const edgeView =
+          typeof (graph as unknown as { findViewByCell?: (cell: unknown) => unknown }).findViewByCell === 'function'
+            ? (
+                graph as unknown as {
+                  findViewByCell: (cell: unknown) => {
+                    getConnectionPathData?: () => string;
+                    container?: Element;
+                  } | null;
+                }
+              ).findViewByCell(edge)
+            : null;
+
+        if (edgeView) {
+          if (typeof edgeView.getConnectionPathData === 'function') {
+            const d = edgeView.getConnectionPathData();
+            if (d && d.trim().length > 0) pathData = d;
+          }
+          if (!pathData && edgeView.container) {
+            const pathEl = edgeView.container.querySelector('path[d]');
+            const d = pathEl?.getAttribute('d');
+            if (d && d.trim().length > 0) pathData = d;
+          }
+        }
+      }
+
       const edgeData: RaidEdgeData = {
         id: edge.id,
         kind: customData.kind ?? 'association',
@@ -173,6 +201,7 @@ export class RaiBridge {
         ...(customData.sourceCardinality !== undefined ? { sourceCardinality: customData.sourceCardinality } : {}),
         ...(customData.targetCardinality !== undefined ? { targetCardinality: customData.targetCardinality } : {}),
         bendPoints,
+        ...(pathData !== undefined ? { pathData } : {}),
       };
 
       edges.push(edgeData);
@@ -214,6 +243,79 @@ export class RaiBridge {
    */
   public formatBendPoints(points: readonly SvgBendPoint[]): string {
     return points.map((p) => `${Math.round(p.x)},${Math.round(p.y)}`).join('; ');
+  }
+
+  /**
+   * Computes a clean fallback SVG path connecting source and target nodes
+   * when running in headless environments (e.g. CLI, tests) without an active DOM.
+   */
+  public computeFallbackEdgePath(
+    sourceNode: RaidNodeData,
+    targetNode: RaidNodeData,
+    bendPoints: readonly SvgBendPoint[] = [],
+    routingMode: AimRoutingMode = 'manhattan',
+  ): string {
+    const scx = Math.round(sourceNode.bounds.x + sourceNode.bounds.width / 2);
+    const scy = Math.round(sourceNode.bounds.y + sourceNode.bounds.height / 2);
+    const tcx = Math.round(targetNode.bounds.x + targetNode.bounds.width / 2);
+    const tcy = Math.round(targetNode.bounds.y + targetNode.bounds.height / 2);
+
+    let sx = scx;
+    let sy = scy;
+    let tx = tcx;
+    let ty = tcy;
+
+    const dx = tcx - scx;
+    const dy = tcy - scy;
+
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      if (dx > 0) {
+        sx = Math.round(sourceNode.bounds.x + sourceNode.bounds.width);
+        sy = scy;
+        tx = Math.round(targetNode.bounds.x);
+        ty = tcy;
+      } else {
+        sx = Math.round(sourceNode.bounds.x);
+        sy = scy;
+        tx = Math.round(targetNode.bounds.x + targetNode.bounds.width);
+        ty = tcy;
+      }
+    } else {
+      if (dy > 0) {
+        sx = scx;
+        sy = Math.round(sourceNode.bounds.y + sourceNode.bounds.height);
+        tx = tcx;
+        ty = Math.round(targetNode.bounds.y);
+      } else {
+        sx = scx;
+        sy = Math.round(sourceNode.bounds.y);
+        tx = tcx;
+        ty = Math.round(targetNode.bounds.y + targetNode.bounds.height);
+      }
+    }
+
+    if (bendPoints.length > 0) {
+      return `M ${sx} ${sy} ` + bendPoints.map((p) => `L ${Math.round(p.x)} ${Math.round(p.y)}`).join(' ') + ` L ${tx} ${ty}`;
+    }
+
+    if (routingMode === 'normal') {
+      return `M ${sx} ${sy} L ${tx} ${ty}`;
+    }
+
+    if (routingMode === 'smooth') {
+      const midX = Math.round((sx + tx) / 2);
+      const midY = Math.round((sy + ty) / 2);
+      return `M ${sx} ${sy} Q ${midX} ${sy} ${midX} ${midY} T ${tx} ${ty}`;
+    }
+
+    // Manhattan orthogonal default
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      const midX = Math.round((sx + tx) / 2);
+      return `M ${sx} ${sy} L ${midX} ${sy} L ${midX} ${ty} L ${tx} ${ty}`;
+    } else {
+      const midY = Math.round((sy + ty) / 2);
+      return `M ${sx} ${sy} L ${sx} ${midY} L ${tx} ${midY} L ${tx} ${ty}`;
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -436,7 +538,7 @@ export class RaiBridge {
     return { x, y, width, height };
   }
 
-  private updateExistingSvg(
+  public updateExistingSvg(
     baseSvg: string,
     model: RaidMetamodel,
     _options: SerializationOptions,
@@ -447,6 +549,45 @@ export class RaiBridge {
 
     const parser = new DOMParser();
     const doc = parser.parseFromString(baseSvg, 'image/svg+xml');
+
+    // Ensure defs and arrow markers exist for external vector viewers (Preview, Chrome, Safari)
+    let defs = doc.querySelector('defs');
+    if (!defs) {
+      defs = doc.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      doc.documentElement.insertBefore(defs, doc.documentElement.firstChild);
+    }
+    if (!doc.querySelector('#arrow-classic')) {
+      const marker = doc.createElementNS('http://www.w3.org/2000/svg', 'marker');
+      marker.setAttribute('id', 'arrow-classic');
+      marker.setAttribute('viewBox', '0 0 10 10');
+      marker.setAttribute('refX', '10');
+      marker.setAttribute('refY', '5');
+      marker.setAttribute('markerWidth', '7');
+      marker.setAttribute('markerHeight', '7');
+      marker.setAttribute('orient', 'auto-start-reverse');
+      const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+      path.setAttribute('fill', CascaisPalette.WarmGraphite);
+      marker.appendChild(path);
+      defs.appendChild(marker);
+    }
+    if (!doc.querySelector('#arrow-hollow')) {
+      const marker = doc.createElementNS('http://www.w3.org/2000/svg', 'marker');
+      marker.setAttribute('id', 'arrow-hollow');
+      marker.setAttribute('viewBox', '0 0 12 12');
+      marker.setAttribute('refX', '12');
+      marker.setAttribute('refY', '6');
+      marker.setAttribute('markerWidth', '9');
+      marker.setAttribute('markerHeight', '9');
+      marker.setAttribute('orient', 'auto-start-reverse');
+      const polygon = doc.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      polygon.setAttribute('points', '0 0, 12 6, 0 12');
+      polygon.setAttribute('fill', CascaisPalette.ChalkWhite);
+      polygon.setAttribute('stroke', CascaisPalette.WarmGraphite);
+      polygon.setAttribute('stroke-width', '1.5');
+      marker.appendChild(polygon);
+      defs.appendChild(marker);
+    }
 
     // Update diagram-level routing mode on root <svg>
     const diagramRouting = _options.routingMode ?? model.routing;
@@ -506,6 +647,39 @@ export class RaiBridge {
         if (edge.targetCardinality !== undefined) {
           el.setAttribute('aim-target-cardinality', edge.targetCardinality);
         }
+
+        // Update or inject <path class="aim-edge"> with rendered path geometry
+        let pathD = edge.pathData;
+        if (!pathD) {
+          const sourceNode = model.nodes.find((n) => n.id === edge.sourceId);
+          const targetNode = model.nodes.find((n) => n.id === edge.targetId);
+          if (sourceNode && targetNode) {
+            pathD = this.computeFallbackEdgePath(sourceNode, targetNode, edge.bendPoints, edge.routing ?? model.routing);
+          }
+        }
+
+        let pathEl = el.querySelector('path.aim-edge') ?? el.querySelector('path');
+        if (!pathEl) {
+          pathEl = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+          pathEl.setAttribute('class', 'aim-edge');
+          el.appendChild(pathEl);
+        }
+
+        if (pathD) {
+          pathEl.setAttribute('d', pathD);
+        }
+        pathEl.setAttribute('fill', 'none');
+        pathEl.setAttribute('stroke', CascaisPalette.WarmGraphite);
+        pathEl.setAttribute('stroke-width', '1.5');
+
+        if (edge.kind === 'dependency') {
+          pathEl.setAttribute('stroke-dasharray', '5,5');
+        } else {
+          pathEl.removeAttribute('stroke-dasharray');
+        }
+
+        const markerEnd = edge.kind === 'generalization' ? 'url(#arrow-hollow)' : 'url(#arrow-classic)';
+        pathEl.setAttribute('marker-end', markerEnd);
       }
     }
 
@@ -542,7 +716,7 @@ export class RaiBridge {
     return `      <text font-size="${fontSize}"${weightAttr} fill="${fill}" text-anchor="middle" dominant-baseline="central"${underlineAttr}>${tspans}</text>\n`;
   }
 
-  private generateFreshSvg(model: RaidMetamodel, options: SerializationOptions): string {
+  public generateFreshSvg(model: RaidMetamodel, options: SerializationOptions): string {
     const width = Math.max(800, ...model.nodes.map((n) => n.bounds.x + n.bounds.width + 100));
     const height = Math.max(600, ...model.nodes.map((n) => n.bounds.y + n.bounds.height + 100));
 
@@ -579,10 +753,16 @@ export class RaiBridge {
       const markerEnd = edge.kind === 'generalization' ? ' marker-end="url(#arrow-hollow)"' : ' marker-end="url(#arrow-classic)"';
 
       // Path data construction
-      let pathD = '';
-      if (edge.bendPoints.length > 0) {
-        const first = edge.bendPoints[0]!;
-        pathD = `M ${first.x} ${first.y} ` + edge.bendPoints.slice(1).map((p) => `L ${p.x} ${p.y}`).join(' ');
+      let pathD = edge.pathData ?? '';
+      if (!pathD) {
+        const sourceNode = model.nodes.find((n) => n.id === edge.sourceId);
+        const targetNode = model.nodes.find((n) => n.id === edge.targetId);
+        if (sourceNode && targetNode) {
+          pathD = this.computeFallbackEdgePath(sourceNode, targetNode, edge.bendPoints, edge.routing ?? model.routing);
+        } else if (edge.bendPoints.length > 0) {
+          const first = edge.bendPoints[0]!;
+          pathD = `M ${first.x} ${first.y} ` + edge.bendPoints.slice(1).map((p) => `L ${p.x} ${p.y}`).join(' ');
+        }
       }
 
       const sourcePortAttr = edge.sourcePort && edge.sourcePort !== 'auto' ? ` ${AimSvgContract.ATTR_SOURCE_PORT}="${edge.sourcePort}"` : '';
@@ -591,10 +771,23 @@ export class RaiBridge {
 
       svg += `    <g ${AimSvgContract.ATTR_EDGE}="true" ${AimSvgContract.ATTR_ID}="${edge.id}" ${AimSvgContract.ATTR_EDGE_KIND}="${edge.kind}" ${AimSvgContract.ATTR_SOURCE}="${edge.sourceId}" ${AimSvgContract.ATTR_TARGET}="${edge.targetId}"${sourcePortAttr}${targetPortAttr}${routingAttr} ${AimSvgContract.ATTR_BENDS}="${bendsFormatted}">\n`;
       if (pathD) {
-        svg += `      <path d="${pathD}" class="aim-edge"${strokeDash}${markerEnd} />\n`;
+        svg += `      <path d="${pathD}" class="aim-edge" fill="none" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5"${strokeDash}${markerEnd} />\n`;
       }
       if (edge.label) {
-        const midPoint = edge.bendPoints[Math.floor(edge.bendPoints.length / 2)] ?? { x: 50, y: 50 };
+        const midPoint =
+          edge.bendPoints.length > 0
+            ? (edge.bendPoints[Math.floor(edge.bendPoints.length / 2)] ?? { x: 50, y: 50 })
+            : (() => {
+                const s = model.nodes.find((n) => n.id === edge.sourceId);
+                const t = model.nodes.find((n) => n.id === edge.targetId);
+                if (s && t) {
+                  return {
+                    x: Math.round((s.bounds.x + s.bounds.width / 2 + t.bounds.x + t.bounds.width / 2) / 2),
+                    y: Math.round((s.bounds.y + s.bounds.height / 2 + t.bounds.y + t.bounds.height / 2) / 2),
+                  };
+                }
+                return { x: 50, y: 50 };
+              })();
         svg += `      <text x="${midPoint.x}" y="${midPoint.y - 8}" font-size="11" fill="${CascaisPalette.TextSecondary}" text-anchor="middle">${edge.label}</text>\n`;
       }
       svg += `    </g>\n`;
