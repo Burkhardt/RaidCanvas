@@ -589,97 +589,198 @@ export class RaiBridge {
       defs.appendChild(marker);
     }
 
+    // Ensure AOAIM style rules are present
+    let style: Element | null = doc.querySelector('style');
+    if (!style) {
+      style = doc.createElementNS('http://www.w3.org/2000/svg', 'style');
+      defs.appendChild(style);
+    }
+    if (style && !style.textContent?.includes('.aim-act text')) {
+      style.textContent = (style.textContent ? style.textContent + '\n' : '') + `
+      .aim-node { cursor: pointer; transition: filter 0.15s ease; }
+      .aim-node:hover { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+      .aim-edge { fill: none; stroke: ${CascaisPalette.WarmGraphite}; stroke-width: 1.5; }
+      text { font-family: Inter, system-ui, sans-serif; }
+      .aim-act text, .aim-obj text { text-decoration: underline; }
+`;
+    }
+
     // Update diagram-level routing mode on root <svg>
     const diagramRouting = _options.routingMode ?? model.routing;
     if (diagramRouting) {
       doc.documentElement.setAttribute(AimSvgContract.ATTR_ROUTING, diagramRouting);
     }
 
-    // Update node positions and transforms
-    for (const node of model.nodes) {
-      const el = doc.querySelector(`[${AimSvgContract.ATTR_ID}="${node.id}"], [id="${node.id}"]`);
-      if (el) {
-        el.setAttribute('transform', `translate(${node.bounds.x}, ${node.bounds.y})`);
-        el.setAttribute(AimSvgContract.ATTR_NODE, 'true');
-        el.setAttribute(AimSvgContract.ATTR_KIND, node.kind);
+    // Ensure layers exist
+    let nodesLayer = doc.querySelector('.aim-nodes-layer');
+    if (!nodesLayer) {
+      nodesLayer = doc.documentElement;
+    }
 
-        const rect = el.querySelector('rect');
-        if (rect) {
-          rect.setAttribute('width', `${node.bounds.width}`);
-          rect.setAttribute('height', `${node.bounds.height}`);
-        }
+    // Remove deleted nodes
+    const existingNodeEls = Array.from(doc.querySelectorAll(AimSvgContract.SELECTOR_NODE));
+    for (const nodeEl of existingNodeEls) {
+      const id = nodeEl.getAttribute(AimSvgContract.ATTR_ID) ?? nodeEl.getAttribute('id');
+      if (id && !model.nodes.some((n) => n.id === id)) {
+        nodeEl.remove();
       }
     }
 
-    // Update edge bend points and aim-bends attributes
+    // Update or insert nodes with canonical archetype shape markup
+    for (const node of model.nodes) {
+      let el = doc.querySelector(`[${AimSvgContract.ATTR_ID}="${node.id}"], [id="${node.id}"]`);
+      if (!el) {
+        el = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
+        nodesLayer.appendChild(el);
+      }
+
+      el.setAttribute('transform', `translate(${node.bounds.x}, ${node.bounds.y})`);
+      el.setAttribute(AimSvgContract.ATTR_NODE, 'true');
+      el.setAttribute(AimSvgContract.ATTR_ID, node.id);
+      el.setAttribute(AimSvgContract.ATTR_KIND, node.kind);
+      el.setAttribute(AimSvgContract.ATTR_DISPLAY_NAME, node.displayName);
+      if (node.stereotype) {
+        el.setAttribute(AimSvgContract.ATTR_STEREOTYPE, node.stereotype);
+      } else {
+        el.removeAttribute(AimSvgContract.ATTR_STEREOTYPE);
+      }
+
+      // Replace inner content with canonical archetype shape markup
+      const innerSvg = this.renderNodeInnerSvg(node);
+      const fragmentDoc = parser.parseFromString(
+        `<g xmlns="http://www.w3.org/2000/svg">${innerSvg}</g>`,
+        'image/svg+xml',
+      );
+
+      while (el.firstChild) {
+        el.removeChild(el.firstChild);
+      }
+
+      for (const child of Array.from(fragmentDoc.documentElement.childNodes)) {
+        el.appendChild(doc.importNode(child, true));
+      }
+    }
+
+    let edgesLayer = doc.querySelector('.aim-edges-layer');
+    if (!edgesLayer) {
+      edgesLayer = doc.documentElement;
+    }
+
+    // Remove deleted edges
+    const existingEdgeEls = Array.from(doc.querySelectorAll(AimSvgContract.SELECTOR_EDGE));
+    for (const edgeEl of existingEdgeEls) {
+      const id = edgeEl.getAttribute(AimSvgContract.ATTR_ID) ?? edgeEl.getAttribute('id');
+      if (id && !model.edges.some((e) => e.id === id)) {
+        edgeEl.remove();
+      }
+    }
+
+    // Update or insert edges with live path geometry
     for (const edge of model.edges) {
-      const el = doc.querySelector(`[${AimSvgContract.ATTR_ID}="${edge.id}"], [id="${edge.id}"]`);
-      if (el) {
-        const bendsString = this.formatBendPoints(edge.bendPoints);
-        el.setAttribute(AimSvgContract.ATTR_BENDS, bendsString);
-        el.setAttribute(AimSvgContract.ATTR_EDGE, 'true');
-        el.setAttribute(AimSvgContract.ATTR_EDGE_KIND, edge.kind);
-        if (edge.sourceId !== undefined) {
-          el.setAttribute(AimSvgContract.ATTR_SOURCE, edge.sourceId);
-        }
-        if (edge.targetId !== undefined) {
-          el.setAttribute(AimSvgContract.ATTR_TARGET, edge.targetId);
-        }
-        if (edge.sourcePort !== undefined && edge.sourcePort !== '' && edge.sourcePort !== 'auto') {
-          el.setAttribute(AimSvgContract.ATTR_SOURCE_PORT, edge.sourcePort);
+      let el = doc.querySelector(`[${AimSvgContract.ATTR_ID}="${edge.id}"], [id="${edge.id}"]`);
+      if (!el) {
+        el = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
+        if (nodesLayer && nodesLayer.parentNode === doc.documentElement) {
+          doc.documentElement.insertBefore(el, nodesLayer);
         } else {
-          el.removeAttribute(AimSvgContract.ATTR_SOURCE_PORT);
+          edgesLayer.appendChild(el);
         }
-        if (edge.targetPort !== undefined && edge.targetPort !== '' && edge.targetPort !== 'auto') {
-          el.setAttribute(AimSvgContract.ATTR_TARGET_PORT, edge.targetPort);
-        } else {
-          el.removeAttribute(AimSvgContract.ATTR_TARGET_PORT);
-        }
-        if (edge.routing !== undefined) {
-          el.setAttribute(AimSvgContract.ATTR_ROUTING, edge.routing);
-        }
-        if (edge.stereotype !== undefined) {
-          el.setAttribute(AimSvgContract.ATTR_STEREOTYPE, edge.stereotype);
-        }
-        if (edge.sourceCardinality !== undefined) {
-          el.setAttribute('aim-source-cardinality', edge.sourceCardinality);
-        }
-        if (edge.targetCardinality !== undefined) {
-          el.setAttribute('aim-target-cardinality', edge.targetCardinality);
-        }
+      }
 
-        // Update or inject <path class="aim-edge"> with rendered path geometry
-        let pathD = edge.pathData;
-        if (!pathD) {
-          const sourceNode = model.nodes.find((n) => n.id === edge.sourceId);
-          const targetNode = model.nodes.find((n) => n.id === edge.targetId);
-          if (sourceNode && targetNode) {
-            pathD = this.computeFallbackEdgePath(sourceNode, targetNode, edge.bendPoints, edge.routing ?? model.routing);
-          }
-        }
+      const bendsString = this.formatBendPoints(edge.bendPoints);
+      el.setAttribute(AimSvgContract.ATTR_BENDS, bendsString);
+      el.setAttribute(AimSvgContract.ATTR_EDGE, 'true');
+      el.setAttribute(AimSvgContract.ATTR_ID, edge.id);
+      el.setAttribute(AimSvgContract.ATTR_EDGE_KIND, edge.kind);
+      if (edge.sourceId !== undefined) {
+        el.setAttribute(AimSvgContract.ATTR_SOURCE, edge.sourceId);
+      }
+      if (edge.targetId !== undefined) {
+        el.setAttribute(AimSvgContract.ATTR_TARGET, edge.targetId);
+      }
+      if (edge.sourcePort !== undefined && edge.sourcePort !== '' && edge.sourcePort !== 'auto') {
+        el.setAttribute(AimSvgContract.ATTR_SOURCE_PORT, edge.sourcePort);
+      } else {
+        el.removeAttribute(AimSvgContract.ATTR_SOURCE_PORT);
+      }
+      if (edge.targetPort !== undefined && edge.targetPort !== '' && edge.targetPort !== 'auto') {
+        el.setAttribute(AimSvgContract.ATTR_TARGET_PORT, edge.targetPort);
+      } else {
+        el.removeAttribute(AimSvgContract.ATTR_TARGET_PORT);
+      }
+      if (edge.routing !== undefined) {
+        el.setAttribute(AimSvgContract.ATTR_ROUTING, edge.routing);
+      }
+      if (edge.stereotype !== undefined) {
+        el.setAttribute(AimSvgContract.ATTR_STEREOTYPE, edge.stereotype);
+      }
+      if (edge.sourceCardinality !== undefined) {
+        el.setAttribute('aim-source-cardinality', edge.sourceCardinality);
+      }
+      if (edge.targetCardinality !== undefined) {
+        el.setAttribute('aim-target-cardinality', edge.targetCardinality);
+      }
 
-        let pathEl = el.querySelector('path.aim-edge') ?? el.querySelector('path');
-        if (!pathEl) {
-          pathEl = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
-          pathEl.setAttribute('class', 'aim-edge');
-          el.appendChild(pathEl);
+      // Update or inject <path class="aim-edge"> with rendered path geometry
+      let pathD = edge.pathData;
+      if (!pathD) {
+        const sourceNode = model.nodes.find((n) => n.id === edge.sourceId);
+        const targetNode = model.nodes.find((n) => n.id === edge.targetId);
+        if (sourceNode && targetNode) {
+          pathD = this.computeFallbackEdgePath(sourceNode, targetNode, edge.bendPoints, edge.routing ?? model.routing);
         }
+      }
 
-        if (pathD) {
-          pathEl.setAttribute('d', pathD);
+      let pathEl = el.querySelector('path.aim-edge') ?? el.querySelector('path');
+      if (!pathEl) {
+        pathEl = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pathEl.setAttribute('class', 'aim-edge');
+        el.appendChild(pathEl);
+      }
+
+      if (pathD) {
+        pathEl.setAttribute('d', pathD);
+      }
+      pathEl.setAttribute('fill', 'none');
+      pathEl.setAttribute('stroke', CascaisPalette.WarmGraphite);
+      pathEl.setAttribute('stroke-width', '1.5');
+
+      if (edge.kind === 'dependency') {
+        pathEl.setAttribute('stroke-dasharray', '5,5');
+      } else {
+        pathEl.removeAttribute('stroke-dasharray');
+      }
+
+      const markerEnd = edge.kind === 'generalization' ? 'url(#arrow-hollow)' : 'url(#arrow-classic)';
+      pathEl.setAttribute('marker-end', markerEnd);
+
+      // Update or inject edge label
+      if (edge.label) {
+        let textEl = el.querySelector('text');
+        if (!textEl) {
+          textEl = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
+          el.appendChild(textEl);
         }
-        pathEl.setAttribute('fill', 'none');
-        pathEl.setAttribute('stroke', CascaisPalette.WarmGraphite);
-        pathEl.setAttribute('stroke-width', '1.5');
-
-        if (edge.kind === 'dependency') {
-          pathEl.setAttribute('stroke-dasharray', '5,5');
-        } else {
-          pathEl.removeAttribute('stroke-dasharray');
-        }
-
-        const markerEnd = edge.kind === 'generalization' ? 'url(#arrow-hollow)' : 'url(#arrow-classic)';
-        pathEl.setAttribute('marker-end', markerEnd);
+        const midPoint =
+          edge.bendPoints.length > 0
+            ? (edge.bendPoints[Math.floor(edge.bendPoints.length / 2)] ?? { x: 50, y: 50 })
+            : (() => {
+                const s = model.nodes.find((n) => n.id === edge.sourceId);
+                const t = model.nodes.find((n) => n.id === edge.targetId);
+                if (s && t) {
+                  return {
+                    x: Math.round((s.bounds.x + s.bounds.width / 2 + t.bounds.x + t.bounds.width / 2) / 2),
+                    y: Math.round((s.bounds.y + s.bounds.height / 2 + t.bounds.y + t.bounds.height / 2) / 2),
+                  };
+                }
+                return { x: 50, y: 50 };
+              })();
+        textEl.setAttribute('x', `${midPoint.x}`);
+        textEl.setAttribute('y', `${midPoint.y - 8}`);
+        textEl.setAttribute('font-size', '11');
+        textEl.setAttribute('fill', CascaisPalette.TextSecondary);
+        textEl.setAttribute('text-anchor', 'middle');
+        textEl.textContent = edge.label;
       }
     }
 
@@ -714,6 +815,38 @@ export class RaiBridge {
     });
 
     return `      <text font-size="${fontSize}"${weightAttr} fill="${fill}" text-anchor="middle" dominant-baseline="central"${underlineAttr}>${tspans}</text>\n`;
+  }
+
+  /**
+   * Generates the canonical inner SVG elements (shapes and styled text)
+   * for a given AOAIM node archetype.
+   */
+  public renderNodeInnerSvg(node: RaidNodeData): string {
+    let svg = '';
+    if (node.kind === 'uc') {
+      const rx = node.bounds.width / 2;
+      const ry = node.bounds.height / 2;
+      svg += `      <ellipse cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGold}" stroke-width="2" />\n`;
+      svg += this.renderSvgText(node.displayName, rx, ry, 13, 'bold', CascaisPalette.TextPrimary, false);
+    } else if (node.kind === 'act') {
+      svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" rx="12" ry="12" fill="${CascaisPalette.CanvasCream}" stroke="${CascaisPalette.HeraldicGreen}" stroke-width="2" />\n`;
+      svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 13, '600', CascaisPalette.TextPrimary, true);
+    } else if (node.kind === 'obj') {
+      svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
+      svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 12, 'normal', CascaisPalette.TextPrimary, true);
+    } else if (node.kind === 'per') {
+      const isInitiating = node.stereotype?.toLowerCase().includes('initiates') ?? false;
+      const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+      const cx = Math.round(node.bounds.width / 2);
+      svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="none" stroke="none" />\n`;
+      svg += `      <path d="M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />\n`;
+      svg += `      <circle cx="45" cy="22" r="8" fill="${CascaisPalette.ChalkWhite}" stroke="${strokeColor}" stroke-width="2" />\n`;
+      svg += this.renderSvgText(node.displayName, cx, 68, 12, '500', CascaisPalette.TextPrimary, false);
+    } else {
+      svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" />\n`;
+      svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 12, 'normal', CascaisPalette.TextPrimary, false);
+    }
+    return svg;
   }
 
   public generateFreshSvg(model: RaidMetamodel, options: SerializationOptions): string {
@@ -798,32 +931,9 @@ export class RaiBridge {
     svg += `  <!-- Nodes -->\n`;
     svg += `  <g class="aim-nodes-layer">\n`;
     for (const node of model.nodes) {
-      svg += `    <g ${AimSvgContract.ATTR_NODE}="true" ${AimSvgContract.ATTR_ID}="${node.id}" ${AimSvgContract.ATTR_KIND}="${node.kind}" ${AimSvgContract.ATTR_DISPLAY_NAME}="${node.displayName}" transform="translate(${node.bounds.x}, ${node.bounds.y})">\n`;
-
-      if (node.kind === 'uc') {
-        const rx = node.bounds.width / 2;
-        const ry = node.bounds.height / 2;
-        svg += `      <ellipse cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGold}" stroke-width="2" />\n`;
-        svg += this.renderSvgText(node.displayName, rx, ry, 13, 'bold', CascaisPalette.TextPrimary, false);
-      } else if (node.kind === 'act') {
-        svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" rx="12" ry="12" fill="${CascaisPalette.CanvasCream}" stroke="${CascaisPalette.HeraldicGreen}" stroke-width="2" />\n`;
-        svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 13, '600', CascaisPalette.TextPrimary, true);
-      } else if (node.kind === 'obj') {
-        svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
-        svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 12, 'normal', CascaisPalette.TextPrimary, true);
-      } else if (node.kind === 'per') {
-        const isInitiating = node.stereotype?.toLowerCase().includes('initiates') ?? false;
-        const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
-        const cx = Math.round(node.bounds.width / 2);
-        svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="none" stroke="none" />\n`;
-        svg += `      <path d="M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />\n`;
-        svg += `      <circle cx="45" cy="22" r="8" fill="${CascaisPalette.ChalkWhite}" stroke="${strokeColor}" stroke-width="2" />\n`;
-        svg += this.renderSvgText(node.displayName, cx, 68, 12, '500', CascaisPalette.TextPrimary, false);
-      } else {
-        svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" />\n`;
-        svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 12, 'normal', CascaisPalette.TextPrimary, false);
-      }
-
+      const stereotypeAttr = node.stereotype ? ` ${AimSvgContract.ATTR_STEREOTYPE}="${node.stereotype}"` : '';
+      svg += `    <g ${AimSvgContract.ATTR_NODE}="true" ${AimSvgContract.ATTR_ID}="${node.id}" ${AimSvgContract.ATTR_KIND}="${node.kind}" ${AimSvgContract.ATTR_DISPLAY_NAME}="${node.displayName}"${stereotypeAttr} transform="translate(${node.bounds.x}, ${node.bounds.y})">\n`;
+      svg += this.renderNodeInnerSvg(node);
       svg += `    </g>\n`;
     }
     svg += `  </g>\n`;

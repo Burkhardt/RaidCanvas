@@ -488,6 +488,54 @@ describe('RaidCanvas Core Tests', () => {
     assert.ok(updatedSvg.includes('id="arrow-classic"'), 'arrow-classic marker added to defs');
     assert.ok(updatedSvg.includes('id="arrow-hollow"'), 'arrow-hollow marker added to defs');
   });
+
+  test('updateExistingSvg emits full canonical archetype shape markup (head circles, torso paths, underlines)', () => {
+    const bridge = new RaiBridge();
+
+    // Legacy base SVG where Person nodes were just plain rect boxes without glyph markup (Zébio's test case)
+    const baseSvg = `<svg xmlns="http://www.w3.org/2000/svg" id="LegacyDiagram">
+  <defs></defs>
+  <g class="aim-nodes-layer">
+    <g aim-node="true" aim-id="Per_1" aim-kind="per"><rect width="90" height="90"/><text>Actor 1</text></g>
+    <g aim-node="true" aim-id="Per_2" aim-kind="per"><rect width="90" height="90"/><text>Actor 2</text></g>
+    <g aim-node="true" aim-id="Per_3" aim-kind="per"><rect width="90" height="90"/><text>Actor 3</text></g>
+    <g aim-node="true" aim-id="Per_4" aim-kind="per"><rect width="90" height="90"/><text>Actor 4</text></g>
+    <g aim-node="true" aim-id="Act_1" aim-kind="act"><rect width="140" height="60"/><text>Execute Deal</text></g>
+  </g>
+  <g class="aim-edges-layer"></g>
+</svg>`;
+
+    const model = {
+      diagramId: 'LegacyDiagram',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        { id: 'Per_1', kind: 'per', displayName: 'Actor 1', stereotype: '«initiates»', bounds: { x: 50, y: 50, width: 90, height: 90 } },
+        { id: 'Per_2', kind: 'per', displayName: 'Actor 2', bounds: { x: 160, y: 50, width: 90, height: 90 } },
+        { id: 'Per_3', kind: 'per', displayName: 'Actor 3', bounds: { x: 270, y: 50, width: 90, height: 90 } },
+        { id: 'Per_4', kind: 'per', displayName: 'Actor 4', bounds: { x: 380, y: 50, width: 90, height: 90 } },
+        { id: 'Act_1', kind: 'act', displayName: 'Execute Deal', bounds: { x: 500, y: 65, width: 140, height: 60 } },
+      ],
+      edges: [],
+    };
+
+    const updatedSvg = bridge.updateExistingSvg(baseSvg, model, {});
+
+    // Count head circles: must be exactly 4 for the 4 Person nodes!
+    const headCircleMatches = updatedSvg.match(/<circle cx="45" cy="22" r="8"/g);
+    assert.equal(headCircleMatches?.length, 4, 'Emits 4 head circles for 4 Person nodes');
+
+    // Count torso paths: must be exactly 4!
+    const torsoPathMatches = updatedSvg.match(/d="M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4"/g);
+    assert.equal(torsoPathMatches?.length, 4, 'Emits 4 torso paths for 4 Person nodes');
+
+    // Check initiating color on Per_1
+    assert.ok(updatedSvg.includes('stroke="#F59E0B"'), 'Initiating persona uses Cascais Net Gold');
+
+    // Check Activity underline
+    assert.ok(updatedSvg.includes('text-decoration="underline"'), 'Activity label has text-decoration="underline"');
+    assert.ok(updatedSvg.includes('.aim-act text, .aim-obj text { text-decoration: underline; }'), 'Style includes underline rules');
+  });
 });
+
 
 
