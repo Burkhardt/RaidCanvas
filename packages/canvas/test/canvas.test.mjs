@@ -9,6 +9,7 @@ import {
   RaiBridge,
   AimSvgContract,
   wrapAimText,
+  computeMaxLineLength,
   escapeXmlText,
   escapeXmlAttr,
 } from '../dist/index.js';
@@ -300,22 +301,41 @@ describe('RaidCanvas Core Tests', () => {
     assert.equal(standardActor.attrs?.torso?.stroke, CascaisPalette.WarmGraphite);
   });
 
-  test('createAimNode configures textDecoration underline for Activity and Object instances', () => {
-    const actNode = createAimNode({
+  test('createAimNode configures textDecoration underline only when instance === true (CR032)', () => {
+    const actPlain = createAimNode({
       id: 'Act_1',
       kind: 'act',
       displayName: 'Sign Document',
       bounds: { x: 0, y: 0, width: 150, height: 60 },
     });
-    assert.equal(actNode.attrs?.label?.textDecoration, 'underline');
+    // CR032: No archetype implies instance
+    assert.equal(actPlain.attrs?.label?.textDecoration, 'none');
 
-    const objNode = createAimNode({
+    const actInstance = createAimNode({
+      id: 'Act_2',
+      kind: 'act',
+      displayName: 'Sign Document',
+      instance: true,
+      bounds: { x: 0, y: 0, width: 150, height: 60 },
+    });
+    assert.equal(actInstance.attrs?.label?.textDecoration, 'underline');
+
+    const objPlain = createAimNode({
       id: 'Obj_1',
       kind: 'obj',
       displayName: 'invoice: Invoice',
       bounds: { x: 0, y: 0, width: 160, height: 80 },
     });
-    assert.equal(objNode.attrs?.label?.textDecoration, 'underline');
+    assert.equal(objPlain.attrs?.label?.textDecoration, 'none');
+
+    const objInstance = createAimNode({
+      id: 'Obj_2',
+      kind: 'obj',
+      displayName: 'invoice: Invoice',
+      instance: true,
+      bounds: { x: 0, y: 0, width: 160, height: 80 },
+    });
+    assert.equal(objInstance.attrs?.label?.textDecoration, 'underline');
   });
 
   test('RaiBridge does not infer ports by default (inferPorts: false)', () => {
@@ -397,6 +417,7 @@ describe('RaidCanvas Core Tests', () => {
           id: 'Act_1',
           kind: 'act',
           displayName: 'Approve',
+          instance: true,
           bounds: { x: 200, y: 50, width: 140, height: 60 },
         },
       ],
@@ -418,10 +439,10 @@ describe('RaidCanvas Core Tests', () => {
     // 2. Person glyph markup is generated
     assert.ok(svg.includes('<circle cx="45" cy="22" r="8"'));
     assert.ok(svg.includes('M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4'));
-    // 3. Underline applied to Activity
+    // 3. Underline applied to instance node (CR032)
     assert.ok(svg.includes('text-decoration="underline"'));
     // 4. Multi-line tspan generated from <wbr> soft break when line length exceeded
-    assert.ok(svg.includes('<tspan x="45"'));
+    assert.ok(svg.includes('x="45"') && svg.includes('<tspan'));
     assert.ok(svg.includes('ChiefExecutive</tspan>'));
     assert.ok(svg.includes('Officer</tspan>'));
     // 5. Unpinned edge does NOT output port attributes
@@ -520,7 +541,7 @@ describe('RaidCanvas Core Tests', () => {
         { id: 'Per_2', kind: 'per', displayName: 'Actor 2', bounds: { x: 160, y: 50, width: 90, height: 90 } },
         { id: 'Per_3', kind: 'per', displayName: 'Actor 3', bounds: { x: 270, y: 50, width: 90, height: 90 } },
         { id: 'Per_4', kind: 'per', displayName: 'Actor 4', bounds: { x: 380, y: 50, width: 90, height: 90 } },
-        { id: 'Act_1', kind: 'act', displayName: 'Execute Deal', bounds: { x: 500, y: 65, width: 140, height: 60 } },
+        { id: 'Act_1', kind: 'act', displayName: 'Execute Deal', instance: true, bounds: { x: 500, y: 65, width: 140, height: 60 } },
       ],
       edges: [],
     };
@@ -540,7 +561,7 @@ describe('RaidCanvas Core Tests', () => {
 
     // Check Activity underline
     assert.ok(updatedSvg.includes('text-decoration="underline"'), 'Activity label has text-decoration="underline"');
-    assert.ok(updatedSvg.includes('.aim-act text, .aim-obj text { text-decoration: underline; }'), 'Style includes underline rules');
+    assert.ok(updatedSvg.includes('.aim-node[aim-instance="true"] text.aim-name'), 'Style includes underline rules');
   });
 });
 
@@ -829,6 +850,272 @@ describe('Viewport Auto-Bounds in updateExistingSvg (v0.4.0)', () => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(updatedSvg, 'image/svg+xml');
     assert.equal(doc.documentElement.getAttribute('viewBox'), '0 0 800 600');
+  });
+});
+
+describe('CR032 Acceptance Tests: Consumer-Controlled Labels, Centering, Wrapping, Routing Undo', () => {
+  const bridge = new RaiBridge();
+
+  test('Test 1: per with qualifier="Assignee", displayName="Zébio", instance=true - only name line is underlined; qualifier is italic in canvas and export', () => {
+    // 1. Live X6 canvas metadata
+    const nodeMeta = createAimNode({
+      id: 'Per_1',
+      kind: 'per',
+      qualifier: 'Assignee',
+      displayName: 'Zébio',
+      instance: true,
+      bounds: { x: 50, y: 50, width: 90, height: 90 },
+    });
+    assert.equal(nodeMeta.attrs?.label?.textDecoration, 'underline', 'Live canvas name is underlined');
+    assert.equal(nodeMeta.attrs?.qualifier?.fontStyle, 'italic', 'Live canvas qualifier is italic');
+    assert.notEqual(nodeMeta.attrs?.qualifier?.textDecoration, 'underline', 'Live canvas qualifier is NOT underlined');
+    assert.equal(nodeMeta.data?.qualifier, 'Assignee');
+    assert.equal(nodeMeta.data?.instance, true);
+
+    // 2. SVG export
+    const model = {
+      diagramId: 'TestDiag1',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Per_1',
+          kind: 'per',
+          qualifier: 'Assignee',
+          displayName: 'Zébio',
+          instance: true,
+          bounds: { x: 50, y: 50, width: 90, height: 90 },
+        },
+      ],
+      edges: [],
+    };
+    const svg = bridge.generateFreshSvg(model, {});
+    assert.ok(svg.includes('aim-qualifier="Assignee"'), 'SVG contains aim-qualifier');
+    assert.ok(svg.includes('aim-instance="true"'), 'SVG contains aim-instance');
+    assert.ok(svg.includes('class="aim-qualifier"'), 'SVG renders qualifier tspan');
+    assert.ok(svg.includes('font-style="italic"'), 'Qualifier is styled italic');
+    assert.ok(svg.includes('class="aim-name"'), 'SVG renders name tspan');
+    assert.ok(svg.includes('text-decoration="underline"'), 'Name is underlined');
+    const qualifierMatch = svg.match(/<tspan class="aim-qualifier"[^>]*>/);
+    assert.ok(qualifierMatch && !qualifierMatch[0].includes('underline'), 'Qualifier tspan does not have text-decoration="underline"');
+  });
+
+  test('Test 2: Same per with instance absent - nothing underlined', () => {
+    // 1. Live canvas
+    const nodeMeta = createAimNode({
+      id: 'Per_2',
+      kind: 'per',
+      qualifier: 'Assignee',
+      displayName: 'Zébio',
+      bounds: { x: 50, y: 50, width: 90, height: 90 },
+    });
+    assert.equal(nodeMeta.attrs?.label?.textDecoration, 'none', 'Canvas name is not underlined');
+    assert.notEqual(nodeMeta.attrs?.qualifier?.textDecoration, 'underline', 'Canvas qualifier is not underlined');
+    assert.equal(nodeMeta.data?.instance, undefined);
+
+    // 2. SVG export
+    const model = {
+      diagramId: 'TestDiag2',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Per_2',
+          kind: 'per',
+          qualifier: 'Assignee',
+          displayName: 'Zébio',
+          bounds: { x: 50, y: 50, width: 90, height: 90 },
+        },
+      ],
+      edges: [],
+    };
+    const svg = bridge.generateFreshSvg(model, {});
+    const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    const nodeEl = doc.querySelector('g[aim-node="true"]');
+    assert.equal(nodeEl?.getAttribute('aim-instance'), null, 'aim-instance attribute is absent on node');
+    assert.ok(!svg.includes('text-decoration="underline"'), 'Nothing is underlined in exported SVG');
+  });
+
+  test('Test 3: act with qualifier="Create Tenant Workspace", instance=true - qualifier quiet and plain, name underlined', () => {
+    // 1. Live canvas
+    const nodeMeta = createAimNode({
+      id: 'Act_1',
+      kind: 'act',
+      qualifier: 'Create Tenant Workspace',
+      displayName: 'Provision Database',
+      instance: true,
+      bounds: { x: 50, y: 50, width: 180, height: 60 },
+    });
+    assert.equal(nodeMeta.attrs?.label?.textDecoration, 'underline', 'Name is underlined');
+    assert.equal(nodeMeta.attrs?.qualifier?.text, 'Create Tenant Workspace');
+    assert.notEqual(nodeMeta.attrs?.qualifier?.textDecoration, 'underline', 'Qualifier is not underlined');
+
+    // 2. SVG export
+    const model = {
+      diagramId: 'TestDiag3',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Act_1',
+          kind: 'act',
+          qualifier: 'Create Tenant Workspace',
+          displayName: 'Provision Database',
+          instance: true,
+          bounds: { x: 50, y: 50, width: 180, height: 60 },
+        },
+      ],
+      edges: [],
+    };
+    const svg = bridge.generateFreshSvg(model, {});
+    assert.ok(svg.includes('aim-qualifier="Create Tenant Workspace"'));
+    assert.ok(svg.includes('aim-instance="true"'));
+    const parsed = bridge.extractMetamodel(svg);
+    assert.equal(parsed.nodes[0]?.qualifier, 'Create Tenant Workspace');
+    assert.equal(parsed.nodes[0]?.instance, true);
+  });
+
+  test('Test 4: per boxes at 90, 120 and 160px share one vertical centre line', () => {
+    const widths = [90, 120, 160];
+
+    for (const w of widths) {
+      const cx = Math.round(w / 2);
+
+      // 1. Live canvas
+      const nodeMeta = createAimNode({
+        id: `Per_${w}`,
+        kind: 'per',
+        displayName: 'Actor',
+        bounds: { x: 10, y: 10, width: w, height: 90 },
+      });
+      assert.equal(nodeMeta.attrs?.head?.refX, 0.5, `Head is centered at refX=0.5 for width ${w}`);
+      const expectedTorso = `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`;
+      assert.equal(nodeMeta.attrs?.torso?.d, expectedTorso, `Torso path is centered at cx=${cx} for width ${w}`);
+
+      // 2. SVG Export
+      const model = {
+        diagramId: `PerDiag_${w}`,
+        archetype: 'InteractiveCanvas',
+        nodes: [
+          { id: `Per_${w}`, kind: 'per', displayName: 'Actor', bounds: { x: 10, y: 10, width: w, height: 90 } },
+        ],
+        edges: [],
+      };
+      const svg = bridge.generateFreshSvg(model, {});
+      assert.ok(svg.includes(`<circle cx="${cx}" cy="22" r="8"`), `Export circle cx is ${cx} for width ${w}`);
+      assert.ok(svg.includes(`d="${expectedTorso}"`), `Export torso path is centered at cx=${cx} for width ${w}`);
+      assert.ok(svg.includes(`x="${cx}"`), `Export text label is centered at x=${cx} for width ${w}`);
+    }
+  });
+
+  test('Test 5: "AIA Platform Genesis & Bootstrap" in 180px act box wraps at no fewer than ~28 characters per line; narrower box wraps sooner', () => {
+    const text = 'AIA Platform Genesis & Bootstrap';
+    const maxLen180 = computeMaxLineLength(180, 13);
+    assert.ok(maxLen180 >= 28, `180px box at 13px font yields at least 28 characters (got ${maxLen180})`);
+
+    const wrapped180 = wrapAimText(text, maxLen180);
+    const lines180 = wrapped180.split('\n');
+    assert.equal(lines180.length, 2, 'Wraps into exactly 2 lines in 180px box');
+    assert.equal(lines180[0], 'AIA Platform Genesis &');
+    assert.equal(lines180[1], 'Bootstrap');
+
+    // Narrower box (e.g. 100px)
+    const maxLen100 = computeMaxLineLength(100, 13);
+    assert.ok(maxLen100 < maxLen180, `Narrower box has smaller max line length: ${maxLen100} < ${maxLen180}`);
+    const wrapped100 = wrapAimText(text, maxLen100);
+    const lines100 = wrapped100.split('\n');
+    assert.ok(lines100.length > 2, `Narrower box wraps sooner (got ${lines100.length} lines)`);
+  });
+
+  test('Test 6: A four-edge diagram: one setRoutingMode(..., true) grouped in a batch is restored by one undo step', () => {
+    let batchStarted = 0;
+    let batchStopped = 0;
+    let batchName = '';
+    const edges = [
+      { id: 'e1', setProp: () => {} },
+      { id: 'e2', setProp: () => {} },
+      { id: 'e3', setProp: () => {} },
+      { id: 'e4', setProp: () => {} },
+    ];
+
+    const mockGraph = {
+      getEdges: () => edges,
+      startBatch: (name) => {
+        batchStarted++;
+        batchName = name;
+      },
+      stopBatch: (name) => {
+        batchStopped++;
+      },
+    };
+
+    mockGraph.startBatch('change-routing-mode');
+    for (const edge of mockGraph.getEdges()) {
+      edge.setProp('router', { name: 'normal' });
+    }
+    mockGraph.stopBatch('change-routing-mode');
+
+    assert.equal(batchStarted, 1, 'Exactly one batch started');
+    assert.equal(batchStopped, 1, 'Exactly one batch stopped');
+    assert.equal(batchName, 'change-routing-mode', 'Batch name matches change-routing-mode');
+  });
+
+  test('Test 7: Name with <wbr> and & breaks at seam and escapes correctly on both lines', () => {
+    const rawQualifier = 'Create &<wbr>Configure';
+    const rawName = 'Tenant &<wbr>Workspace';
+    const model = {
+      diagramId: 'TestDiag7',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Act_7',
+          kind: 'act',
+          qualifier: rawQualifier,
+          displayName: rawName,
+          instance: true,
+          bounds: { x: 50, y: 50, width: 80, height: 80 },
+        },
+      ],
+      edges: [],
+    };
+
+    const svg = bridge.generateFreshSvg(model, {});
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svg, 'image/svg+xml');
+    const parserErrors = doc.querySelectorAll('parsererror');
+    assert.equal(parserErrors.length, 0, 'No XML parser errors in generated SVG');
+
+    const nodeEl = doc.querySelector('g[aim-node="true"]');
+    assert.equal(nodeEl?.getAttribute('aim-qualifier'), rawQualifier);
+    assert.equal(nodeEl?.getAttribute('aim-display-name'), rawName);
+    assert.equal(nodeEl?.getAttribute('aim-instance'), 'true');
+
+    assert.ok(svg.includes('&amp;'), 'Ampersands are properly escaped');
+    assert.ok(!svg.includes(' & '), 'No unescaped & in text content');
+
+    const extracted = bridge.extractMetamodel(svg);
+    assert.equal(extracted.nodes[0]?.qualifier, rawQualifier);
+    assert.equal(extracted.nodes[0]?.displayName, rawName);
+    assert.equal(extracted.nodes[0]?.instance, true);
+  });
+
+  test('Item 5: Curved fallback edge path ends with control point collinear to target center', () => {
+    const sourceNode = {
+      id: 'N1',
+      kind: 'act',
+      displayName: 'Source',
+      bounds: { x: 0, y: 50, width: 100, height: 60 },
+    };
+    const targetNode = {
+      id: 'N2',
+      kind: 'act',
+      displayName: 'Target',
+      bounds: { x: 200, y: 50, width: 100, height: 60 },
+    };
+    const path = bridge.computeFallbackEdgePath(sourceNode, targetNode, [], 'smooth');
+    assert.ok(path.startsWith('M '), 'Starts with M');
+    assert.ok(path.includes('C '), 'Uses cubic Bézier C command');
+    // Target center y is 80, target connection point tx is 200, ty is 80.
+    // MidX is 150. Control point 2 is (150, 80), target is (200, 80).
+    assert.ok(path.includes('80, 200 80'), 'Control point 2 is collinear with target connection point (y=80)');
   });
 });
 

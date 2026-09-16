@@ -5,7 +5,7 @@
 > **Author & Principal Architect:** Dr. Rainer Burkhardt <Rainer@Burkhardt.com>  
 > **Lead Implementation Engineer:** Alan (7012), Visual Systems & Canvas Lead
 
-[![npm version](https://img.shields.io/badge/npm-0.4.1-red.svg)](https://www.npmjs.com/package/@dr2rai/raid-canvas)
+[![npm version](https://img.shields.io/badge/npm-0.5.0-red.svg)](https://www.npmjs.com/package/@dr2rai/raid-canvas)
 [![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-orange.svg)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0.2-blue.svg)](https://www.typescriptlang.org/)
 [![AntV X6](https://img.shields.io/badge/AntV%20X6-2.18-indigo.svg)](https://x6.antv.vision/)
@@ -78,13 +78,15 @@ RaidCanvas treats SVG as a **first-class semantic document**, not a dumb pixel d
 | `aim-id` | `string` | Unique entity identifier (e.g. `SignContract_UC`, `Contract_OD`). |
 | `aim-kind` | `AimOntologyKind` | Entity archetype: `'uc'` \| `'act'` \| `'cls'` \| `'obj'` \| `'per'`. |
 | `aim-display-name` | `string` | Human-readable label rendered inside the node. |
+| `aim-qualifier` | `string?` | Optional upper qualifier line, styled quietly (italic, never underlined). |
+| `aim-instance` | `boolean?` | When `"true"`, underlines the entity name. No archetype implies instance. |
 | `aim-stereotype` | `string?` | Optional ontological stereotype (e.g. `«initiates»`, `«executes»`). |
 
 #### The 5 Canonical `AimOntologyKind` Archetypes
 1. **`uc` (UseCase):** Elliptical boundary with **Cascais Net Gold** accent border (`#F59E0B`), Chalk White fill, bold centered title.
 2. **`act` (Activity):** Process step with rounded rectangle boundary ($r=12$), **Heraldic Green** accent (`#10B981`), Canvas Cream fill.
 3. **`cls` (Class):** Multi-compartment class card with header, attributes, and methods compartments in **Warm Graphite** (`#1F2937`).
-4. **`obj` (Object / Instance):** Runtime instance card with underlined header (`<u>name: Class</u>`) and property-slot list.
+4. **`obj` (Object / Instance):** Runtime instance card with header and property-slot list (underlined when `aim-instance="true"`).
 5. **`per` (Person / Actor):** Actor role glyph (stick-figure or role card) distinguishing Initiating Roles (gold) from Defined Roles (graphite).
 
 ### Edge Attributes

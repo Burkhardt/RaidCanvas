@@ -40,6 +40,7 @@ export {
   getDefaultNodeBounds,
   getDefaultNodeName,
   wrapAimText,
+  computeMaxLineLength,
 } from './X6Shapes.js';
 
 // Anti-Entropy Semantic Connection Rules

@@ -81,6 +81,12 @@ export interface RaidNodeData {
 	/** Display label presented on the canvas. */
 	readonly displayName: string;
 
+	/** Optional upper qualifier line, styled quietly (italic or lighter tone, never underlined). */
+	readonly qualifier?: string;
+
+	/** Whether the entity represents a concrete instance (underlining the displayName line). */
+	readonly instance?: boolean;
+
 	/** Optional ontological stereotype (e.g., '«initiates»', '«executes»'). */
 	readonly stereotype?: string;
 
@@ -179,6 +185,8 @@ export const AimSvgContract = {
 	ATTR_ID: 'aim-id',
 	ATTR_KIND: 'aim-kind',
 	ATTR_DISPLAY_NAME: 'aim-display-name',
+	ATTR_QUALIFIER: 'aim-qualifier',
+	ATTR_INSTANCE: 'aim-instance',
 	ATTR_STEREOTYPE: 'aim-stereotype',
 	ATTR_NAMESPACE: 'aim-namespace',
 

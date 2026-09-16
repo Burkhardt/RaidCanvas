@@ -1,6 +1,6 @@
 {
 	"name": "@dr2rai/raid-canvas",
-	"version": "0.4.1",
+	"version": "0.5.0",
 	"description": "Interactive AntV X6 diagram canvas for AOAIM (.raid) models and ontological SVG contracts",
 	"author": "Dr. Rainer Burkhardt <Rainer@Burkhardt.com> (https://github.com/Burkhardt)",
 	"contributors": [

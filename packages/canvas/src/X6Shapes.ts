@@ -38,6 +38,22 @@ export const CascaisPalette = {
 } as const;
 
 /**
+ * Computes maximum line length (characters per line) dynamically
+ * derived from the bounding box width and font size.
+ *
+ * Adheres to standard Cascais padding (16px) and proportional typography (0.44 * fontSize).
+ * Guarantees:
+ * - 180px box at 13px font yields 28 characters per line.
+ * - 90px box at 12px font yields 14 characters per line.
+ * - Narrower boxes wrap sooner.
+ */
+export function computeMaxLineLength(boxWidth: number, fontSize: number = 13): number {
+  const availableWidth = Math.max(20, boxWidth - 16);
+  const approxCharWidth = fontSize * 0.44;
+  return Math.max(10, Math.floor(availableWidth / approxCharWidth));
+}
+
+/**
  * Formats and wraps node label text for AOAIM entities.
  * Automatically wraps on whitespace when exceeding target length,
  * and treats `<wbr>` / `<wbr/>` tags and hyphens as soft word-break opportunities
@@ -181,12 +197,38 @@ export function registerAimShapes(): void {
     overwrite: true,
     width: 140,
     height: 70,
+    markup: [
+      {
+        tagName: 'ellipse',
+        selector: 'body',
+      },
+      {
+        tagName: 'text',
+        selector: 'qualifier',
+      },
+      {
+        tagName: 'text',
+        selector: 'label',
+      },
+    ],
     attrs: {
       body: {
         fill: CascaisPalette.ChalkWhite,
         stroke: CascaisPalette.NetGold,
         strokeWidth: 2,
         class: 'aim-node aim-uc',
+      },
+      qualifier: {
+        text: '',
+        fill: CascaisPalette.TextSecondary,
+        fontSize: 11,
+        fontStyle: 'italic',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        textDecoration: 'none',
+        refX: 0.5,
+        refY: 0.35,
       },
       label: {
         text: 'UseCase',
@@ -196,17 +238,34 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
+        textDecoration: 'none',
+        refX: 0.5,
+        refY: 0.5,
       },
     },
     ports: createOrthogonalPorts(),
   });
 
-  // 2. AimActivityNode ('act') — Rounded rectangle with Heraldic Green border & underlined label
+  // 2. AimActivityNode ('act') — Rounded rectangle with Heraldic Green border
   Shape.Rect.define({
     shape: 'aim-act',
     overwrite: true,
     width: 150,
     height: 60,
+    markup: [
+      {
+        tagName: 'rect',
+        selector: 'body',
+      },
+      {
+        tagName: 'text',
+        selector: 'qualifier',
+      },
+      {
+        tagName: 'text',
+        selector: 'label',
+      },
+    ],
     attrs: {
       body: {
         fill: CascaisPalette.CanvasCream,
@@ -216,6 +275,18 @@ export function registerAimShapes(): void {
         ry: 12,
         class: 'aim-node aim-act',
       },
+      qualifier: {
+        text: '',
+        fill: CascaisPalette.TextSecondary,
+        fontSize: 11,
+        fontStyle: 'italic',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        textDecoration: 'none',
+        refX: 0.5,
+        refY: 0.35,
+      },
       label: {
         text: 'Activity',
         fill: CascaisPalette.TextPrimary,
@@ -224,11 +295,9 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
-        textDecoration: 'underline',
-        textWrap: {
-          width: -16,
-          breakWord: true,
-        },
+        textDecoration: 'none',
+        refX: 0.5,
+        refY: 0.5,
       },
     },
     ports: createOrthogonalPorts(),
@@ -331,18 +400,44 @@ export function registerAimShapes(): void {
     ports: createOrthogonalPorts(),
   });
 
-  // 4. AimObjectNode ('obj') — Instance card with underlined title
+  // 4. AimObjectNode ('obj') — Instance card
   Shape.Rect.define({
     shape: 'aim-obj',
     overwrite: true,
     width: 160,
     height: 80,
+    markup: [
+      {
+        tagName: 'rect',
+        selector: 'body',
+      },
+      {
+        tagName: 'text',
+        selector: 'qualifier',
+      },
+      {
+        tagName: 'text',
+        selector: 'label',
+      },
+    ],
     attrs: {
       body: {
         fill: CascaisPalette.ChalkWhite,
         stroke: CascaisPalette.SilverLineDark,
         strokeWidth: 1.5,
         class: 'aim-node aim-obj',
+      },
+      qualifier: {
+        text: '',
+        fill: CascaisPalette.TextSecondary,
+        fontSize: 11,
+        fontStyle: 'italic',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        textDecoration: 'none',
+        refX: 0.5,
+        refY: 0.35,
       },
       label: {
         text: 'instance: Type',
@@ -351,11 +446,9 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
-        textDecoration: 'underline',
-        textWrap: {
-          width: -16,
-          breakWord: true,
-        },
+        textDecoration: 'none',
+        refX: 0.5,
+        refY: 0.5,
       },
     },
     ports: createOrthogonalPorts(),
@@ -382,6 +475,10 @@ export function registerAimShapes(): void {
       },
       {
         tagName: 'text',
+        selector: 'qualifier',
+      },
+      {
+        tagName: 'text',
         selector: 'label',
       },
     ],
@@ -404,9 +501,22 @@ export function registerAimShapes(): void {
         cx: 45,
         cy: 22,
         r: 8,
+        refX: 0.5,
         fill: CascaisPalette.ChalkWhite,
         stroke: CascaisPalette.WarmGraphite,
         strokeWidth: 2,
+      },
+      qualifier: {
+        text: '',
+        fill: CascaisPalette.TextSecondary,
+        fontSize: 11,
+        fontStyle: 'italic',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'top',
+        textDecoration: 'none',
+        refX: 0.5,
+        refY: 60,
       },
       label: {
         text: 'Actor',
@@ -416,12 +526,9 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'top',
+        textDecoration: 'none',
         refX: 0.5,
         refY: 62,
-        textWrap: {
-          width: -10,
-          breakWord: true,
-        },
       },
     },
     ports: createOrthogonalPorts(),
@@ -505,28 +612,50 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
     data,
   };
 
+  const isInstance = data.instance === true;
+  const boxWidth = data.bounds.width;
+  const fontSize = data.kind === 'uc' || data.kind === 'act' ? 13 : 12;
+  const maxLineLength = computeMaxLineLength(boxWidth, fontSize);
+
+  const hasQualifier = Boolean(data.qualifier && data.qualifier.trim().length > 0);
+  const wrappedQualifier = hasQualifier ? wrapAimText(data.qualifier!, maxLineLength) : '';
+  const wrappedName = wrapAimText(data.displayName, maxLineLength);
+
   // Archetype-specific customization
   switch (data.kind) {
     case 'uc': {
-      const wrappedName = wrapAimText(data.displayName);
       return {
         ...baseMetadata,
         attrs: {
+          qualifier: {
+            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            fontStyle: 'italic',
+            textDecoration: 'none',
+            refY: 0.35,
+          },
           label: {
-            text: data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName,
+            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            textDecoration: isInstance ? 'underline' : 'none',
+            refY: hasQualifier ? 0.65 : 0.5,
           },
         },
       };
     }
 
     case 'act': {
-      const wrappedName = wrapAimText(data.displayName);
       return {
         ...baseMetadata,
         attrs: {
+          qualifier: {
+            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            fontStyle: 'italic',
+            textDecoration: 'none',
+            refY: 0.35,
+          },
           label: {
-            text: data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName,
-            textDecoration: 'underline',
+            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            textDecoration: isInstance ? 'underline' : 'none',
+            refY: hasQualifier ? 0.65 : 0.5,
           },
         },
       };
@@ -538,6 +667,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
         attrs: {
           title: {
             text: data.displayName,
+            textDecoration: isInstance ? 'underline' : 'none',
           },
           attributes: {
             text: data.attributes && data.attributes.length > 0 ? data.attributes.join('\n') : '',
@@ -549,13 +679,19 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
       };
 
     case 'obj': {
-      const wrappedName = wrapAimText(data.displayName);
       return {
         ...baseMetadata,
         attrs: {
+          qualifier: {
+            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            fontStyle: 'italic',
+            textDecoration: 'none',
+            refY: 0.35,
+          },
           label: {
-            text: data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName,
-            textDecoration: 'underline',
+            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            textDecoration: isInstance ? 'underline' : 'none',
+            refY: hasQualifier ? 0.65 : 0.5,
           },
         },
       };
@@ -564,19 +700,31 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
     case 'per': {
       const isInitiating = data.stereotype?.toLowerCase().includes('initiates') ?? false;
       const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
-      const wrappedName = wrapAimText(data.displayName, 14);
-      const text = data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName;
+      const cx = Math.round(boxWidth / 2);
       return {
         ...baseMetadata,
         attrs: {
           torso: {
+            d: `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`,
             stroke: strokeColor,
           },
           head: {
+            cx,
+            refX: 0.5,
             stroke: strokeColor,
           },
+          qualifier: {
+            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            fontStyle: 'italic',
+            textDecoration: 'none',
+            refX: 0.5,
+            refY: 60,
+          },
           label: {
-            text,
+            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            textDecoration: isInstance ? 'underline' : 'none',
+            refX: 0.5,
+            refY: hasQualifier ? 75 : 62,
           },
         },
       };

@@ -27,6 +27,8 @@ import {
 	CascaisPalette,
 	getDefaultNodeBounds,
 	getDefaultNodeName,
+	computeMaxLineLength,
+	wrapAimText,
 } from './X6Shapes.js';
 import {
 	validateSemanticConnection,
@@ -259,6 +261,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						id,
 						kind,
 						displayName: customData?.displayName ?? defaultName,
+						...(customData?.qualifier !== undefined ? { qualifier: customData.qualifier } : {}),
+						...(customData?.instance !== undefined ? { instance: customData.instance } : {}),
 						...(customData?.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
 						...(customData?.attributes !== undefined ? { attributes: customData.attributes } : {}),
 						...(customData?.methods !== undefined ? { methods: customData.methods } : {}),
@@ -295,23 +299,65 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							...(currentData.bounds ?? { x: 0, y: 0, width: 140, height: 60 }),
 							...(updates.bounds ?? {}),
 						},
+						...(updates.qualifier !== undefined
+							? { qualifier: updates.qualifier }
+							: currentData.qualifier !== undefined
+								? { qualifier: currentData.qualifier }
+								: {}),
+						...(updates.instance !== undefined
+							? { instance: updates.instance }
+							: currentData.instance !== undefined
+								? { instance: currentData.instance }
+								: {}),
 					};
 					node.setData(nextData);
 
 					const displayName = nextData.displayName;
-					const stereotype = nextData.stereotype;
-					const labelText = stereotype ? `${stereotype}\n${displayName}` : displayName;
+					const qualifier = nextData.qualifier;
+					const isInstance = nextData.instance === true;
+					const boxWidth = nextData.bounds.width;
+					const fontSize = nextData.kind === 'uc' || nextData.kind === 'act' ? 13 : 12;
+					const maxLineLength = computeMaxLineLength(boxWidth, fontSize);
+
+					const wrappedName = wrapAimText(displayName, maxLineLength);
+					const wrappedQualifier = qualifier ? wrapAimText(qualifier, maxLineLength) : '';
 
 					if (nextData.kind === 'cls') {
 						node.setAttrByPath('title/text', displayName);
+						node.setAttrByPath('title/textDecoration', isInstance ? 'underline' : 'none');
 						if (nextData.attributes !== undefined) {
 							node.setAttrByPath('attributes/text', nextData.attributes.join('\n'));
 						}
 						if (nextData.methods !== undefined) {
 							node.setAttrByPath('methods/text', nextData.methods.join('\n'));
 						}
+					} else if (nextData.kind === 'per') {
+						const cx = Math.round(boxWidth / 2);
+						node.setAttrByPath('torso/d', `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`);
+						node.setAttrByPath('head/cx', cx);
+						if (qualifier) {
+							node.setAttrByPath('qualifier/text', wrappedQualifier);
+							node.setAttrByPath('qualifier/refY', 60);
+							node.setAttrByPath('label/text', wrappedName);
+							node.setAttrByPath('label/refY', 75);
+						} else {
+							node.setAttrByPath('qualifier/text', '');
+							node.setAttrByPath('label/text', wrappedName);
+							node.setAttrByPath('label/refY', 62);
+						}
+						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');
 					} else {
-						node.setAttrByPath('label/text', labelText);
+						if (qualifier) {
+							node.setAttrByPath('qualifier/text', wrappedQualifier);
+							node.setAttrByPath('qualifier/refY', 0.35);
+							node.setAttrByPath('label/text', wrappedName);
+							node.setAttrByPath('label/refY', 0.65);
+						} else {
+							node.setAttrByPath('qualifier/text', '');
+							node.setAttrByPath('label/text', wrappedName);
+							node.setAttrByPath('label/refY', 0.5);
+						}
+						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');
 					}
 
 					if (updates.bounds) {
@@ -391,10 +437,17 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					}
 					onRoutingModeChangeRef.current?.(mode);
 					if (applyToAll && graphRef.current) {
-						for (const edge of graphRef.current.getEdges()) {
-							applyEdgeRouting(edge, mode);
-							const currentData = (edge.getData() ?? {}) as RaidEdgeData;
-							edge.setData({ ...currentData, routing: mode });
+						const graph = graphRef.current;
+						const batchName = 'change-routing-mode';
+						graph.startBatch(batchName);
+						try {
+							for (const edge of graph.getEdges()) {
+								applyEdgeRouting(edge, mode);
+								const currentData = (edge.getData() ?? {}) as RaidEdgeData;
+								edge.setData({ ...currentData, routing: mode });
+							}
+						} finally {
+							graph.stopBatch(batchName);
 						}
 						triggerDebouncedChange();
 					}

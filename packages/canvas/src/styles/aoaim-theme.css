@@ -83,9 +83,10 @@
   ry: var(--aim-radius-act);
 }
 
-.aim-node[aim-act] text,
-.aim-node[aim-kind="act"] text,
-.aim-act text {
+/* Underline is consumer-controlled via aim-instance="true" (CR032) */
+.aim-node[aim-instance="true"] text.aim-name,
+.aim-node[aim-instance="true"] tspan.aim-name,
+.aim-node[aim-instance="true"] text:not(.aim-qualifier) {
   text-decoration: underline;
 }
 
@@ -121,11 +122,7 @@
   stroke-width: 1.5px;
 }
 
-.aim-node[aim-obj] text,
-.aim-node[aim-kind="obj"] text,
-.aim-obj text {
-  text-decoration: underline;
-}
+
 
 /* 5. Person / Actor Nodes ('per') */
 .aim-node[aim-per],

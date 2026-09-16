@@ -30,6 +30,7 @@ import {
 	configureAimGraph,
 	CascaisPalette,
 	wrapAimText,
+	computeMaxLineLength,
 } from './X6Shapes.js';
 
 /**
@@ -92,8 +93,7 @@ export class RaiBridge {
 			graph.clearCells();
 		}
 
-		const doc = this.resolveSvgElement(svgSource);
-		const metamodel = this.extractMetamodel(doc, options);
+		const metamodel = this.extractMetamodel(svgSource, options);
 
 		// 1. Add all nodes to graph
 		for (const nodeData of metamodel.nodes) {
@@ -149,11 +149,20 @@ export class RaiBridge {
 			const id = node.id;
 			const kind = (customData.kind ?? this.kindFromShape(node.shape)) as AimOntologyKind;
 			const displayName = customData.displayName ?? (node.getAttrByPath('label/text') as string) ?? id;
+			const qualifier = customData.qualifier ?? (node.getAttrByPath('qualifier/text') as string) ?? undefined;
+			const isInstance =
+				customData.instance ??
+				(node.getAttrByPath('label/textDecoration') === 'underline' ||
+				node.getAttrByPath('title/textDecoration') === 'underline'
+					? true
+					: undefined);
 
 			const nodeData: RaidNodeData = {
 				id,
 				kind,
 				displayName,
+				...(qualifier ? { qualifier } : {}),
+				...(isInstance !== undefined ? { instance: isInstance } : {}),
 				...(customData.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
 				...(customData.namespace !== undefined ? { namespace: customData.namespace } : {}),
 				...(customData.attributes !== undefined ? { attributes: customData.attributes } : {}),
@@ -343,9 +352,13 @@ export class RaiBridge {
 		}
 
 		if (routingMode === 'smooth') {
-			const midX = Math.round((sx + tx) / 2);
-			const midY = Math.round((sy + ty) / 2);
-			return `M ${sx} ${sy} Q ${midX} ${sy} ${midX} ${midY} T ${tx} ${ty}`;
+			if (Math.abs(dx) >= Math.abs(dy)) {
+				const midX = Math.round((sx + tx) / 2);
+				return `M ${sx} ${sy} C ${midX} ${sy}, ${midX} ${ty}, ${tx} ${ty}`;
+			} else {
+				const midY = Math.round((sy + ty) / 2);
+				return `M ${sx} ${sy} C ${sx} ${midY}, ${tx} ${midY}, ${tx} ${ty}`;
+			}
 		}
 
 		// Manhattan orthogonal default
@@ -380,7 +393,8 @@ export class RaiBridge {
 		throw new Error('DOMParser unavailable in current execution environment');
 	}
 
-	private extractMetamodel(svgRoot: Element, options: HydrationOptions): RaidMetamodel {
+	public extractMetamodel(source: string | Element, options: HydrationOptions = {}): RaidMetamodel {
+		const svgRoot = this.resolveSvgElement(source);
 		const nodes: RaidNodeData[] = [];
 		const edges: RaidEdgeData[] = [];
 
@@ -406,6 +420,9 @@ export class RaiBridge {
 				el.querySelector('text')?.textContent?.trim() ??
 				id;
 
+			const qualifier = el.getAttribute(AimSvgContract.ATTR_QUALIFIER) ?? undefined;
+			const isInstance = el.getAttribute(AimSvgContract.ATTR_INSTANCE) === 'true' ? true : undefined;
+
 			const stereotype = el.getAttribute(AimSvgContract.ATTR_STEREOTYPE) ?? undefined;
 			const bounds = this.extractBounds(el, options.defaultNodeSize);
 
@@ -413,6 +430,8 @@ export class RaiBridge {
 				id,
 				kind,
 				displayName,
+				...(qualifier !== undefined ? { qualifier } : {}),
+				...(isInstance !== undefined ? { instance: isInstance } : {}),
 				...(stereotype !== undefined ? { stereotype } : {}),
 				bounds,
 			});
@@ -638,13 +657,13 @@ export class RaiBridge {
 			style = doc.createElementNS('http://www.w3.org/2000/svg', 'style');
 			defs.appendChild(style);
 		}
-		if (style && !style.textContent?.includes('.aim-act text')) {
+		if (style && !style.textContent?.includes('aim-instance="true"')) {
 			style.textContent = (style.textContent ? style.textContent + '\n' : '') + `
 			.aim-node { cursor: pointer; transition: filter 0.15s ease; }
 			.aim-node:hover { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
 			.aim-edge { fill: none; stroke: ${CascaisPalette.WarmGraphite}; stroke-width: 1.5; }
 			text { font-family: Inter, system-ui, sans-serif; }
-			.aim-act text, .aim-obj text { text-decoration: underline; }
+			.aim-node[aim-instance="true"] text.aim-name, .aim-node[aim-instance="true"] tspan.aim-name { text-decoration: underline; }
 `;
 		}
 
@@ -751,6 +770,16 @@ export class RaiBridge {
 			el.setAttribute(AimSvgContract.ATTR_ID, node.id);
 			el.setAttribute(AimSvgContract.ATTR_KIND, node.kind);
 			el.setAttribute(AimSvgContract.ATTR_DISPLAY_NAME, node.displayName);
+			if (node.qualifier !== undefined && node.qualifier !== '') {
+				el.setAttribute(AimSvgContract.ATTR_QUALIFIER, node.qualifier);
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_QUALIFIER);
+			}
+			if (node.instance === true) {
+				el.setAttribute(AimSvgContract.ATTR_INSTANCE, 'true');
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_INSTANCE);
+			}
 			if (node.stereotype) {
 				el.setAttribute(AimSvgContract.ATTR_STEREOTYPE, node.stereotype);
 			} else {
@@ -910,27 +939,40 @@ export class RaiBridge {
 		fontWeight: string,
 		fill: string,
 		underline: boolean = false,
+		qualifier?: string,
+		boxWidth?: number,
 	): string {
-		const wrapped = wrapAimText(text);
-		const lines = wrapped.split('\n');
+		const wrapLength = boxWidth ? computeMaxLineLength(boxWidth, fontSize) : 18;
+		const nameWrapped = wrapAimText(text, wrapLength);
+		const nameLines = nameWrapped.split('\n');
+
+		const hasQualifier = Boolean(qualifier && qualifier.trim().length > 0);
+		const qualifierLines = hasQualifier ? wrapAimText(qualifier!, wrapLength).split('\n') : [];
+
+		const totalLines = qualifierLines.length + nameLines.length;
 		const underlineAttr = underline ? ' text-decoration="underline"' : '';
 		const weightAttr = fontWeight !== 'normal' ? ` font-weight="${fontWeight}"` : '';
 
-		if (lines.length <= 1) {
-			const lineContent = lines[0] !== undefined ? escapeXmlText(lines[0]) : '';
-			return `      <text x="${cx}" y="${cy}" font-size="${fontSize}"${weightAttr} fill="${fill}" text-anchor="middle" dominant-baseline="central"${underlineAttr}>${lineContent}</text>\n`;
+		if (totalLines <= 1) {
+			const lineContent = nameLines[0] !== undefined ? escapeXmlText(nameLines[0]) : '';
+			return `      <text class="aim-name" x="${cx}" y="${cy}" font-size="${fontSize}"${weightAttr} fill="${fill}" text-anchor="middle" dominant-baseline="central"${underlineAttr}>${lineContent}</text>\n`;
 		}
 
 		const lineHeight = fontSize * 1.25;
-		const startY = cy - ((lines.length - 1) * lineHeight) / 2;
+		const startY = cy - ((totalLines - 1) * lineHeight) / 2;
 
 		let tspans = '';
-		lines.forEach((line, idx) => {
+		qualifierLines.forEach((qLine, idx) => {
 			const y = Math.round(startY + idx * lineHeight);
-			tspans += `<tspan x="${cx}" y="${y}">${escapeXmlText(line)}</tspan>`;
+			tspans += `<tspan class="aim-qualifier" x="${cx}" y="${y}" font-size="${fontSize - 1}" font-style="italic" fill="${CascaisPalette.TextSecondary}">${escapeXmlText(qLine)}</tspan>`;
 		});
 
-		return `      <text font-size="${fontSize}"${weightAttr} fill="${fill}" text-anchor="middle" dominant-baseline="central"${underlineAttr}>${tspans}</text>\n`;
+		nameLines.forEach((nLine, idx) => {
+			const y = Math.round(startY + (qualifierLines.length + idx) * lineHeight);
+			tspans += `<tspan class="aim-name" x="${cx}" y="${y}" font-size="${fontSize}"${weightAttr} fill="${fill}"${underlineAttr}>${escapeXmlText(nLine)}</tspan>`;
+		});
+
+		return `      <text font-size="${fontSize}" fill="${fill}" text-anchor="middle" dominant-baseline="central">${tspans}</text>\n`;
 	}
 
 	/**
@@ -939,28 +981,32 @@ export class RaiBridge {
 	 */
 	public renderNodeInnerSvg(node: RaidNodeData): string {
 		let svg = '';
+		const isInstance = node.instance === true;
+		const width = node.bounds.width;
+		const height = node.bounds.height;
+
 		if (node.kind === 'uc') {
-			const rx = node.bounds.width / 2;
-			const ry = node.bounds.height / 2;
+			const rx = width / 2;
+			const ry = height / 2;
 			svg += `      <ellipse cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGold}" stroke-width="2" />\n`;
-			svg += this.renderSvgText(node.displayName, rx, ry, 13, 'bold', CascaisPalette.TextPrimary, false);
+			svg += this.renderSvgText(node.displayName, rx, ry, 13, 'bold', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
 		} else if (node.kind === 'act') {
-			svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" rx="12" ry="12" fill="${CascaisPalette.CanvasCream}" stroke="${CascaisPalette.HeraldicGreen}" stroke-width="2" />\n`;
-			svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 13, '600', CascaisPalette.TextPrimary, true);
+			svg += `      <rect width="${width}" height="${height}" rx="12" ry="12" fill="${CascaisPalette.CanvasCream}" stroke="${CascaisPalette.HeraldicGreen}" stroke-width="2" />\n`;
+			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 13, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
 		} else if (node.kind === 'obj') {
-			svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
-			svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 12, 'normal', CascaisPalette.TextPrimary, true);
+			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
+			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
 		} else if (node.kind === 'per') {
 			const isInitiating = node.stereotype?.toLowerCase().includes('initiates') ?? false;
 			const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
-			const cx = Math.round(node.bounds.width / 2);
-			svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="none" stroke="none" />\n`;
-			svg += `      <path d="M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />\n`;
-			svg += `      <circle cx="45" cy="22" r="8" fill="${CascaisPalette.ChalkWhite}" stroke="${strokeColor}" stroke-width="2" />\n`;
-			svg += this.renderSvgText(node.displayName, cx, 68, 12, '500', CascaisPalette.TextPrimary, false);
+			const cx = Math.round(width / 2);
+			svg += `      <rect width="${width}" height="${height}" fill="none" stroke="none" />\n`;
+			svg += `      <path d="M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />\n`;
+			svg += `      <circle cx="${cx}" cy="22" r="8" fill="${CascaisPalette.ChalkWhite}" stroke="${strokeColor}" stroke-width="2" />\n`;
+			svg += this.renderSvgText(node.displayName, cx, 68, 12, '500', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
 		} else {
-			svg += `      <rect width="${node.bounds.width}" height="${node.bounds.height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" />\n`;
-			svg += this.renderSvgText(node.displayName, node.bounds.width / 2, node.bounds.height / 2, 12, 'normal', CascaisPalette.TextPrimary, false);
+			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" />\n`;
+			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
 		}
 		return svg;
 	}
@@ -988,7 +1034,7 @@ export class RaiBridge {
 			svg += `      .aim-node:hover { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }\n`;
 			svg += `      .aim-edge { fill: none; stroke: ${CascaisPalette.WarmGraphite}; stroke-width: 1.5; }\n`;
 			svg += `      text { font-family: Inter, system-ui, sans-serif; }\n`;
-			svg += `      .aim-act text, .aim-obj text { text-decoration: underline; }\n`;
+			svg += `      .aim-node[aim-instance="true"] text.aim-name, .aim-node[aim-instance="true"] tspan.aim-name { text-decoration: underline; }\n`;
 			svg += `    </style>\n`;
 		}
 		svg += `  </defs>\n\n`;
@@ -1002,15 +1048,12 @@ export class RaiBridge {
 			const markerEnd = edge.kind === 'generalization' ? ' marker-end="url(#arrow-hollow)"' : ' marker-end="url(#arrow-classic)"';
 
 			// Path data construction
-			let pathD = edge.pathData ?? '';
+			let pathD = edge.pathData;
 			if (!pathD) {
 				const sourceNode = model.nodes.find((n) => n.id === edge.sourceId);
 				const targetNode = model.nodes.find((n) => n.id === edge.targetId);
 				if (sourceNode && targetNode) {
 					pathD = this.computeFallbackEdgePath(sourceNode, targetNode, edge.bendPoints, edge.routing ?? model.routing);
-				} else if (edge.bendPoints.length > 0) {
-					const first = edge.bendPoints[0]!;
-					pathD = `M ${first.x} ${first.y} ` + edge.bendPoints.slice(1).map((p) => `L ${p.x} ${p.y}`).join(' ');
 				}
 			}
 
@@ -1051,7 +1094,9 @@ export class RaiBridge {
 		svg += `  <g class="aim-nodes-layer">\n`;
 		for (const node of model.nodes) {
 			const stereotypeAttr = node.stereotype ? ` ${AimSvgContract.ATTR_STEREOTYPE}="${escapeXmlAttr(node.stereotype)}"` : '';
-			svg += `    <g ${AimSvgContract.ATTR_NODE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(node.id)}" ${AimSvgContract.ATTR_KIND}="${escapeXmlAttr(node.kind)}" ${AimSvgContract.ATTR_DISPLAY_NAME}="${escapeXmlAttr(node.displayName)}"${stereotypeAttr} transform="translate(${node.bounds.x}, ${node.bounds.y})">\n`;
+			const qualifierAttr = node.qualifier ? ` ${AimSvgContract.ATTR_QUALIFIER}="${escapeXmlAttr(node.qualifier)}"` : '';
+			const instanceAttr = node.instance ? ` ${AimSvgContract.ATTR_INSTANCE}="true"` : '';
+			svg += `    <g ${AimSvgContract.ATTR_NODE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(node.id)}" ${AimSvgContract.ATTR_KIND}="${escapeXmlAttr(node.kind)}" ${AimSvgContract.ATTR_DISPLAY_NAME}="${escapeXmlAttr(node.displayName)}"${qualifierAttr}${instanceAttr}${stereotypeAttr} transform="translate(${node.bounds.x}, ${node.bounds.y})">\n`;
 			svg += this.renderNodeInnerSvg(node);
 			svg += `    </g>\n`;
 		}
