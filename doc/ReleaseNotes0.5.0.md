@@ -107,9 +107,9 @@ Ontological consumers can emit `aim-qualifier` and `aim-instance` per the mappin
 
 ---
 
-## 5. Publishing Handoff
+## 5. Publishing Verification
 
-The package is prepared and verified for release:
-```bash
-pnpm --filter @dr2rai/raid-canvas publish --access public
-```
+- **Package:** `@dr2rai/raid-canvas@0.5.0`
+- **Registry:** `https://registry.npmjs.org/@dr2rai/raid-canvas`
+- **Status:** ✅ Successfully published and verified as `"latest": "0.5.0"`.
+
