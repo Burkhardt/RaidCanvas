@@ -239,8 +239,19 @@ describe('RaidCanvas Core Tests', () => {
     assert.ok(freshSvg.includes('aim-target-port="port-left"'));
   });
 
-  test('wrapAimText wraps on spaces and breaks explicitly on <wbr>', () => {
-    // 1. Long text with spaces wraps at maxLineLength
+  test('wrapAimText wraps on spaces and treats <wbr> and hyphens as soft-break opportunities', () => {
+    // 1. Long unbroken string with <wbr> soft breaks glues syllables until line limit
+    const userExample =
+      'For<wbr />Words<wbr />Or<wbr />Strings<wbr />Too<wbr />Long<wbr />To<wbr />Fit<wbr />In<wbr />One<wbr />Line<wbr />And<wbr />Do<wbr />Not<wbr />Have Blanks in-between';
+    const wrappedUser = wrapAimText(userExample, 21);
+    assert.deepEqual(wrappedUser.split('\n'), [
+      'ForWordsOrStringsToo',
+      'LongToFitInOneLineAnd',
+      'DoNotHave Blanks in-',
+      'between',
+    ]);
+
+    // 2. Long text with spaces wraps at maxLineLength
     const longText = 'AIA Platform Genesis & Bootstrap';
     const wrappedSpaces = wrapAimText(longText, 18);
     assert.deepEqual(wrappedSpaces.split('\n'), [
@@ -249,22 +260,9 @@ describe('RaidCanvas Core Tests', () => {
       'Bootstrap',
     ]);
 
-    // 2. Text with <wbr> breaks immediately on <wbr>
-    const wbrText = 'AIA<wbr>Platform<wbr>Genesis';
-    const wrappedWbr = wrapAimText(wbrText);
-    assert.deepEqual(wrappedWbr.split('\n'), [
-      'AIA',
-      'Platform',
-      'Genesis',
-    ]);
-
-    // 3. Mixed spaces and <wbr>
-    const mixed = 'Create<wbr>User Account';
-    const wrappedMixed = wrapAimText(mixed, 20);
-    assert.deepEqual(wrappedMixed.split('\n'), [
-      'Create',
-      'User Account',
-    ]);
+    // 3. Short syllables with <wbr> that fit on one line stay glued together
+    const shortWbr = 'Micro<wbr />Service';
+    assert.equal(wrapAimText(shortWbr, 20), 'MicroService');
 
     // 4. Empty text returns empty string
     assert.equal(wrapAimText(''), '');
@@ -385,7 +383,7 @@ describe('RaidCanvas Core Tests', () => {
         {
           id: 'Per_1',
           kind: 'per',
-          displayName: 'User<wbr>Operator',
+          displayName: 'Chief<wbr>Executive<wbr>Officer',
           bounds: { x: 50, y: 50, width: 90, height: 90 },
         },
         {
@@ -415,10 +413,10 @@ describe('RaidCanvas Core Tests', () => {
     assert.ok(svg.includes('M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4'));
     // 3. Underline applied to Activity
     assert.ok(svg.includes('text-decoration="underline"'));
-    // 4. Multi-line tspan generated from <wbr>
+    // 4. Multi-line tspan generated from <wbr> soft break when line length exceeded
     assert.ok(svg.includes('<tspan x="45"'));
-    assert.ok(svg.includes('User</tspan>'));
-    assert.ok(svg.includes('Operator</tspan>'));
+    assert.ok(svg.includes('ChiefExecutive</tspan>'));
+    assert.ok(svg.includes('Officer</tspan>'));
     // 5. Unpinned edge does NOT output port attributes
     assert.ok(!svg.includes('aim-source-port'));
     assert.ok(!svg.includes('aim-target-port'));

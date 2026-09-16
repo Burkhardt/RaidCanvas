@@ -40,7 +40,8 @@ export const CascaisPalette = {
 /**
  * Formats and wraps node label text for AOAIM entities.
  * Automatically wraps on whitespace when exceeding target length,
- * and breaks explicitly on `<wbr>` or `<wbr/>` tags.
+ * and treats `<wbr>` / `<wbr/>` tags and hyphens as soft word-break opportunities
+ * within long unbroken words or strings.
  */
 export function wrapAimText(rawText: string, maxLineLength: number = 18): string {
   if (!rawText) return '';
@@ -54,29 +55,50 @@ export function wrapAimText(rawText: string, maxLineLength: number = 18): string
       continue;
     }
 
-    // Split on <wbr> or <wbr/> tags first
-    const wbrChunks = line.split(/<wbr\s*\/?>/i);
-    for (let chunkIdx = 0; chunkIdx < wbrChunks.length; chunkIdx++) {
-      const chunk = wbrChunks[chunkIdx]!;
-      if (!chunk && chunkIdx > 0) continue;
+    // Replace <wbr> / <wbr/> with zero-width break marker \u200B,
+    // and allow breaking after hyphens within words
+    const normalized = line
+      .replace(/<wbr\s*\/?>/gi, '\u200B')
+      .replace(/-(?=[a-zA-Z0-9])/g, '-\u200B');
 
-      const words = chunk.split(/\s+/).filter(Boolean);
-      if (words.length === 0) continue;
+    const spaceWords = normalized.split(/\s+/).filter(Boolean);
+    if (spaceWords.length === 0) continue;
 
-      let currentLine = '';
-      for (const word of words) {
+    let currentLine = '';
+
+    for (let wordIdx = 0; wordIdx < spaceWords.length; wordIdx++) {
+      const spaceWord = spaceWords[wordIdx]!;
+      const chunks = spaceWord.split('\u200B').filter(Boolean);
+
+      for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
+        const chunk = chunks[chunkIdx]!;
+        const isFirstChunkOfWord = chunkIdx === 0;
+
         if (!currentLine) {
-          currentLine = word;
-        } else if (currentLine.length + word.length + 1 <= maxLineLength) {
-          currentLine += ' ' + word;
+          currentLine = chunk;
+        } else if (isFirstChunkOfWord) {
+          // Break or space before a new whitespace-separated word
+          if (currentLine.length + 1 + chunk.length <= maxLineLength) {
+            currentLine += ' ' + chunk;
+          } else {
+            resultLines.push(currentLine);
+            currentLine = chunk;
+          }
         } else {
-          resultLines.push(currentLine);
-          currentLine = word;
+          // Soft-break opportunity within a word (<wbr> or hyphen):
+          // Glues together without space if it fits; breaks without space if it overflows
+          if (currentLine.length + chunk.length <= maxLineLength) {
+            currentLine += chunk;
+          } else {
+            resultLines.push(currentLine);
+            currentLine = chunk;
+          }
         }
       }
-      if (currentLine) {
-        resultLines.push(currentLine);
-      }
+    }
+
+    if (currentLine) {
+      resultLines.push(currentLine);
     }
   }
 
