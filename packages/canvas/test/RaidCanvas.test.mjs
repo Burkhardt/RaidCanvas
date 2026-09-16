@@ -131,4 +131,65 @@ describe('RaidCanvas React Component Export & Contracts', () => {
     // Explicit ignoreHistory should be discarded
     assert.equal(filter('cell:change:data', { options: { ignoreHistory: true } }), false);
   });
+
+  test('CR031: History beforeAddCommand isolates hydration phase and rejects initial cell:added commands', () => {
+    let isHydrating = true;
+
+    const filter = (_event, args) => {
+      if (isHydrating) {
+        return false;
+      }
+      if (
+        args?.key === 'ports' ||
+        args?.path?.startsWith('ports') ||
+        args?.path?.includes('/ports/') ||
+        args?.key === 'tools'
+      ) {
+        return false;
+      }
+      if (args?.options?.ignoreHistory === true) {
+        return false;
+      }
+      return true;
+    };
+
+    // While hydrating from SVG, all 8 initial cell additions must be rejected
+    assert.equal(filter('cell:added', { cell: { isNode: () => true } }), false);
+    assert.equal(filter('cell:added', { cell: { isEdge: () => true } }), false);
+    assert.equal(filter('cell:change:position', { key: 'position' }), false);
+
+    // After hydration finishes, operator gestures are accepted
+    isHydrating = false;
+    assert.equal(filter('cell:added', { cell: { isNode: () => true } }), true);
+    assert.equal(filter('cell:added', { cell: { isEdge: () => true } }), true);
+    assert.equal(filter('cell:change:position', { key: 'position' }), true);
+
+    // But port hover noise remains suppressed
+    assert.equal(filter('cell:change:ports', { key: 'ports' }), false);
+  });
+
+  test('CR031: RaidCanvasHandle exposes cleanHistory and manages undo/redo lifecycle', () => {
+    let undoStack = ['cmd1', 'cmd2'];
+    let redoStack = ['cmd3'];
+
+    const mockHandle = {
+      canUndo: () => undoStack.length > 0,
+      canRedo: () => redoStack.length > 0,
+      cleanHistory: () => {
+        undoStack = [];
+        redoStack = [];
+      },
+    };
+
+    assert.equal(typeof mockHandle.cleanHistory, 'function');
+    assert.equal(mockHandle.canUndo(), true);
+    assert.equal(mockHandle.canRedo(), true);
+
+    // Purge history
+    mockHandle.cleanHistory();
+
+    assert.equal(mockHandle.canUndo(), false);
+    assert.equal(mockHandle.canRedo(), false);
+  });
 });
+

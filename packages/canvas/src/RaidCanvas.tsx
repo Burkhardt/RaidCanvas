@@ -106,6 +106,8 @@ export interface RaidCanvasHandle {
 	canUndo: () => boolean;
 	/** Whether there are operations that can be redone */
 	canRedo: () => boolean;
+	/** Clear undo and redo history stacks */
+	cleanHistory: () => void;
 }
 
 /**
@@ -453,6 +455,11 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					if (!graph || readOnly) return false;
 					return (graph as unknown as { canRedo?: () => boolean }).canRedo?.() ?? false;
 				},
+				cleanHistory: () => {
+					const graph = graphRef.current;
+					if (!graph || readOnly) return;
+					(graph as unknown as { cleanHistory?: () => void }).cleanHistory?.();
+				},
 			}),
 			[
 				handleCenter,
@@ -572,6 +579,10 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					new History({
 						enabled: true,
 						beforeAddCommand(_event, args: any) {
+							// CR031: Reject any commands generated during hydration/inflation
+							if (isHydratingRef.current) {
+								return false;
+							}
 							// Discard transient port hover noise or internal selection/hover mutations
 							if (
 								args?.key === 'ports' ||
@@ -818,6 +829,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					console.error('RaidCanvas hydration error:', err);
 				} finally {
 					isHydratingRef.current = false;
+					// CR031: Guarantee clean undo stack on diagram arrival
+					(graph as unknown as { cleanHistory?: () => void }).cleanHistory?.();
 				}
 			}
 
@@ -860,6 +873,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				console.error('RaidCanvas re-hydration error:', err);
 			} finally {
 				isHydratingRef.current = false;
+				// CR031: Guarantee clean undo stack on external diagram update
+				(graph as unknown as { cleanHistory?: () => void }).cleanHistory?.();
 			}
 		}, [activeSvg]);
 
