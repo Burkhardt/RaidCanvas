@@ -170,14 +170,29 @@
 }
 
 /* Orthogonal Port Docking Magnets */
+.x6-port,
+.aim-port-body {
+  transition: opacity 0.15s ease, transform 0.1s ease, fill 0.1s ease;
+}
+
+.x6-node:hover .x6-port,
+.aim-node:hover .x6-port,
+.x6-node:hover .aim-port-body,
+.x6-node:hover circle[magnet="true"],
+.aim-node:hover circle[magnet="true"],
+circle[magnet="true"]:hover {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 .aim-port-body {
   fill: var(--aim-chalk-white);
   stroke: var(--aim-warm-graphite);
   stroke-width: 1.5px;
-  transition: transform 0.1s ease, fill 0.1s ease;
 }
 
-.aim-port-body:hover {
+.aim-port-body:hover,
+circle[magnet="true"]:hover {
   fill: var(--aim-net-gold);
   stroke: var(--aim-warm-graphite);
   transform: scale(1.4);

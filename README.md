@@ -5,6 +5,7 @@
 > **Author & Principal Architect:** Dr. Rainer Burkhardt <Rainer@Burkhardt.com>  
 > **Lead Implementation Engineer:** Alan (7012), Visual Systems & Canvas Lead
 
+[![npm version](https://img.shields.io/badge/npm-0.4.0-red.svg)](https://www.npmjs.com/package/@dr2rai/raid-canvas)
 [![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-orange.svg)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0.2-blue.svg)](https://www.typescriptlang.org/)
 [![AntV X6](https://img.shields.io/badge/AntV%20X6-2.18-indigo.svg)](https://x6.antv.vision/)
@@ -186,6 +187,35 @@ graph.on('cell:changed', () => {
   const updatedSvg = bridge.serializeToSvg(graph, rawSvgString);
   console.log('Synchronized SVG:', updatedSvg);
 });
+```
+
+### React Component Usage with Built-in History (`undo` / `redo`)
+```tsx
+import React, { useRef } from 'react';
+import { RaidCanvas, type RaidCanvasHandle } from '@dr2rai/raid-canvas';
+import '@dr2rai/raid-canvas/styles';
+
+export function DiagramEditor({ svgContent }: { svgContent: string }) {
+  const canvasRef = useRef<RaidCanvasHandle>(null);
+
+  return (
+    <div style={{ width: '100%', height: 600 }}>
+      <div className="toolbar" style={{ display: 'flex', gap: 8, padding: 8 }}>
+        <button onClick={() => canvasRef.current?.undo()}>Undo</button>
+        <button onClick={() => canvasRef.current?.redo()}>Redo</button>
+        <button onClick={() => canvasRef.current?.zoomToFit()}>Fit</button>
+        <button onClick={() => canvasRef.current?.resetView()}>100%</button>
+      </div>
+
+      <RaidCanvas
+        ref={canvasRef}
+        svgContent={svgContent}
+        onSave={(svg) => console.log('Saved SVG:', svg)}
+        onSelectionChange={(selectedIds) => console.log('Selected:', selectedIds)}
+      />
+    </div>
+  );
+}
 ```
 
 ---

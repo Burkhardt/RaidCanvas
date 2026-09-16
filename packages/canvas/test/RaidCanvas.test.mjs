@@ -90,4 +90,45 @@ describe('RaidCanvas React Component Export & Contracts', () => {
     assert.ok(serializedSvg.includes('<svg'));
     assert.ok(serializedSvg.includes('aim-archetype="InteractiveCanvas"'));
   });
+
+  test('RaidCanvas component creates element with ref support', () => {
+    const ref = React.createRef();
+    const element = React.createElement(RaidCanvas, {
+      ref,
+      svg: '<svg id="test" xmlns="http://www.w3.org/2000/svg" />',
+    });
+    assert.ok(element);
+    assert.equal(element.type, RaidCanvas);
+  });
+
+  test('History beforeAddCommand filters out port noise and ignoreHistory commands', () => {
+    const filter = (_event, args) => {
+      if (
+        args?.key === 'ports' ||
+        args?.path?.startsWith('ports') ||
+        args?.path?.includes('/ports/') ||
+        args?.key === 'tools'
+      ) {
+        return false;
+      }
+      if (args?.options?.ignoreHistory === true) {
+        return false;
+      }
+      return true;
+    };
+
+    // Structural node move should be recorded
+    assert.equal(filter('cell:change:position', { key: 'position', cell: {} }), true);
+
+    // Port hover visibility changes should be discarded
+    assert.equal(filter('cell:change:ports', { key: 'ports', cell: {} }), false);
+    assert.equal(filter('cell:change:attrs', { path: 'ports/items/0/attrs', cell: {} }), false);
+    assert.equal(filter('cell:change:attrs', { path: 'attrs/ports/style/visibility', cell: {} }), false);
+
+    // Edge tools should be discarded
+    assert.equal(filter('cell:change:tools', { key: 'tools', cell: {} }), false);
+
+    // Explicit ignoreHistory should be discarded
+    assert.equal(filter('cell:change:data', { options: { ignoreHistory: true } }), false);
+  });
 });

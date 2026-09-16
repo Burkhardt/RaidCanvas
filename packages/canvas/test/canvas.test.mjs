@@ -695,5 +695,142 @@ describe('CR030 XML Text & Attribute Escaping Acceptance Tests', () => {
   });
 });
 
+describe('Viewport Auto-Bounds in updateExistingSvg (v0.4.0)', () => {
+  const bridge = new RaiBridge();
+
+  test('dynamically expands root viewBox when nodes are translated outside base frame', () => {
+    const baseSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" id="BaseDiag">
+      <defs></defs>
+      <g class="aim-nodes-layer">
+        <g aim-node="true" aim-id="Node_1" aim-kind="act"><rect width="140" height="60"/><text>Step 1</text></g>
+      </g>
+      <g class="aim-edges-layer"></g>
+    </svg>`;
+
+    // Node moved outward to x: 950, y: 700 (outside original 800x600)
+    const model = {
+      diagramId: 'BaseDiag',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Node_1',
+          kind: 'act',
+          displayName: 'Step 1 Outward',
+          bounds: { x: 950, y: 700, width: 140, height: 60 },
+        },
+      ],
+      edges: [],
+    };
+
+    const updatedSvg = bridge.updateExistingSvg(baseSvg, model, { viewportPadding: 60 });
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(updatedSvg, 'image/svg+xml');
+    const root = doc.documentElement;
+
+    const viewBox = root.getAttribute('viewBox');
+    assert.ok(viewBox, 'Root SVG must have viewBox');
+
+    const [minX, minY, width, height] = viewBox.split(' ').map(Number);
+    // x: 950 + 140 + 60 = 1150
+    // y: 700 + 60 + 60 = 820
+    assert.equal(minX, 0, 'minX starts at 0');
+    assert.equal(minY, 0, 'minY starts at 0');
+    assert.equal(width, 1150, 'width expanded to encompass outward node');
+    assert.equal(height, 820, 'height expanded to encompass outward node');
+
+    assert.equal(root.getAttribute('width'), '1150');
+    assert.equal(root.getAttribute('height'), '820');
+  });
+
+  test('preserves base viewBox when all nodes fit within the base frame', () => {
+    const baseSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" id="BaseDiag">
+      <defs></defs>
+      <g class="aim-nodes-layer">
+        <g aim-node="true" aim-id="Node_1" aim-kind="act"><rect width="140" height="60"/><text>Step 1</text></g>
+      </g>
+    </svg>`;
+
+    const model = {
+      diagramId: 'BaseDiag',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Node_1',
+          kind: 'act',
+          displayName: 'Centered Node',
+          bounds: { x: 100, y: 100, width: 140, height: 60 },
+        },
+      ],
+      edges: [],
+    };
+
+    const updatedSvg = bridge.updateExistingSvg(baseSvg, model, {});
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(updatedSvg, 'image/svg+xml');
+    assert.equal(doc.documentElement.getAttribute('viewBox'), '0 0 800 600');
+  });
+
+  test('expands into negative coordinates when nodes are dragged to negative x/y', () => {
+    const baseSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" id="BaseDiag">
+      <defs></defs>
+      <g class="aim-nodes-layer">
+        <g aim-node="true" aim-id="Node_1" aim-kind="act"><rect width="140" height="60"/><text>Step 1</text></g>
+      </g>
+    </svg>`;
+
+    const model = {
+      diagramId: 'BaseDiag',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Node_1',
+          kind: 'act',
+          displayName: 'Leftward Node',
+          bounds: { x: -100, y: -50, width: 140, height: 60 },
+        },
+      ],
+      edges: [],
+    };
+
+    const updatedSvg = bridge.updateExistingSvg(baseSvg, model, { viewportPadding: 50 });
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(updatedSvg, 'image/svg+xml');
+    const [minX, minY, width, height] = doc.documentElement.getAttribute('viewBox').split(' ').map(Number);
+
+    assert.equal(minX, -150);
+    assert.equal(minY, -100);
+    assert.equal(width, 950);
+    assert.equal(height, 700);
+  });
+
+  test('respects autoBounds: false option by preserving viewBox unchanged', () => {
+    const baseSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" id="BaseDiag">
+      <defs></defs>
+      <g class="aim-nodes-layer">
+        <g aim-node="true" aim-id="Node_1" aim-kind="act"><rect width="140" height="60"/><text>Step 1</text></g>
+      </g>
+    </svg>`;
+
+    const model = {
+      diagramId: 'BaseDiag',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Node_1',
+          kind: 'act',
+          displayName: 'Outward Node',
+          bounds: { x: 1200, y: 900, width: 140, height: 60 },
+        },
+      ],
+      edges: [],
+    };
+
+    const updatedSvg = bridge.updateExistingSvg(baseSvg, model, { autoBounds: false });
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(updatedSvg, 'image/svg+xml');
+    assert.equal(doc.documentElement.getAttribute('viewBox'), '0 0 800 600');
+  });
+});
+
 
 
