@@ -219,6 +219,44 @@ export function DiagramEditor({ svgContent }: { svgContent: string }) {
 }
 ```
 
+#### `RaidCanvas` Component Props
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `svgContent` / `svg` | `string` | `''` | Raw SVG carrying `aim-*` ontological attributes to render and edit. |
+| `readOnly` | `boolean` | `false` | When `true`, disables editing gestures, port snapping, and history. |
+| `defaultRouting` | `'manhattan' \| 'normal' \| 'smooth'` | `'manhattan'` | Default routing style for edges. |
+| `showToolbar` | `boolean` | `true` | Whether to display built-in zoom/fit navigation overlay controls. |
+| `onSave` | `(svg: string) => void` | — | Callback fired with serialized SVG when diagram changes. |
+| `onChange` | `(svg: string) => void` | — | Alias callback fired on diagram changes. |
+| `onSelectionChange`| `(selectedIds: string[]) => void` | — | Emits selected node/edge IDs. |
+| `onSelect` | `(selection: { id, kind, label } \| null) => void` | — | Emits detailed entity metadata on cell click. |
+
+#### `RaidCanvasHandle` Imperative Ref Methods
+| Method | Returns | Description |
+| :--- | :--- | :--- |
+| `undo()` | `void` | Reverts the last canvas modification. |
+| `redo()` | `void` | Re-applies the last undone operation. |
+| `canUndo()` | `boolean` | Returns `true` if there are operations available to undo. |
+| `canRedo()` | `boolean` | Returns `true` if there are operations available to redo. |
+| `cleanHistory()` | `void` | Flushes both undo and redo stacks without mutating the canvas. |
+| `getSvg()` | `string` | Returns the current canonical `aim-*` serialized SVG document. |
+| `getGraph()` | `Graph \| null` | Accesses the underlying AntV X6 `Graph` instance. |
+| `zoomToFit()` | `void` | Fits canvas contents into the current viewport with 32px padding. |
+| `resetView()` | `void` | Resets zoom to 100% and centers content. |
+| `center()` | `void` | Centers content without changing current zoom level. |
+| `zoomIn()` / `zoomOut()` | `void` | Increments or decrements zoom by 20%. |
+| `addNode(kind, x?, y?, data?)` | `string` | Adds an AOAIM archetype node and returns its generated ID. |
+| `updateNode(id, updates)` | `void` | Updates node display name, stereotype, bounds, or compartments. |
+| `updateEdge(id, updates)` | `void` | Updates edge kind, label, routing mode, or port docking. |
+| `setRoutingMode(mode, all?)` | `void` | Sets canvas routing mode and optionally re-routes existing edges. |
+| `deleteSelection()` | `void` | Removes the currently selected cell from the graph. |
+| `clear()` | `void` | Removes all cells from the graph. |
+
+#### History Isolation & Anti-Entropy Wiring (CR029 / CR031)
+* **Hydration Isolation (CR031):** Initial diagram inflation via `hydrateFromSvg` is strictly filtered; no `cell:added` commands land on the undo stack during mount or SVG prop update. A loaded diagram arrives with `canUndo() === false`.
+* **Zero Port Noise (CR029):** Port docking visibility is driven by pure CSS (`.x6-node:hover circle[magnet="true"]`). Hovering over shapes never pollutes the undo stack.
+
+
 ---
 
 ## 7. License
