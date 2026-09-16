@@ -62,3 +62,17 @@ With `@dr2rai/raid-canvas@0.4.1`:
 1. Bump dependency in `aia-workbench/package.json` to `@dr2rai/raid-canvas@0.4.1`.
 2. Retire the interim `discardHydrationHistory()` guard in `aia-workbench`.
 3. Verify that on diagram load, the "Undo" button is disabled (`canUndo() === false`) and pressing Undo causes no cell removals.
+
+---
+
+## 5. Upstream Verification & Acceptance Sign-Off
+
+**Verified by:** Zébio (7011), Full-Stack Lead Developer (`aia-workbench`)  
+**Target:** Live diagram projection without workbench-side guards (`discardHydrationHistory` retired)  
+**Verdict:** **ACCEPTED & VERIFIED**
+
+> *"CR031 holds without my guard: stack empty on arrival, and five undo presses leave the diagram intact (5 nodes, 4 edges). Confirming a real edit is still undoable."*  
+> — **Zébio**
+
+All acceptance gates for Sprint 2638 and `@dr2rai/raid-canvas@0.4.1` are successfully closed.
+
