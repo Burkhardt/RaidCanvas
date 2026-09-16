@@ -17,7 +17,7 @@
 | **Root SVG Routing Mode Persistence** | **DELIVERED** | Root `<svg aim-routing="...">` round-trip persistence (supporting `orthogonal`/`manhattan`, `straight`/`normal`, `curved`/`smooth`) |
 | **Actor / Person Glyph (`aim-per`)** | **DELIVERED** | Replaced rectangular box with canonical Person glyph (head circle + shoulder arch) matching Stencil drawer and Cascais tokens |
 | **Underlined Instance Labels** | **DELIVERED** | UML/AOAIM standard underlined labels (`text-decoration: underline`) for Activity (`aim-act`) and Object (`aim-obj`) |
-| **Centered Multi-Line Text Wrapping** | **DELIVERED** | Labels wrap on spaces `" "` and break on `<wbr>` / `<wbr/>`, vertically/horizontally centered without node boundary overflow |
+| **Centered Multi-Line Text Wrapping** | **DELIVERED** | Labels wrap on spaces `" "` and treat `<wbr>` / hyphens as soft break opportunities within unbroken words; exported as centered `<tspan>` |
 | **Automated Test Suite** | **PASSED** | **24 / 24 unit tests passing** across 4 test suites (`pnpm -r run test`) |
 | **Monorepo Build & Typecheck** | **PASSED** | 0 errors across TS 7.0.2 Go native compiler and Vite bundler |
 | **Implementation Plan & Release Notes** | **COMMITTED** | Recorded in `doc/ImplementationPlan0.3.1.md` and `doc/ReleaseNotes0.3.1.md` |
@@ -60,13 +60,13 @@
 * In UML and AOAIM metamodeling, runtime instances and execution steps are designated with underlined labels.
 * `aim-act` (Activity) and `aim-obj` (Object) labels now consistently display with `text-decoration: underline` in both the interactive canvas, CSS stylesheets, and serialized SVG exports.
 
-### F. Centered Multi-Line Text Wrapping with `<wbr>` Support
-* Addresses label overflow where long names (such as `"AIA Platform Genesis & Bootstrap"`) collided with port markers:
-  - Node display labels now break across lines when exceeding boundary thresholds.
-  - Automatically wraps on whitespace `" "`.
-  - Supports explicit soft breaks using `<wbr>` or `<wbr/>` tags (e.g. `"AIA<wbr>Platform<wbr>Genesis"`).
+### F. Centered Multi-Line Text Wrapping with `<wbr>` Soft Breaks
+* Addresses label overflow where long names or long unbroken compound words collide with node boundaries:
+  - Automatically wraps on whitespace `" "` when exceeding line length thresholds.
+  - Treats `<wbr>` or `<wbr/>` tags as **Word Break Opportunities** (zero-width soft breaks) within long unbroken strings (e.g. `For<wbr />Words<wbr />Or<wbr />Strings...`), concatenating syllables together without spaces until exceeding line width, breaking only when needed.
+  - Supports hyphenated compounds (`in-between` $\rightarrow$ `in-` / `between`).
   - Horizontally and vertically centered (`text-anchor: middle`, `dominant-baseline: central`).
-  - Serialized as multi-line `<tspan>` elements in SVG exports to preserve formatting in any external viewer.
+  - Serialized as centered multi-line `<tspan>` elements in SVG exports for universal vector compatibility across external viewers.
 
 ---
 
