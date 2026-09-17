@@ -5,7 +5,7 @@
 > **Author & Principal Architect:** Dr. Rainer Burkhardt <Rainer@Burkhardt.com>  
 > **Lead Implementation Engineer:** Alan (7012), Visual Systems & Canvas Lead
 
-[![npm version](https://img.shields.io/badge/npm-0.5.0-red.svg)](https://www.npmjs.com/package/@dr2rai/raid-canvas)
+[![npm version](https://img.shields.io/badge/npm-0.5.1-red.svg)](https://www.npmjs.com/package/@dr2rai/raid-canvas)
 [![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-orange.svg)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0.2-blue.svg)](https://www.typescriptlang.org/)
 [![AntV X6](https://img.shields.io/badge/AntV%20X6-2.18-indigo.svg)](https://x6.antv.vision/)

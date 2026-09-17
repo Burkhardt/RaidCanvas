@@ -985,7 +985,8 @@ describe('CR032 Acceptance Tests: Consumer-Controlled Labels, Centering, Wrappin
         displayName: 'Actor',
         bounds: { x: 10, y: 10, width: w, height: 90 },
       });
-      assert.equal(nodeMeta.attrs?.head?.refX, 0.5, `Head is centered at refX=0.5 for width ${w}`);
+      assert.equal(nodeMeta.attrs?.head?.cx, cx, `Head circle cx is ${cx} for width ${w}`);
+      assert.equal(nodeMeta.attrs?.head?.refX, undefined, `Head circle does not have refX for width ${w}`);
       const expectedTorso = `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`;
       assert.equal(nodeMeta.attrs?.torso?.d, expectedTorso, `Torso path is centered at cx=${cx} for width ${w}`);
 

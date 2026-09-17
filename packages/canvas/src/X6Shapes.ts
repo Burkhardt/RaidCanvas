@@ -501,7 +501,6 @@ export function registerAimShapes(): void {
         cx: 45,
         cy: 22,
         r: 8,
-        refX: 0.5,
         fill: CascaisPalette.ChalkWhite,
         stroke: CascaisPalette.WarmGraphite,
         strokeWidth: 2,
@@ -591,6 +590,15 @@ export function configureAimGraph(graph: Graph): void {
       if (port.id) {
         node.portProp(port.id, 'attrs/portBody/style/visibility', 'hidden');
       }
+    }
+  });
+
+  // Re-center person head and torso dynamically if resized
+  graph.on('node:change:size', ({ node, current }) => {
+    if (node.shape === 'aim-per' && current?.width) {
+      const cx = Math.round(current.width / 2);
+      node.setAttrByPath('torso/d', `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`);
+      node.setAttrByPath('head/cx', cx);
     }
   });
 }
@@ -710,7 +718,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
           },
           head: {
             cx,
-            refX: 0.5,
+            cy: 22,
             stroke: strokeColor,
           },
           qualifier: {
