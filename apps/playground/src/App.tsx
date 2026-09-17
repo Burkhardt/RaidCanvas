@@ -26,6 +26,17 @@ export const App: React.FC = () => {
   const [copied, setCopied] = useState<boolean>(false);
   const [stencilCollapsed, setStencilCollapsed] = useState<boolean>(false);
   const [routingMode, setRoutingMode] = useState<'manhattan' | 'normal' | 'smooth'>('manhattan');
+  const [portalToast, setPortalToast] = useState<{ entityName: string; href: string } | null>(null);
+
+  const handlePortalNavigate = useCallback((nodeOrHref: string | Partial<RaidNodeData>) => {
+    const href = typeof nodeOrHref === 'string' ? nodeOrHref : nodeOrHref.href;
+    const name = typeof nodeOrHref === 'string' ? 'Entity' : (nodeOrHref.displayName || nodeOrHref.id || 'Entity');
+    if (!href) return;
+    setPortalToast({ entityName: name, href });
+    setTimeout(() => {
+      setPortalToast(null);
+    }, 4000);
+  }, []);
 
   // Undo / Redo SVG Snapshot History
   const [history, setHistory] = useState<string[]>([currentPreset.svg]);
@@ -284,6 +295,56 @@ export const App: React.FC = () => {
 
           {/* Canvas Host */}
           <div style={{ flex: 1, position: 'relative' }}>
+            {portalToast && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 16,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 50,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '10px 18px',
+                  background: 'rgba(6, 78, 59, 0.96)',
+                  border: '1px solid #10B981',
+                  borderRadius: 8,
+                  boxShadow: '0 12px 30px -5px rgba(0, 0, 0, 0.6), 0 0 16px rgba(16, 185, 129, 0.4)',
+                  color: '#FFFFFF',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                <span style={{ fontSize: 20 }}>🚪</span>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>Stepping through Portal Door:</span>
+                    <span style={{ color: '#34D399', fontWeight: 700 }}>{portalToast.entityName}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#A7F3D0', fontWeight: 400, marginTop: 2 }}>
+                    Navigating to target route: <code style={{ background: '#022C22', padding: '1px 5px', borderRadius: 3, color: '#6EE7B7' }}>{portalToast.href}</code>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPortalToast(null)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#A7F3D0',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    marginLeft: 6,
+                    padding: '2px 6px',
+                  }}
+                  title="Dismiss"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <RaidCanvas
               ref={canvasRef}
               svg={svg}
@@ -296,9 +357,7 @@ export const App: React.FC = () => {
                 setActiveTab('inspector');
               }}
               onNodePortalClick={(node) => {
-                if (node.href) {
-                  window.open(node.href, '_blank', 'noopener,noreferrer');
-                }
+                handlePortalNavigate(node);
               }}
             />
           </div>
@@ -388,6 +447,8 @@ export const App: React.FC = () => {
                   refreshSelectedEntity(id);
                 }}
                 onDeleteSelected={() => canvasRef.current?.deleteSelection()}
+                onAwakenDuality={(id) => canvasRef.current?.activateNodeDuality(id)}
+                onNavigatePortal={(href) => handlePortalNavigate(href)}
               />
             )}
 

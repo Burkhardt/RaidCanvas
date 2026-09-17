@@ -1344,8 +1344,12 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(ucAttrs.seam.x2, 70);
     assert.equal(ucAttrs.seam.y2, 70);
     assert.equal(ucAttrs.seam.stroke, '#F59E0B');
-    assert.equal(ucAttrs.chevron.x, 126);
-    assert.equal(ucAttrs.chevron.y, 35);
+    assert.equal(ucAttrs.chevron.refX, 1);
+    assert.equal(ucAttrs.chevron.refDx, -12);
+    assert.equal(ucAttrs.chevron.refY, 0.5);
+    assert.equal(ucAttrs.chevron.display, 'block');
+    assert.equal(ucAttrs.chevron.x, undefined);
+    assert.equal(ucAttrs.chevron.y, undefined);
 
     // Activity (rounded rect r=12): rounded right corners and vertical gold seam
     const actAttrs = computePortalDoorAttrs({
@@ -1362,8 +1366,10 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(actAttrs.seam.y1, 0);
     assert.equal(actAttrs.seam.x2, 75);
     assert.equal(actAttrs.seam.y2, 60);
-    assert.equal(actAttrs.chevron.x, 136);
-    assert.equal(actAttrs.chevron.y, 30);
+    assert.equal(actAttrs.chevron.refX, 1);
+    assert.equal(actAttrs.chevron.refDx, -12);
+    assert.equal(actAttrs.chevron.refY, 0.5);
+    assert.equal(actAttrs.chevron.display, 'block');
 
     // Person (per): Contoured head right semicircle and torso right arc (NO outer rectangle!)
     const perAttrs = computePortalDoorAttrs({
@@ -1384,8 +1390,10 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(perAttrs.seam.x2, 45);
     assert.equal(perAttrs.seam.y2, 54);
     assert.equal(perAttrs.seam.stroke, '#F59E0B');
-    assert.equal(perAttrs.chevron.x, 69);
-    assert.equal(perAttrs.chevron.y, 32);
+    assert.equal(perAttrs.chevron.refX, 1);
+    assert.equal(perAttrs.chevron.refDx, -12);
+    assert.equal(perAttrs.chevron.refY, 0.5);
+    assert.equal(perAttrs.chevron.display, 'block');
 
     // Class / Object / Place / Role: sharp right rect and vertical seam
     const objAttrs = computePortalDoorAttrs({
@@ -1402,8 +1410,10 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(objAttrs.seam.y1, 0);
     assert.equal(objAttrs.seam.x2, 80);
     assert.equal(objAttrs.seam.y2, 80);
-    assert.equal(objAttrs.chevron.x, 146);
-    assert.equal(objAttrs.chevron.y, 40);
+    assert.equal(objAttrs.chevron.refX, 1);
+    assert.equal(objAttrs.chevron.refDx, -12);
+    assert.equal(objAttrs.chevron.refY, 0.5);
+    assert.equal(objAttrs.chevron.display, 'block');
   });
 
   test('Test 7: Complete Pantheon: Place (plc) and Role (rol) archetypes', () => {
@@ -1445,5 +1455,82 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(getDefaultNodeName('rol'), 'Role');
     assert.deepEqual(getDefaultNodeBounds('plc', 0, 0), { x: 0, y: 0, width: 160, height: 70 });
     assert.deepEqual(getDefaultNodeBounds('rol', 0, 0), { x: 0, y: 0, width: 140, height: 50 });
+  });
+
+  test('CR033.1: Live portal chevron uses relative coordinates refX=1, refDx=-12, refY=0.5 with no absolute x/y doubling', () => {
+    // 1. Live canvas: verify shapes in all 7 definitions have refX: 1, refDx: -12, refY: 0.5 and no x/y
+    const shapes = ['aim-per', 'aim-act', 'aim-uc', 'aim-cls', 'aim-obj', 'aim-plc', 'aim-rol'];
+    for (const shapeName of shapes) {
+      const nodeMeta = createAimNode({
+        id: `node-${shapeName}`,
+        kind: shapeName.replace('aim-', ''),
+        displayName: 'Test Entity',
+        href: 'http://localhost:3042/test',
+        bounds: { x: 0, y: 0, width: 150, height: 60 },
+      });
+      assert.equal(nodeMeta.shape, shapeName);
+    }
+
+    // 2. Acceptance test 1: per at 90, 120 and 160px width with href
+    for (const w of [90, 120, 160]) {
+      const perAttrs = computePortalDoorAttrs({
+        id: `per-${w}`,
+        kind: 'per',
+        displayName: 'Person Test',
+        href: 'http://localhost:3042/actors/PER_1',
+        bounds: { x: 0, y: 0, width: w, height: 90 },
+      }, true);
+
+      assert.equal(perAttrs.chevron.refX, 1, `per at ${w}px must anchor to right edge (refX=1)`);
+      assert.equal(perAttrs.chevron.refDx, -12, `per at ${w}px must offset 12px inside (refDx=-12)`);
+      assert.equal(perAttrs.chevron.refY, 0.5, `per at ${w}px must center vertically (refY=0.5)`);
+      assert.equal(perAttrs.chevron.x, undefined, `per at ${w}px must NOT have absolute x to prevent X6 doubling`);
+      assert.equal(perAttrs.chevron.y, undefined, `per at ${w}px must NOT have absolute y to prevent X6 doubling`);
+    }
+
+    // 3. Acceptance test 2: act (180x64) and uc (160x80)
+    const actAttrs = computePortalDoorAttrs({
+      id: 'act-180',
+      kind: 'act',
+      displayName: 'Activity Test',
+      href: 'http://localhost:3042/activities/1',
+      bounds: { x: 0, y: 0, width: 180, height: 64 },
+    }, true);
+    assert.equal(actAttrs.chevron.refX, 1);
+    assert.equal(actAttrs.chevron.refDx, -12);
+    assert.equal(actAttrs.chevron.refY, 0.5);
+    assert.equal(actAttrs.chevron.x, undefined);
+    assert.equal(actAttrs.chevron.y, undefined);
+
+    const ucAttrs = computePortalDoorAttrs({
+      id: 'uc-160',
+      kind: 'uc',
+      displayName: 'UseCase Test',
+      href: 'http://localhost:3042/usecases/1',
+      bounds: { x: 0, y: 0, width: 160, height: 80 },
+    }, true);
+    assert.equal(ucAttrs.chevron.refX, 1);
+    assert.equal(ucAttrs.chevron.refDx, -12);
+    assert.equal(ucAttrs.chevron.refY, 0.5);
+    assert.equal(ucAttrs.chevron.x, undefined);
+    assert.equal(ucAttrs.chevron.y, undefined);
+
+    // 4. SVG export retains absolute coordinates (12px inside right edge, vertical center)
+    const exportSvg = bridge.generateFreshSvg({
+      diagramId: 'ExportTest',
+      archetype: 'ActivityDiagram',
+      nodes: [
+        {
+          id: 'Act_Export',
+          kind: 'act',
+          displayName: 'Exported Activity',
+          href: '/activities?activity=act-export',
+          bounds: { x: 0, y: 0, width: 180, height: 64 },
+        },
+      ],
+      edges: [],
+    }, {});
+    assert.ok(exportSvg.includes('x="168"'), 'SVG export chevron must be at x=168 (180 - 12)');
+    assert.ok(exportSvg.includes('y="32"'), 'SVG export chevron must be at y=32 (64 / 2)');
   });
 });

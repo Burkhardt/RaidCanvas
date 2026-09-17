@@ -1046,7 +1046,7 @@ export class RaiBridge {
 			let seamY1 = 0;
 			let seamX2 = midX;
 			let seamY2 = height;
-			let chevronX = width - 14;
+			let chevronX = width - 12;
 			let chevronY = Math.round(height / 2);
 			let chevronFill = 'rgba(16, 185, 129, 0.70)';
 
@@ -1060,8 +1060,8 @@ export class RaiBridge {
 				seamY1 = 14;
 				seamX2 = cx;
 				seamY2 = 54;
-				chevronX = cx + 24;
-				chevronY = 32;
+				chevronX = width - 12;
+				chevronY = Math.round(height / 2);
 				chevronFill = 'rgba(16, 185, 129, 0.75)';
 			} else if (node.kind === 'uc') {
 				const rx = Math.round(width / 2);

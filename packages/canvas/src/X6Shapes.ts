@@ -249,6 +249,9 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
+        refX: 1,
+        refDx: -12,
+        refY: 0.5,
         display: 'none',
         class: 'aim-portal-chevron',
       },
@@ -340,6 +343,9 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
+        refX: 1,
+        refDx: -12,
+        refY: 0.5,
         display: 'none',
         class: 'aim-portal-chevron',
       },
@@ -445,6 +451,9 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
+        refX: 1,
+        refDx: -12,
+        refY: 0.5,
         display: 'none',
         class: 'aim-portal-chevron',
       },
@@ -560,6 +569,9 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
+        refX: 1,
+        refDx: -12,
+        refY: 0.5,
         display: 'none',
         class: 'aim-portal-chevron',
       },
@@ -672,6 +684,9 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
+        refX: 1,
+        refDx: -12,
+        refY: 0.5,
         display: 'none',
         class: 'aim-portal-chevron',
       },
@@ -770,6 +785,9 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
+        refX: 1,
+        refDx: -12,
+        refY: 0.5,
         display: 'none',
         class: 'aim-portal-chevron',
       },
@@ -858,6 +876,9 @@ export function registerAimShapes(): void {
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         textAnchor: 'middle',
         textVerticalAnchor: 'middle',
+        refX: 1,
+        refDx: -12,
+        refY: 0.5,
         display: 'none',
         class: 'aim-portal-chevron',
       },
@@ -974,8 +995,9 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
       },
       chevron: {
         text: '›',
-        x: cx + 24,
-        y: 32,
+        refX: 1,
+        refDx: -12,
+        refY: 0.5,
         fill: 'rgba(16, 185, 129, 0.75)',
         fontSize: 14,
         fontWeight: 'bold',
@@ -1017,8 +1039,9 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
     },
     chevron: {
       text: '›',
-      x: w - 14,
-      y: Math.round(h / 2),
+      refX: 1,
+      refDx: -12,
+      refY: 0.5,
       fill: 'rgba(16, 185, 129, 0.70)',
       fontSize: 14,
       fontWeight: 'bold',
@@ -1049,10 +1072,6 @@ export function setNodeDualityActive(node: Node, active: boolean): void {
     node.setAttrByPath('seam/y2', (attrs.seam as any).y2);
   }
   node.setAttrByPath('seam/display', attrs.seam.display);
-  if (attrs.chevron.display === 'block') {
-    node.setAttrByPath('chevron/x', (attrs.chevron as any).x);
-    node.setAttrByPath('chevron/y', (attrs.chevron as any).y);
-  }
   node.setAttrByPath('chevron/display', attrs.chevron.display);
 }
 
@@ -1111,10 +1130,6 @@ export function configureAimGraph(graph: Graph): void {
         node.setAttrByPath('seam/y2', (portalAttrs.seam as any).y2);
       }
       node.setAttrByPath('seam/display', portalAttrs.seam.display);
-      if (portalAttrs.chevron.display === 'block') {
-        node.setAttrByPath('chevron/x', (portalAttrs.chevron as any).x);
-        node.setAttrByPath('chevron/y', (portalAttrs.chevron as any).y);
-      }
       node.setAttrByPath('chevron/display', portalAttrs.chevron.display);
     }
   });

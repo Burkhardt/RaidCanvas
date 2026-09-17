@@ -13,6 +13,8 @@ interface PropertyInspectorProps {
   onUpdateNode: (id: string, updates: Partial<RaidNodeData>) => void;
   onUpdateEdge: (id: string, updates: Partial<RaidEdgeData>) => void;
   onDeleteSelected: () => void;
+  onAwakenDuality?: (id: string) => void;
+  onNavigatePortal?: (href: string) => void;
 }
 
 export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
@@ -20,6 +22,8 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
   onUpdateNode,
   onUpdateEdge,
   onDeleteSelected,
+  onAwakenDuality,
+  onNavigatePortal,
 }) => {
   if (!selection) {
     return (
@@ -101,21 +105,116 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
             </select>
           </div>
 
-          {/* Ontological Deep Link / Portal Door (CR033) */}
-          <div>
-            <label style={labelStyle}>Ontological Deep Link (aim-href / Portal Door)</label>
+          {/* Ontological Deep Link & Portuguese Bicolor Heraldic Duality (CR033) */}
+          <div style={{ padding: '10px 12px', background: node.href ? '#064E3B20' : '#1E293B60', border: `1px solid ${node.href ? '#10B98150' : '#334155'}`, borderRadius: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Ontological Deep Link (aim-href)</label>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '1px 6px',
+                  borderRadius: 3,
+                  background: node.href ? '#10B98130' : '#47556940',
+                  color: node.href ? '#34D399' : '#94A3B8',
+                }}
+              >
+                {node.href ? '🟢 DUALITY ACTIVE' : '⚪ MONOLITHIC'}
+              </span>
+            </div>
+
             <input
               type="text"
               value={node.href ?? ''}
               onChange={(e) => onUpdateNode(selection.id, { href: e.target.value })}
               style={inputStyle}
-              placeholder="e.g. http://localhost:3042/activities/123"
+              placeholder="e.g. /actors?select=7010 or /activities?activity=123"
             />
-            <span style={{ fontSize: 10, color: '#10B981', marginTop: 3, display: 'block' }}>
-              {node.href && node.href.trim().length > 0
-                ? '🟢 Portuguese Bicolor Portal Door Active'
-                : '⚪ Monolithic Archetype (No link)'}
-            </span>
+
+            {node.href && node.href.trim().length > 0 ? (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 10, color: '#A7F3D0', lineHeight: 1.4, marginBottom: 8 }}>
+                  <strong>Dynabook 2-Tap Model:</strong><br />
+                  • <em>Tap 1:</em> Awakens Duality (Gold Seam &amp; Green Door).<br />
+                  • <em>Tap 2 (Left):</em> Inspects persona without leaving.<br />
+                  • <em>Tap 2 (Right / ›):</em> Steps through portal door.
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => onAwakenDuality?.(selection.id)}
+                    style={{
+                      flex: 1,
+                      padding: '5px 8px',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      background: '#F59E0B25',
+                      color: '#FBBF24',
+                      border: '1px solid #F59E0B60',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ⚡ Awaken Duality
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onNavigatePortal?.(node.href!)}
+                    style={{
+                      flex: 1,
+                      padding: '5px 8px',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      background: '#10B98130',
+                      color: '#6EE7B7',
+                      border: '1px solid #10B98160',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🚪 Step Through
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 10, color: '#94A3B8', lineHeight: 1.3, marginBottom: 6 }}>
+                  Entity is currently monolithic (no underlying record link). Add an ontological address to awaken the Portuguese Bicolor Seam.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const defaultPaths: Record<string, string> = {
+                      per: `/actors?select=${selection.id}`,
+                      act: `/activities?activity=${selection.id}`,
+                      uc: `/usecases?select=${selection.id}`,
+                      plc: `/places?select=${selection.id}`,
+                      rol: `/roles?select=${selection.id}`,
+                      cls: `/classes?select=${selection.id}`,
+                      obj: `/objects?select=${selection.id}`,
+                    };
+                    const generatedHref = defaultPaths[node.kind ?? 'act'] || `/entities?select=${selection.id}`;
+                    onUpdateNode(selection.id, { href: generatedHref });
+                    setTimeout(() => {
+                      onAwakenDuality?.(selection.id);
+                    }, 50);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: '#10B98125',
+                    color: '#34D399',
+                    border: '1px solid #10B98150',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✨ Enable Heraldic Duality (Add Link)
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Stereotype */}
