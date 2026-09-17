@@ -5,7 +5,7 @@
 > **Author & Principal Architect:** Dr. Rainer Burkhardt <Rainer@Burkhardt.com>  
 > **Lead Implementation Engineer:** Alan (7012), Visual Systems & Canvas Lead
 
-[![npm version](https://img.shields.io/badge/npm-0.5.1-red.svg)](https://www.npmjs.com/package/@dr2rai/raid-canvas)
+[![npm version](https://img.shields.io/badge/npm-0.6.0-red.svg)](https://www.npmjs.com/package/@dr2rai/raid-canvas)
 [![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-orange.svg)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0.2-blue.svg)](https://www.typescriptlang.org/)
 [![AntV X6](https://img.shields.io/badge/AntV%20X6-2.18-indigo.svg)](https://x6.antv.vision/)
@@ -81,6 +81,7 @@ RaidCanvas treats SVG as a **first-class semantic document**, not a dumb pixel d
 | `aim-qualifier` | `string?` | Optional upper qualifier line, styled quietly (italic, never underlined). |
 | `aim-instance` | `boolean?` | When `"true"`, underlines the entity name. No archetype implies instance. |
 | `aim-stereotype` | `string?` | Optional ontological stereotype (e.g. `«initiates»`, `«executes»`). |
+| `aim-href` | `string?` | Target URI for navigation and deep linking; renders `<a href="..." target="_blank">` in standalone vector SVG. |
 
 #### The 5 Canonical `AimOntologyKind` Archetypes
 1. **`uc` (UseCase):** Elliptical boundary with **Cascais Net Gold** accent border (`#F59E0B`), Chalk White fill, bold centered title.
@@ -232,6 +233,8 @@ export function DiagramEditor({ svgContent }: { svgContent: string }) {
 | `onChange` | `(svg: string) => void` | — | Alias callback fired on diagram changes. |
 | `onSelectionChange`| `(selectedIds: string[]) => void` | — | Emits selected node/edge IDs. |
 | `onSelect` | `(selection: { id, kind, label } \| null) => void` | — | Emits detailed entity metadata on cell click. |
+| `onNodeClick` | `(node: RaidNodeData, event: MouseEvent) => void` | — | Callback fired when a node is clicked (guarded by drag immunity > 4px). |
+| `onNodeDblClick` | `(node: RaidNodeData, event: MouseEvent) => void` | — | Callback fired when a node is double-clicked. |
 
 #### `RaidCanvasHandle` Imperative Ref Methods
 | Method | Returns | Description |
@@ -253,6 +256,11 @@ export function DiagramEditor({ svgContent }: { svgContent: string }) {
 | `setRoutingMode(mode, all?)` | `void` | Sets canvas routing mode and optionally re-routes existing edges. |
 | `deleteSelection()` | `void` | Removes the currently selected cell from the graph. |
 | `clear()` | `void` | Removes all cells from the graph. |
+
+#### Ontological Deep Linking & Navigation (CR033)
+* **`aim-href` Contract:** Visual nodes carry destination URIs linking to entity details or child diagrams.
+* **Vector SVG Hyperlinks:** Exported vector SVGs wrap shape markup in standard `<a href="..." target="_blank">` tags, making nodes clickable directly in Chrome, Safari, Keynote, and PDF viewers.
+* **Drag-Immunity Navigation Guard:** Interactive node clicks (`onNodeClick`) are protected against accidental activation during drag repositioning gestures ($\Delta > 4\text{px}$ or active drag movement). Double-click (`onNodeDblClick`) is also supported.
 
 #### History Isolation & Anti-Entropy Wiring (CR029 / CR031)
 * **Hydration Isolation (CR031):** Initial diagram inflation via `hydrateFromSvg` is strictly filtered; no `cell:added` commands land on the undo stack during mount or SVG prop update. A loaded diagram arrives with `canUndo() === false`.

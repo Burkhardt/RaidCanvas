@@ -62,6 +62,10 @@ export interface RaidCanvasProps {
 	onDropStencil?: (kind: AimOntologyKind, point: { x: number; y: number }) => void;
 	/** Callback fired when the active routing mode changes (e.g. hydrated from SVG or switched by user) */
 	onRoutingModeChange?: (mode: AimRoutingMode) => void;
+	/** Callback fired when a node is clicked without dragging */
+	onNodeClick?: (node: RaidNodeData, event: MouseEvent) => void;
+	/** Callback fired when a node is double-clicked */
+	onNodeDblClick?: (node: RaidNodeData, event: MouseEvent) => void;
 	/** Whether to render built-in navigation controls (Zoom In/Out, Fit, Center, Reset). Default: true */
 	showToolbar?: boolean;
 }
@@ -131,6 +135,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			onSelectionChange,
 			onDropStencil,
 			onRoutingModeChange,
+			onNodeClick,
+			onNodeDblClick,
 			showToolbar = true,
 		},
 		ref,
@@ -169,6 +175,12 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 		const onRoutingModeChangeRef = useRef(onRoutingModeChange);
 		onRoutingModeChangeRef.current = onRoutingModeChange;
+
+		const onNodeClickRef = useRef(onNodeClick);
+		onNodeClickRef.current = onNodeClick;
+
+		const onNodeDblClickRef = useRef(onNodeDblClick);
+		onNodeDblClickRef.current = onNodeDblClick;
 
 		const svgPropRef = useRef(activeSvg);
 		svgPropRef.current = activeSvg;
@@ -266,6 +278,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						...(customData?.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
 						...(customData?.attributes !== undefined ? { attributes: customData.attributes } : {}),
 						...(customData?.methods !== undefined ? { methods: customData.methods } : {}),
+						...(customData?.href !== undefined ? { href: customData.href } : {}),
 						bounds: {
 							...defaultBounds,
 							...(customData?.bounds ?? {}),
@@ -308,6 +321,11 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							? { instance: updates.instance }
 							: currentData.instance !== undefined
 								? { instance: currentData.instance }
+								: {}),
+						...(updates.href !== undefined
+							? { href: updates.href }
+							: currentData.href !== undefined
+								? { href: currentData.href }
 								: {}),
 					};
 					node.setData(nextData);
@@ -817,8 +835,90 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				onSelectionChangeRef.current?.([id]);
 			});
 
+			// Node click and drag-immunity tracking
+			const extractNodeData = (node: any): RaidNodeData => {
+				const bbox = node.getBBox ? node.getBBox() : { x: 0, y: 0, width: 140, height: 60 };
+				const rawData = (node.getData?.() ?? {}) as Partial<RaidNodeData>;
+				const kind = (rawData.kind ?? 'act') as AimOntologyKind;
+				const displayName =
+					rawData.displayName ??
+					(node.getAttrByPath?.('label/text') as string) ??
+					(node.getAttrByPath?.('title/text') as string) ??
+					String(node.id);
+
+				return {
+					...rawData,
+					id: String(node.id),
+					kind,
+					displayName,
+					bounds: {
+						x: Math.round(bbox.x),
+						y: Math.round(bbox.y),
+						width: Math.round(bbox.width),
+						height: Math.round(bbox.height),
+					},
+				};
+			};
+
+			let pointerDownState: {
+				id: string;
+				clientX: number;
+				clientY: number;
+				moved: boolean;
+			} | null = null;
+
+			graph.on('node:mousedown', ({ node, e }) => {
+				pointerDownState = {
+					id: String(node.id),
+					clientX: e.clientX,
+					clientY: e.clientY,
+					moved: false,
+				};
+			});
+
+			graph.on('node:moving', ({ node }) => {
+				if (pointerDownState && pointerDownState.id === String(node.id)) {
+					pointerDownState.moved = true;
+				}
+			});
+
+			graph.on('node:move', ({ node }) => {
+				if (pointerDownState && pointerDownState.id === String(node.id)) {
+					pointerDownState.moved = true;
+				}
+			});
+
+			graph.on('node:click', ({ node, e }) => {
+				const start = pointerDownState;
+				pointerDownState = null;
+
+				const dx = start ? e.clientX - start.clientX : 0;
+				const dy = start ? e.clientY - start.clientY : 0;
+				const distance = Math.hypot(dx, dy);
+
+				// Drag immunity guard: if pointer moved > 4px or moving event fired, suppress click
+				if (start && (start.moved || distance > 4)) {
+					return;
+				}
+
+				if (onNodeClickRef.current) {
+					const nodeData = extractNodeData(node);
+					const mouseEvt = ((e as any).originalEvent ?? e) as MouseEvent;
+					onNodeClickRef.current(nodeData, mouseEvt);
+				}
+			});
+
+			graph.on('node:dblclick', ({ node, e }) => {
+				if (onNodeDblClickRef.current) {
+					const nodeData = extractNodeData(node);
+					const mouseEvt = ((e as any).originalEvent ?? e) as MouseEvent;
+					onNodeDblClickRef.current(nodeData, mouseEvt);
+				}
+			});
+
 			graph.on('blank:click', () => {
 				clearEdgeTools();
+				pointerDownState = null;
 				selectedCellIdRef.current = null;
 				onSelectRef.current?.(null);
 				onSelectionChangeRef.current?.([]);

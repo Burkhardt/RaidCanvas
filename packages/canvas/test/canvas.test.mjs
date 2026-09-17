@@ -1120,5 +1120,155 @@ describe('CR032 Acceptance Tests: Consumer-Controlled Labels, Centering, Wrappin
   });
 });
 
+describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-href)', () => {
+  const bridge = new RaiBridge();
 
+  test('Test 1: aim-href round-trip preservation in SVG and metamodel extraction', () => {
+    assert.equal(AimSvgContract.ATTR_HREF, 'aim-href');
 
+    const sampleSvg = `<svg id="diag1" xmlns="http://www.w3.org/2000/svg">
+      <g class="aim-node" aim-node="true" aim-id="Act_Deep" aim-kind="act" aim-display-name="Deep Activity" aim-href="http://localhost:3042/activities/ACT_123" transform="translate(40, 60)">
+        <rect x="0" y="0" width="140" height="60" rx="8" />
+        <text x="70" y="35">Deep Activity</text>
+      </g>
+    </svg>`;
+
+    // Extraction
+    const metamodel = bridge.extractMetamodel(sampleSvg);
+    assert.equal(metamodel.nodes.length, 1);
+    assert.equal(metamodel.nodes[0]?.id, 'Act_Deep');
+    assert.equal(metamodel.nodes[0]?.href, 'http://localhost:3042/activities/ACT_123');
+
+    // Fresh SVG generation preserves aim-href
+    const freshSvg = bridge.generateFreshSvg(metamodel, {});
+    assert.ok(freshSvg.includes('aim-href="http://localhost:3042/activities/ACT_123"'));
+
+    const reExtracted = bridge.extractMetamodel(freshSvg);
+    assert.equal(reExtracted.nodes[0]?.href, 'http://localhost:3042/activities/ACT_123');
+
+    // updateExistingSvg preservation
+    const updatedSvg = bridge.updateExistingSvg(sampleSvg, metamodel, {});
+    assert.ok(updatedSvg.includes('aim-href="http://localhost:3042/activities/ACT_123"'));
+  });
+
+  test('Test 2: Clickable vector SVG export wraps node shape markup in <a href="..." target="_blank">', () => {
+    const metamodel = {
+      diagramId: 'TestDiag_CR033',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Linked_Node',
+          kind: 'act',
+          displayName: 'Linked Node',
+          href: 'http://localhost:3042/diagrams/D1',
+          bounds: { x: 50, y: 50, width: 140, height: 60 },
+        },
+        {
+          id: 'Unlinked_Node',
+          kind: 'act',
+          displayName: 'Unlinked Node',
+          bounds: { x: 250, y: 50, width: 140, height: 60 },
+        },
+      ],
+      edges: [],
+    };
+
+    const svg = bridge.generateFreshSvg(metamodel, {});
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svg, 'image/svg+xml');
+
+    const linkedGroup = doc.querySelector('g[aim-id="Linked_Node"]');
+    assert.ok(linkedGroup, 'Linked group exists');
+    assert.equal(linkedGroup.getAttribute('aim-href'), 'http://localhost:3042/diagrams/D1');
+
+    const anchor = linkedGroup.querySelector('a');
+    assert.ok(anchor, 'Inner <a> anchor element wraps node content');
+    assert.equal(anchor.getAttribute('href'), 'http://localhost:3042/diagrams/D1');
+    assert.equal(anchor.getAttribute('target'), '_blank');
+    assert.ok(anchor.querySelector('rect'), 'Rect is inside anchor');
+    assert.ok(anchor.querySelector('text'), 'Text is inside anchor');
+
+    const unlinkedGroup = doc.querySelector('g[aim-id="Unlinked_Node"]');
+    assert.ok(unlinkedGroup, 'Unlinked group exists');
+    assert.equal(unlinkedGroup.hasAttribute('aim-href'), false);
+    assert.equal(unlinkedGroup.querySelector('a'), null, 'No anchor element for unlinked node');
+  });
+
+  test('Test 3: XML escaping of URLs containing query parameters with ampersands, quotes, or special characters', () => {
+    const complexUrl = 'http://localhost:3042/search?q=Alan%20Kay&tab=1&filter="actors"';
+    const metamodel = {
+      diagramId: 'TestEscapeDiag',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Escaped_Node',
+          kind: 'uc',
+          displayName: 'Search UseCase',
+          href: complexUrl,
+          bounds: { x: 100, y: 100, width: 150, height: 75 },
+        },
+      ],
+      edges: [],
+    };
+
+    const freshSvg = bridge.generateFreshSvg(metamodel, {});
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(freshSvg, 'image/svg+xml');
+    const parserErrors = doc.querySelectorAll('parsererror');
+    assert.equal(parserErrors.length, 0, 'No XML parser errors in generated SVG');
+
+    const nodeEl = doc.querySelector('g[aim-id="Escaped_Node"]');
+    assert.equal(nodeEl?.getAttribute('aim-href'), complexUrl);
+    const anchorEl = nodeEl?.querySelector('a');
+    assert.equal(anchorEl?.getAttribute('href'), complexUrl);
+
+    // Verify raw SVG has escaped &amp; and &quot;
+    assert.ok(freshSvg.includes('&amp;tab=1'), 'Raw SVG escapes & as &amp;');
+    assert.ok(freshSvg.includes('&quot;actors&quot;'), 'Raw SVG escapes quotes as &quot;');
+
+    // Verify round-trip extraction
+    const extracted = bridge.extractMetamodel(freshSvg);
+    assert.equal(extracted.nodes[0]?.href, complexUrl);
+  });
+
+  test('Test 4: createAimNode retains href in node metadata data payload', () => {
+    const nodeMeta = createAimNode({
+      id: 'Act_Linked',
+      kind: 'act',
+      displayName: 'Linked Activity',
+      href: 'http://localhost:3042/activities/ACT_999',
+      bounds: { x: 10, y: 10, width: 140, height: 60 },
+    });
+
+    assert.equal(nodeMeta.data?.href, 'http://localhost:3042/activities/ACT_999');
+  });
+
+  test('Test 5: updateExistingSvg synchronizes aim-href updates on nodes', () => {
+    const initialSvg = `<svg id="diag_sync" xmlns="http://www.w3.org/2000/svg">
+      <g class="aim-node" aim-node="true" aim-id="Act_Sync" aim-kind="act" aim-display-name="Sync Activity" transform="translate(10, 10)">
+        <rect x="0" y="0" width="140" height="60" rx="8" />
+        <text x="70" y="35">Sync Activity</text>
+      </g>
+    </svg>`;
+
+    const metamodel = {
+      diagramId: 'diag_sync',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Act_Sync',
+          kind: 'act',
+          displayName: 'Sync Activity',
+          href: 'http://localhost:3042/activities/SYNC_1',
+          bounds: { x: 10, y: 10, width: 140, height: 60 },
+        },
+      ],
+      edges: [],
+    };
+
+    const updatedSvg = bridge.updateExistingSvg(initialSvg, metamodel, {});
+    assert.ok(updatedSvg.includes('aim-href="http://localhost:3042/activities/SYNC_1"'));
+    const reExtracted = bridge.extractMetamodel(updatedSvg);
+    assert.equal(reExtracted.nodes[0]?.href, 'http://localhost:3042/activities/SYNC_1');
+  });
+});

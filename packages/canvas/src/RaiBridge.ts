@@ -422,6 +422,12 @@ export class RaiBridge {
 
 			const qualifier = el.getAttribute(AimSvgContract.ATTR_QUALIFIER) ?? undefined;
 			const isInstance = el.getAttribute(AimSvgContract.ATTR_INSTANCE) === 'true' ? true : undefined;
+			const href =
+				el.getAttribute(AimSvgContract.ATTR_HREF) ??
+				el.querySelector('a')?.getAttribute('href') ??
+				el.querySelector('a')?.getAttribute('xlink:href') ??
+				el.getAttribute('href') ??
+				undefined;
 
 			const stereotype = el.getAttribute(AimSvgContract.ATTR_STEREOTYPE) ?? undefined;
 			const bounds = this.extractBounds(el, options.defaultNodeSize);
@@ -432,6 +438,7 @@ export class RaiBridge {
 				displayName,
 				...(qualifier !== undefined ? { qualifier } : {}),
 				...(isInstance !== undefined ? { instance: isInstance } : {}),
+				...(href !== undefined && href.trim().length > 0 ? { href: href.trim() } : {}),
 				...(stereotype !== undefined ? { stereotype } : {}),
 				bounds,
 			});
@@ -770,6 +777,11 @@ export class RaiBridge {
 			el.setAttribute(AimSvgContract.ATTR_ID, node.id);
 			el.setAttribute(AimSvgContract.ATTR_KIND, node.kind);
 			el.setAttribute(AimSvgContract.ATTR_DISPLAY_NAME, node.displayName);
+			if (node.href !== undefined && node.href.trim().length > 0) {
+				el.setAttribute(AimSvgContract.ATTR_HREF, node.href.trim());
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_HREF);
+			}
 			if (node.qualifier !== undefined && node.qualifier !== '') {
 				el.setAttribute(AimSvgContract.ATTR_QUALIFIER, node.qualifier);
 			} else {
@@ -1008,6 +1020,12 @@ export class RaiBridge {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" />\n`;
 			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
 		}
+
+		if (node.href !== undefined && node.href.trim().length > 0) {
+			const escapedHref = escapeXmlAttr(node.href.trim());
+			return `      <a href="${escapedHref}" target="_blank">\n${svg}      </a>\n`;
+		}
+
 		return svg;
 	}
 
@@ -1093,10 +1111,11 @@ export class RaiBridge {
 		svg += `  <!-- Nodes -->\n`;
 		svg += `  <g class="aim-nodes-layer">\n`;
 		for (const node of model.nodes) {
+			const hrefAttr = node.href && node.href.trim().length > 0 ? ` ${AimSvgContract.ATTR_HREF}="${escapeXmlAttr(node.href.trim())}"` : '';
 			const stereotypeAttr = node.stereotype ? ` ${AimSvgContract.ATTR_STEREOTYPE}="${escapeXmlAttr(node.stereotype)}"` : '';
 			const qualifierAttr = node.qualifier ? ` ${AimSvgContract.ATTR_QUALIFIER}="${escapeXmlAttr(node.qualifier)}"` : '';
 			const instanceAttr = node.instance ? ` ${AimSvgContract.ATTR_INSTANCE}="true"` : '';
-			svg += `    <g ${AimSvgContract.ATTR_NODE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(node.id)}" ${AimSvgContract.ATTR_KIND}="${escapeXmlAttr(node.kind)}" ${AimSvgContract.ATTR_DISPLAY_NAME}="${escapeXmlAttr(node.displayName)}"${qualifierAttr}${instanceAttr}${stereotypeAttr} transform="translate(${node.bounds.x}, ${node.bounds.y})">\n`;
+			svg += `    <g ${AimSvgContract.ATTR_NODE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(node.id)}" ${AimSvgContract.ATTR_KIND}="${escapeXmlAttr(node.kind)}" ${AimSvgContract.ATTR_DISPLAY_NAME}="${escapeXmlAttr(node.displayName)}"${hrefAttr}${qualifierAttr}${instanceAttr}${stereotypeAttr} transform="translate(${node.bounds.x}, ${node.bounds.y})">\n`;
 			svg += this.renderNodeInnerSvg(node);
 			svg += `    </g>\n`;
 		}

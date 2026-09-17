@@ -87,6 +87,9 @@ export interface RaidNodeData {
 	/** Whether the entity represents a concrete instance (underlining the displayName line). */
 	readonly instance?: boolean;
 
+	/** Canonical deep link URI or web link associated with this entity. */
+	readonly href?: string;
+
 	/** Optional ontological stereotype (e.g., '«initiates»', '«executes»'). */
 	readonly stereotype?: string;
 
@@ -187,6 +190,7 @@ export const AimSvgContract = {
 	ATTR_DISPLAY_NAME: 'aim-display-name',
 	ATTR_QUALIFIER: 'aim-qualifier',
 	ATTR_INSTANCE: 'aim-instance',
+	ATTR_HREF: 'aim-href',
 	ATTR_STEREOTYPE: 'aim-stereotype',
 	ATTR_NAMESPACE: 'aim-namespace',
 

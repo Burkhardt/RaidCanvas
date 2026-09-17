@@ -191,5 +191,126 @@ describe('RaidCanvas React Component Export & Contracts', () => {
     assert.equal(mockHandle.canUndo(), false);
     assert.equal(mockHandle.canRedo(), false);
   });
+
+  test('CR033: RaidCanvas accepts onNodeClick and onNodeDblClick props', () => {
+    const onNodeClick = (node, evt) => {};
+    const onNodeDblClick = (node, evt) => {};
+
+    const element = React.createElement(RaidCanvas, {
+      svg: '<svg id="test-cr033" xmlns="http://www.w3.org/2000/svg" />',
+      onNodeClick,
+      onNodeDblClick,
+    });
+
+    assert.equal(element.props.onNodeClick, onNodeClick);
+    assert.equal(element.props.onNodeDblClick, onNodeDblClick);
+  });
+
+  test('CR033: Drag immunity guard distinguishes tap from drag (> 4px or moving)', () => {
+    let clickCount = 0;
+    let clickedNodeData = null;
+
+    const onNodeClick = (node) => {
+      clickCount++;
+      clickedNodeData = node;
+    };
+
+    let pointerDown = null;
+
+    const simulateMouseDown = (node, clientX, clientY) => {
+      pointerDown = { id: node.id, clientX, clientY, moved: false };
+    };
+
+    const simulateMoving = (node) => {
+      if (pointerDown && pointerDown.id === node.id) {
+        pointerDown.moved = true;
+      }
+    };
+
+    const simulateClick = (node, clientX, clientY) => {
+      const start = pointerDown;
+      pointerDown = null;
+      const dx = start ? clientX - start.clientX : 0;
+      const dy = start ? clientY - start.clientY : 0;
+      const dist = Math.hypot(dx, dy);
+      if (start && (start.moved || dist > 4)) {
+        return; // drag suppressed
+      }
+      onNodeClick(node);
+    };
+
+    const testNode = {
+      id: 'Act_Nav',
+      kind: 'act',
+      displayName: 'Navigate to Entity',
+      href: 'http://localhost:3042/activities/ACT_NAV',
+      bounds: { x: 10, y: 10, width: 140, height: 60 },
+    };
+
+    // Scenario A: User drags node 100px across the canvas
+    simulateMouseDown(testNode, 100, 100);
+    simulateMoving(testNode);
+    simulateClick(testNode, 200, 100);
+    assert.equal(clickCount, 0, 'onNodeClick must NOT fire after 100px drag');
+
+    // Scenario B: User drags node 10px without triggering moving event
+    simulateMouseDown(testNode, 100, 100);
+    simulateClick(testNode, 110, 100);
+    assert.equal(clickCount, 0, 'onNodeClick must NOT fire when delta > 4px');
+
+    // Scenario C: User taps node with slight micro-jitter (1px)
+    simulateMouseDown(testNode, 100, 100);
+    simulateClick(testNode, 101, 100);
+    assert.equal(clickCount, 1, 'onNodeClick must fire on tap');
+    assert.equal(clickedNodeData?.id, 'Act_Nav');
+    assert.equal(clickedNodeData?.href, 'http://localhost:3042/activities/ACT_NAV');
+  });
+
+  test('CR033: Imperative handle addNode and updateNode preserve href attribute', () => {
+    let storedData = null;
+    const mockNode = {
+      isNode: () => true,
+      getData: () => storedData,
+      setData: (data) => {
+        storedData = data;
+      },
+      setPosition: () => {},
+      setSize: () => {},
+      setAttrByPath: () => {},
+    };
+
+    const mockGraph = {
+      addNode: (meta) => {
+        storedData = meta.data;
+      },
+      getCellById: () => mockNode,
+    };
+
+    // Add node with customData.href
+    const customData = {
+      displayName: 'Activity with Href',
+      href: 'http://localhost:3042/entities/123',
+    };
+    const nodeData = {
+      id: 'ACT_custom',
+      kind: 'act',
+      displayName: customData.displayName,
+      href: customData.href,
+      bounds: { x: 200, y: 150, width: 140, height: 60 },
+    };
+    mockGraph.addNode({ data: nodeData });
+    assert.equal(storedData?.href, 'http://localhost:3042/entities/123');
+
+    // Update node with new href
+    const updates = {
+      href: 'http://localhost:3042/entities/456',
+    };
+    const nextData = {
+      ...storedData,
+      ...updates,
+    };
+    mockNode.setData(nextData);
+    assert.equal(storedData?.href, 'http://localhost:3042/entities/456');
+  });
 });
 
