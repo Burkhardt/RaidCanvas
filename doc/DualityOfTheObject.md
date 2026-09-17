@@ -142,12 +142,56 @@ Following the 1991/1992 Breutmann & Burkhardt foundations (*Objektorientierte Sy
 
 Activities are not detached, procedural functions drifting in the void. An Activity is a **Method** executing inside the scope of its target Object (`Object.Activity`). Within that execution, pre- and post-conditions evaluate naturally against the `this` pointer of the Object.
 
-### 3.2 KL-ONE: Roles vs. Role Fillers
-To keep systems malleable, AfricaStage and RaidCanvas adopt the semantic networking principles of **KL-ONE** (Brachman & Schmolze, 1985):
-* **The Role (Structural Level):** Specifies constraints—a *Value Restriction* (e.g., must be a `Person`) and a *Number Restriction* (e.g., `1..*`).
-* **The Role Filler (Instance Level):** The concrete individual bound to the role at runtime (e.g., `Person_Zebio_ID`).
+### 3.2 KL-ONE: The Role–RoleFiller Architecture (Brachman & Schmolze, 1985)
+To keep systems malleable and ontologically sound, AfricaStage and RaidCanvas inherit the foundational semantic networking principles of **KL-ONE** (*Ronald J. Brachman & James G. Schmolze*, "An Overview of the KL-ONE Knowledge Representation System", *Cognitive Science*, 1985):
 
-When a Person appears in a diagram, they are drawn with their Role qualifier (*Assignee*) and their human name (*Zébio*). Only concrete instances are underlined (`aim-instance="true"`), maintaining strict separation between the structural role constraint and the individual filling it.
+* **The Role (Concept / Type Level):** Specifies a structural relationship constraint—defining a *Value Restriction* (what kind of concept may participate, e.g., must be a `Person`) and a *Number Restriction* (cardinality, e.g., $1..1$ or $1..*$). In classic 1985 KL-ONE notation, a Role is represented as an **open circle (`○`)** anchored along the relationship line between generic concepts.
+* **The Role Filler (Individual / Instance Level):** The concrete entity bound to that role at runtime. In KL-ONE notation, the Role Filler is represented as a **filled dot (`●`)** on the instance relationship link, with a dashed projection arrow pointing up to the open circle Role.
+
+```
+                     THE KL-ONE ROLE–FILLER BRIDGE
+  
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  TYPE WORLD: Pure Specifications & Constraints (No Instances)          │
+    │                                                                        │
+    │         Class: System ──────────( ○ Owner )──────────► Class: Person   │
+    └──────────────────────▲───────────────▲──────────────────────▲──────────┘
+                           │               │                      │
+                   (is-a)  │               │ (fills role)         │ (is-a)
+                           │               │                      │
+    ┌──────────────────────┴───────────────┴──────────────────────┴──────────┐
+    │  INSTANCE WORLD: Living Individuals & Concrete State                   │
+    │                                                                        │
+    │         Object: <u>AIA</u> ─────────( ● )──────────────► Object: <u>RAI</u>    │
+    │                                RoleFiller                              │
+    │                            ("Rainer füllt die                          │
+    │                            Rolle Owner für AIA")                       │
+    └────────────────────────────────────────────────────────────────────────┘
+```
+
+When an entity is rendered on the canvas:
+1. **The Individual Persona:** Represented with its proper name (*Dr. Rainer Burkhardt* or *RAI*).
+2. **The Active Role:** Rendered through its ontological qualifier (*Owner*, *Assignee*, *Performer*) and its stereotype (`«initiates»`, `«binds»`).
+3. **The Instance Rule:** In accordance with standard UML and AOAIM conventions, only concrete individuals are underlined (`<u>AIA</u>`, `<u>RAI</u>`, `aim-instance="true"`). Generic classes and roles remain clean.
+
+### 3.3 The Epistemological Bridge: Why UseCase Diagrams Have No Instances
+A critical realization in knowledge architecture is the separation between the **Type World** and the **Instance World**:
+* **UseCase Diagrams live exclusively in the Type World.** A UseCase Diagram is composed entirely of blueprints, classes, and roles (`Customer`, `Sign Contract`, `Verify Identity`). It contains **zero instances**. There is no "Dr. Rainer Burkhardt" inside a UseCase Diagram—only the role of `Customer` or `Initiator`.
+* **The RoleFiller Diagram connects the two worlds.** It is the mathematical and visual bridge that projects living objects (`<u>AIA</u>`, `<u>AfricaStage</u>`, `<u>RAI</u>`) upward onto their conceptual types (`System`, `Person`) through the specific roles they fulfill (`Owner`, `Admin`).
+
+### 3.4 The AfricaStage Convergence: Attributes as Roles and Values as RoleFillers
+In the AfricaStage platform, when an operator opens the details of an Object (e.g. `Object · GageElementary26e : Show`), the system renders both a property inspector table and an in-situ role-filler diagram:
+* **Relational Roles:**
+  - `GageElementary26e` fills the role `Show`.
+  - `Rainer Burkhardt` fills the role `Performer`.
+  - `GageElementarySchool` fills the role `Venue` (Place).
+* **Attribute Roles:**
+  - In true KL-ONE epistemology, **attributes are simply roles whose Value Restriction is a primitive datatype**, and **attribute values are their RoleFillers**:
+    - Role `Title` $\rightarrow$ Value Restriction `String` $\rightarrow$ RoleFiller `"Gage Elementary Multicultural Festival"`.
+    - Role `Workspace` $\rightarrow$ Value Restriction `Boolean` $\rightarrow$ RoleFiller `true`.
+    - Role `Program` $\rightarrow$ Value Restriction `List<Activity>` $\rightarrow$ RoleFiller `[Act: Welcome, Act: German Folk Dance, ...]`.
+
+Every entity in the universe is thus a locus of roles filled by other entities, while simultaneously acting as a role filler in the surrounding context. The canvas is the interactive medium through which this web of meaning is explored and manipulated.
 
 ---
 
