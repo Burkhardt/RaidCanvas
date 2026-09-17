@@ -237,11 +237,39 @@ Every node in RaidCanvas is divided into two distinct hemispheres:
   * **Single Tap:** Directly engages the portal, transitioning the application perspective into the underlying world (e.g. stepping into a sub-activity workflow or opening the full entity workbench).
   * **Fitts' Law Mastery:** In a standard 160×70px Activity, the right door is a massive **80×70px touch target**. Unlike tiny 16×16px corner links, an iPad operator can tap this portal blindly with their right thumb while holding the tablet.
 
-### 4.3 The Portuguese Bicolor Seam
+### 4.3 The Portuguese Bicolor Seam & The Two-Tap Dynabook Lifecycle
 The visual inspiration draws directly upon the Portuguese national flag and the Cascais heraldic heritage:
 * On the flag, green and red share a proud, dignified vertical meridian, with the armillary sphere anchoring the transition.
-* On our canvas, the boundary between the Persona and the Portal is marked by a soft, permeable seam—either a subtle dividing line or a gentle horizontal gradient.
-* **Selective Revelation:** If a node has **no deeper link** (`aim-href` is absent), the right hemisphere is not rendered. The node remains a monolithic, solid archetype shape. The operator can glance at a complex diagram of thirty entities and instantly perceive which nodes are portals to deeper worlds and which are simple terminal facts.
+* On our canvas, the boundary between the Persona and the Portal is marked by the **Net Gold (`#F59E0B`) Meridian Seam** (`stroke-width="1.5"`).
+* **The Two-Tap Dynabook Selection Lifecycle:**
+  * **State 0 (Dormant):** The node rests in a quiet, monolithic state displaying its pure ontological archetype and Persona Anchor. The right hemisphere is calm, preserving canvas serenity.
+  * **Tap 1 (Awakened Duality):** Tapping the node awakens its dual nature. The vertical **Net Gold Meridian Seam** drops down the center line ($x = \text{midX}$). The Right Hemisphere illuminates with the translucent Cascais Emerald Green portal wash (`rgba(16, 185, 129, 0.12)`) and reveals the subtle doorway chevron (`›`). The node is now actively waiting for the operator's next intent.
+  * **Tap 2 — Left Hemisphere (The Persona):** Tapping the left side opens the in-situ Smalltalk-style **DaisyUI Inspector Drawer** (`drawer-end`), allowing immediate inspection and editing of attributes, role fillers, and conversations with Cize without leaving the diagram.
+  * **Tap 2 — Right Hemisphere (The Portal):** Tapping the right door plunges through the portal, dispatching `onNodePortalClick` to transition to the underlying UseCase Browser, Sub-Activity workflow, or Venue Map.
+  * **Tap Outside:** Deselects the node, smoothly retiring the gold seam and returning the node to its dormant state.
+
+### 4.4 Stereotype Iconography and the Persona Anchor (OTW to WWWA)
+In the 1990s, Dr. Rainer Burkhardt developed the **Object-Technology Workbench (OTW)** following his dissertation on Object-Process Models and his Habilitation on Object-Oriented Modeling. A defining breakthrough of OTW was the introduction of **Stereotype Icons** inside model views—compact, highly legible glyphs that instantly communicate the domain flavor and operational role of an entity without cluttering the diagram with verbose text.
+
+With the release of WWWA Ontology v1.3 (authored by Vasco, Lead Ontologist, `7015`), this philosophy is natively resurrected in RaidCanvas through the `aim-stereotype` SVG contract.
+
+1. **The Persona Anchor ($x \in [12, 40]$):**
+   * The Stereotype Icon lives exclusively within the **Left Hemisphere (The Persona)**.
+   * By anchoring the icon on the far left, the entity's ontological qualifier and display name shift gracefully to the right (`cardTextRefX: 0.62`), with text wrapping adjusted (`boxWidth - 52`) to prevent visual collisions.
+   * On Heraldic Person nodes (`per`), the stereotype glyph hovers with dignity above or beside the green head and shoulder silhouette, eliminating unnecessary rectangular frames.
+
+2. **The Cascais Palette & Vector Glyphs:**
+   * **🎪 `Stage` (Place / Venue):** Sourced directly from festival stage architecture—a trapezoidal canopy adorned with 4 Net Gold stars across the fascia, dual cross-braced lattice truss towers (`#1F2937`), an overhead crossbeam rig with 5 hanging spotlights, dual speaker stacks, and a stepped stage deck.
+   * **📍 `Venue` (Place):** The classic Cascais location teardrop pin with a circular aperture cutout hovering over a ground target ring ellipse.
+   * **🍸 `Bar` / `Lounge` (Place / Object):** A refined cocktail martini glass with slender stem, weighted base, and angular olive skewer.
+   * **⭐ `Headliner` (Person / Role):** An artist performer crown with three jewels, a Net Gold star medallion, and curved brow band.
+   * **🤖 `AI` / `Agent` (Person / Actor):** An autonomous neural processor chip with quad perimeter connector pins and a luminous Net Gold center core.
+   * **⚡ `Initiates` (Role / Relation):** A sharp Net Gold directional trigger arrow signifying dynamic stimulus and workflow kickoff.
+
+3. **Ontological Round-Trip Integrity:**
+   * In `.raid` and AOAIM models: declared via `stereotype: "Stage"`.
+   * In ontological SVG: serialized as `aim-stereotype="Stage"` and embedded as clean, self-contained vector paths inside the node's `<g>` container.
+   * In Keynote, Safari, or vector PDF exports: icons render flawlessly with crisp vector geometry at any zoom level.
 
 ---
 

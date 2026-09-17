@@ -19,6 +19,10 @@ import type {
   OrthogonalPortId,
   Bounds,
 } from './types.js';
+import {
+  resolveStereotype,
+  getStereotypePaths,
+} from './StereotypeIcons.js';
 
 /**
  * Cascais Heraldry color palette constants.
@@ -211,6 +215,18 @@ export function registerAimShapes(): void {
         selector: 'seam',
       },
       {
+        tagName: 'path',
+        selector: 'iconFill',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconStroke',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconAccent',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -240,6 +256,30 @@ export function registerAimShapes(): void {
         strokeWidth: 1.5,
         display: 'none',
         class: 'aim-portal-seam',
+      },
+      iconFill: {
+        d: '',
+        fill: CascaisPalette.WarmGraphite,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-fill',
+      },
+      iconStroke: {
+        d: '',
+        fill: 'none',
+        stroke: CascaisPalette.WarmGraphite,
+        strokeWidth: 1.3,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        display: 'none',
+        class: 'aim-stereotype-icon-stroke',
+      },
+      iconAccent: {
+        d: '',
+        fill: CascaisPalette.NetGold,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-accent',
       },
       chevron: {
         text: '›',
@@ -303,6 +343,18 @@ export function registerAimShapes(): void {
         selector: 'seam',
       },
       {
+        tagName: 'path',
+        selector: 'iconFill',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconStroke',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconAccent',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -334,6 +386,30 @@ export function registerAimShapes(): void {
         strokeWidth: 1.5,
         display: 'none',
         class: 'aim-portal-seam',
+      },
+      iconFill: {
+        d: '',
+        fill: CascaisPalette.WarmGraphite,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-fill',
+      },
+      iconStroke: {
+        d: '',
+        fill: 'none',
+        stroke: CascaisPalette.WarmGraphite,
+        strokeWidth: 1.3,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        display: 'none',
+        class: 'aim-stereotype-icon-stroke',
+      },
+      iconAccent: {
+        d: '',
+        fill: CascaisPalette.NetGold,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-accent',
       },
       chevron: {
         text: '›',
@@ -421,6 +497,18 @@ export function registerAimShapes(): void {
         selector: 'seam',
       },
       {
+        tagName: 'path',
+        selector: 'iconFill',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconStroke',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconAccent',
+      },
+      {
         tagName: 'text',
         selector: 'chevron',
       },
@@ -442,6 +530,30 @@ export function registerAimShapes(): void {
         strokeWidth: 1.5,
         display: 'none',
         class: 'aim-portal-seam',
+      },
+      iconFill: {
+        d: '',
+        fill: CascaisPalette.WarmGraphite,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-fill',
+      },
+      iconStroke: {
+        d: '',
+        fill: 'none',
+        stroke: CascaisPalette.WarmGraphite,
+        strokeWidth: 1.3,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        display: 'none',
+        class: 'aim-stereotype-icon-stroke',
+      },
+      iconAccent: {
+        d: '',
+        fill: CascaisPalette.NetGold,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-accent',
       },
       chevron: {
         text: '›',
@@ -531,6 +643,18 @@ export function registerAimShapes(): void {
         selector: 'seam',
       },
       {
+        tagName: 'path',
+        selector: 'iconFill',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconStroke',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconAccent',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -560,6 +684,30 @@ export function registerAimShapes(): void {
         strokeWidth: 1.5,
         display: 'none',
         class: 'aim-portal-seam',
+      },
+      iconFill: {
+        d: '',
+        fill: CascaisPalette.WarmGraphite,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-fill',
+      },
+      iconStroke: {
+        d: '',
+        fill: 'none',
+        stroke: CascaisPalette.WarmGraphite,
+        strokeWidth: 1.3,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        display: 'none',
+        class: 'aim-stereotype-icon-stroke',
+      },
+      iconAccent: {
+        d: '',
+        fill: CascaisPalette.NetGold,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-accent',
       },
       chevron: {
         text: '›',
@@ -630,6 +778,18 @@ export function registerAimShapes(): void {
         selector: 'seam',
       },
       {
+        tagName: 'path',
+        selector: 'iconFill',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconStroke',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconAccent',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -675,6 +835,30 @@ export function registerAimShapes(): void {
         strokeWidth: 1.5,
         display: 'none',
         class: 'aim-portal-seam',
+      },
+      iconFill: {
+        d: '',
+        fill: CascaisPalette.WarmGraphite,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-fill',
+      },
+      iconStroke: {
+        d: '',
+        fill: 'none',
+        stroke: CascaisPalette.WarmGraphite,
+        strokeWidth: 1.3,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        display: 'none',
+        class: 'aim-stereotype-icon-stroke',
+      },
+      iconAccent: {
+        d: '',
+        fill: CascaisPalette.NetGold,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-accent',
       },
       chevron: {
         text: '›',
@@ -742,6 +926,18 @@ export function registerAimShapes(): void {
         selector: 'seam',
       },
       {
+        tagName: 'path',
+        selector: 'iconFill',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconStroke',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconAccent',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -776,6 +972,30 @@ export function registerAimShapes(): void {
         strokeWidth: 1.5,
         display: 'none',
         class: 'aim-portal-seam',
+      },
+      iconFill: {
+        d: '',
+        fill: CascaisPalette.WarmGraphite,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-fill',
+      },
+      iconStroke: {
+        d: '',
+        fill: 'none',
+        stroke: CascaisPalette.WarmGraphite,
+        strokeWidth: 1.3,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        display: 'none',
+        class: 'aim-stereotype-icon-stroke',
+      },
+      iconAccent: {
+        d: '',
+        fill: CascaisPalette.NetGold,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-accent',
       },
       chevron: {
         text: '›',
@@ -837,6 +1057,18 @@ export function registerAimShapes(): void {
         selector: 'seam',
       },
       {
+        tagName: 'path',
+        selector: 'iconFill',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconStroke',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconAccent',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -867,6 +1099,30 @@ export function registerAimShapes(): void {
         strokeWidth: 1.5,
         display: 'none',
         class: 'aim-portal-seam',
+      },
+      iconFill: {
+        d: '',
+        fill: CascaisPalette.WarmGraphite,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-fill',
+      },
+      iconStroke: {
+        d: '',
+        fill: 'none',
+        stroke: CascaisPalette.WarmGraphite,
+        strokeWidth: 1.3,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        display: 'none',
+        class: 'aim-stereotype-icon-stroke',
+      },
+      iconAccent: {
+        d: '',
+        fill: CascaisPalette.NetGold,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-accent',
       },
       chevron: {
         text: '›',
@@ -1076,6 +1332,161 @@ export function setNodeDualityActive(node: Node, active: boolean): void {
 }
 
 /**
+ * Computes X6 attribute dictionary for Stereotype Icons (OTW & Vasco v1.3).
+ * When a node carries a recognized stereotype (Stage, Venue, Bar, Headliner, AI):
+ * - Renders vector icon in Left Hemisphere (Persona/Anchor) for structured cards.
+ * - Adorns head/shoulder for Person glyph.
+ * - Preserves visibility in both dormant and awakened Duality states.
+ */
+export function computeStereotypeIconAttrs(data: RaidNodeData) {
+  const resolved = resolveStereotype(data.stereotype);
+  if (!resolved) {
+    return {
+      iconFill: { d: '', display: 'none' },
+      iconStroke: { d: '', display: 'none' },
+      iconAccent: { d: '', display: 'none' },
+    };
+  }
+
+  const paths = getStereotypePaths(resolved);
+  const w = data.bounds.width;
+  const h = data.bounds.height;
+
+  if (data.kind === 'per') {
+    const cx = Math.round(w / 2);
+    if (resolved === 'headliner') {
+      return {
+        iconFill: {
+          d: paths.fillD,
+          transform: `translate(${cx - 12}, 2)`,
+          fill: CascaisPalette.NetGold,
+          stroke: 'none',
+          display: 'block',
+          class: 'aim-stereotype-icon-fill',
+        },
+        iconStroke: {
+          d: paths.strokeD,
+          transform: `translate(${cx - 12}, 2)`,
+          stroke: CascaisPalette.WarmGraphite,
+          strokeWidth: 1.2,
+          fill: 'none',
+          display: 'block',
+          class: 'aim-stereotype-icon-stroke',
+        },
+        iconAccent: {
+          d: paths.accentFillD ?? '',
+          transform: `translate(${cx - 12}, 2)`,
+          fill: CascaisPalette.ChalkWhite,
+          stroke: 'none',
+          display: paths.accentFillD ? 'block' : 'none',
+          class: 'aim-stereotype-icon-accent',
+        },
+      };
+    }
+    if (resolved === 'ai') {
+      return {
+        iconFill: {
+          d: paths.fillD,
+          transform: `translate(${cx + 10}, 10)`,
+          fill: CascaisPalette.WarmGraphite,
+          opacity: 0.15,
+          stroke: 'none',
+          display: 'block',
+          class: 'aim-stereotype-icon-fill',
+        },
+        iconStroke: {
+          d: paths.strokeD,
+          transform: `translate(${cx + 10}, 10)`,
+          stroke: CascaisPalette.WarmGraphite,
+          strokeWidth: 1.3,
+          strokeLinecap: 'round',
+          fill: 'none',
+          display: 'block',
+          class: 'aim-stereotype-icon-stroke',
+        },
+        iconAccent: {
+          d: paths.accentFillD ?? '',
+          transform: `translate(${cx + 10}, 10)`,
+          fill: CascaisPalette.NetGold,
+          stroke: 'none',
+          display: paths.accentFillD ? 'block' : 'none',
+          class: 'aim-stereotype-icon-accent',
+        },
+      };
+    }
+    return {
+      iconFill: { d: '', display: 'none' },
+      iconStroke: { d: '', display: 'none' },
+      iconAccent: { d: '', display: 'none' },
+    };
+  }
+
+  // Structured cards: plc, act, obj, uc, cls, rol
+  const iconX = 12;
+  const iconY = Math.max(6, Math.round((h - paths.height) / 2));
+
+  let strokeColor: string = CascaisPalette.WarmGraphite;
+  let fillColor: string = CascaisPalette.WarmGraphite;
+  let accentColor: string = CascaisPalette.NetGold;
+
+  if (resolved === 'stage') {
+    strokeColor = CascaisPalette.WarmGraphite;
+    fillColor = CascaisPalette.WarmGraphite;
+    accentColor = CascaisPalette.NetGold;
+  } else if (resolved === 'venue') {
+    strokeColor = CascaisPalette.WarmGraphite;
+    fillColor = CascaisPalette.WarmGraphite;
+    accentColor = CascaisPalette.NetGold;
+  } else if (resolved === 'bar') {
+    strokeColor = CascaisPalette.WarmGraphite;
+    fillColor = CascaisPalette.NetGold;
+    accentColor = CascaisPalette.NetGold;
+  } else if (resolved === 'headliner') {
+    strokeColor = CascaisPalette.WarmGraphite;
+    fillColor = CascaisPalette.NetGold;
+    accentColor = CascaisPalette.ChalkWhite;
+  } else if (resolved === 'ai') {
+    strokeColor = CascaisPalette.WarmGraphite;
+    fillColor = CascaisPalette.WarmGraphite;
+    accentColor = CascaisPalette.NetGold;
+  } else if (resolved === 'initiates') {
+    strokeColor = CascaisPalette.NetGold;
+    fillColor = 'none';
+    accentColor = CascaisPalette.NetGold;
+  }
+
+  return {
+    iconFill: {
+      d: paths.fillD,
+      transform: `translate(${iconX}, ${iconY})`,
+      fill: fillColor,
+      stroke: 'none',
+      display: paths.fillD ? 'block' : 'none',
+      class: 'aim-stereotype-icon-fill',
+    },
+    iconStroke: {
+      d: paths.strokeD,
+      transform: `translate(${iconX}, ${iconY})`,
+      stroke: strokeColor,
+      strokeWidth: 1.3,
+      strokeLinecap: 'round',
+      strokeLinejoin: 'round',
+      fill: 'none',
+      display: paths.strokeD ? 'block' : 'none',
+      class: 'aim-stereotype-icon-stroke',
+    },
+    iconAccent: {
+      d: paths.starsD ?? paths.accentFillD ?? '',
+      transform: `translate(${iconX}, ${iconY})`,
+      fill: accentColor,
+      stroke: 'none',
+      display: paths.starsD || paths.accentFillD ? 'block' : 'none',
+      class: 'aim-stereotype-icon-accent',
+    },
+  };
+}
+
+/**
  * Configure an AntV X6 Graph instance with default AOAIM canvas settings:
  * Manhattan routing, orthogonal connection rules, port hover visibility.
  */
@@ -1152,15 +1563,28 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
     data,
   };
 
+  const resolvedStereotype = resolveStereotype(data.stereotype);
+  const hasStereotypeIcon = Boolean(resolvedStereotype && resolvedStereotype !== 'initiates');
+  const stereoAttrs = computeStereotypeIconAttrs(data);
+
   const isInstance = data.instance === true;
   const boxWidth = data.bounds.width;
   const fontSize = data.kind === 'uc' || data.kind === 'act' ? 13 : 12;
-  const maxLineLength = computeMaxLineLength(boxWidth, fontSize);
+  const availableTextWidth = hasStereotypeIcon && data.kind !== 'per' ? Math.max(40, boxWidth - 52) : boxWidth;
+  const maxLineLength = computeMaxLineLength(availableTextWidth, fontSize);
 
   const hasQualifier = Boolean(data.qualifier && data.qualifier.trim().length > 0);
   const wrappedQualifier = hasQualifier ? wrapAimText(data.qualifier!, maxLineLength) : '';
   const wrappedName = wrapAimText(data.displayName, maxLineLength);
   const portalAttrs = computePortalDoorAttrs(data);
+
+  const cardTextRefX = hasStereotypeIcon ? 0.62 : 0.5;
+  const qualifierText = hasQualifier
+    ? (data.stereotype && !hasStereotypeIcon ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier)
+    : '';
+  const labelText = hasQualifier
+    ? wrappedName
+    : (data.stereotype && !hasStereotypeIcon ? `${data.stereotype}\n${wrappedName}` : wrappedName);
 
   // Archetype-specific customization
   switch (data.kind) {
@@ -1169,15 +1593,18 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
         ...baseMetadata,
         attrs: {
           ...portalAttrs,
+          ...stereoAttrs,
           qualifier: {
-            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            text: qualifierText,
             fontStyle: 'italic',
             textDecoration: 'none',
+            refX: cardTextRefX,
             refY: 0.35,
           },
           label: {
-            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            text: labelText,
             textDecoration: isInstance ? 'underline' : 'none',
+            refX: cardTextRefX,
             refY: hasQualifier ? 0.65 : 0.5,
           },
         },
@@ -1189,15 +1616,18 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
         ...baseMetadata,
         attrs: {
           ...portalAttrs,
+          ...stereoAttrs,
           qualifier: {
-            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            text: qualifierText,
             fontStyle: 'italic',
             textDecoration: 'none',
+            refX: cardTextRefX,
             refY: 0.35,
           },
           label: {
-            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            text: labelText,
             textDecoration: isInstance ? 'underline' : 'none',
+            refX: cardTextRefX,
             refY: hasQualifier ? 0.65 : 0.5,
           },
         },
@@ -1209,6 +1639,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
         ...baseMetadata,
         attrs: {
           ...portalAttrs,
+          ...stereoAttrs,
           title: {
             text: data.displayName,
             textDecoration: isInstance ? 'underline' : 'none',
@@ -1227,15 +1658,18 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
         ...baseMetadata,
         attrs: {
           ...portalAttrs,
+          ...stereoAttrs,
           qualifier: {
-            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            text: qualifierText,
             fontStyle: 'italic',
             textDecoration: 'none',
+            refX: cardTextRefX,
             refY: 0.35,
           },
           label: {
-            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            text: labelText,
             textDecoration: isInstance ? 'underline' : 'none',
+            refX: cardTextRefX,
             refY: hasQualifier ? 0.65 : 0.5,
           },
         },
@@ -1250,6 +1684,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
         ...baseMetadata,
         attrs: {
           ...portalAttrs,
+          ...stereoAttrs,
           torso: {
             d: `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`,
             stroke: strokeColor,
@@ -1260,14 +1695,14 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
             stroke: strokeColor,
           },
           qualifier: {
-            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            text: qualifierText,
             fontStyle: 'italic',
             textDecoration: 'none',
             refX: 0.5,
             refY: 60,
           },
           label: {
-            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            text: labelText,
             textDecoration: isInstance ? 'underline' : 'none',
             refX: 0.5,
             refY: hasQualifier ? 75 : 62,
@@ -1281,17 +1716,18 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
         ...baseMetadata,
         attrs: {
           ...portalAttrs,
+          ...stereoAttrs,
           qualifier: {
-            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            text: qualifierText,
             fontStyle: 'italic',
             textDecoration: 'none',
-            refX: 0.5,
+            refX: cardTextRefX,
             refY: 0.38,
           },
           label: {
-            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            text: labelText,
             textDecoration: isInstance ? 'underline' : 'none',
-            refX: 0.5,
+            refX: cardTextRefX,
             refY: 0.62,
           },
         },
@@ -1303,17 +1739,18 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
         ...baseMetadata,
         attrs: {
           ...portalAttrs,
+          ...stereoAttrs,
           qualifier: {
-            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            text: qualifierText,
             fontStyle: 'italic',
             textDecoration: 'none',
-            refX: 0.5,
+            refX: cardTextRefX,
             refY: 0.35,
           },
           label: {
-            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            text: labelText,
             textDecoration: isInstance ? 'underline' : 'none',
-            refX: 0.5,
+            refX: cardTextRefX,
             refY: 0.65,
           },
         },
@@ -1325,6 +1762,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
         ...baseMetadata,
         attrs: {
           ...portalAttrs,
+          ...stereoAttrs,
         },
       };
   }

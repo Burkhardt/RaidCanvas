@@ -30,7 +30,9 @@ import {
 	computeMaxLineLength,
 	wrapAimText,
 	setNodeDualityActive,
+	computeStereotypeIconAttrs,
 } from './X6Shapes.js';
+import { resolveStereotype } from './StereotypeIcons.js';
 import {
 	validateSemanticConnection,
 	getSemanticEdgeKind,
@@ -371,6 +373,11 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							: currentData.href !== undefined
 								? { href: currentData.href }
 								: {}),
+						...(updates.stereotype !== undefined
+							? { stereotype: updates.stereotype }
+							: currentData.stereotype !== undefined
+								? { stereotype: currentData.stereotype }
+								: {}),
 					};
 					node.setData(nextData);
 
@@ -379,10 +386,32 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					const isInstance = nextData.instance === true;
 					const boxWidth = nextData.bounds.width;
 					const fontSize = nextData.kind === 'uc' || nextData.kind === 'act' ? 13 : 12;
-					const maxLineLength = computeMaxLineLength(boxWidth, fontSize);
+
+					const resolvedStereotype = resolveStereotype(nextData.stereotype);
+					const hasStereotypeIcon = Boolean(resolvedStereotype && resolvedStereotype !== 'initiates');
+					const cardTextRefX = hasStereotypeIcon ? 0.62 : 0.5;
+					const availableTextWidth = hasStereotypeIcon && nextData.kind !== 'per' ? Math.max(40, boxWidth - 52) : boxWidth;
+					const maxLineLength = computeMaxLineLength(availableTextWidth, fontSize);
 
 					const wrappedName = wrapAimText(displayName, maxLineLength);
 					const wrappedQualifier = qualifier ? wrapAimText(qualifier, maxLineLength) : '';
+
+					// Update stereotype icon paths and attributes
+					const stereoAttrs = computeStereotypeIconAttrs(nextData);
+					node.setAttrByPath('iconFill/d', stereoAttrs.iconFill.d);
+					node.setAttrByPath('iconFill/display', stereoAttrs.iconFill.display);
+					node.setAttrByPath('iconFill/transform', (stereoAttrs.iconFill as any).transform ?? '');
+					node.setAttrByPath('iconFill/fill', (stereoAttrs.iconFill as any).fill ?? '');
+
+					node.setAttrByPath('iconStroke/d', stereoAttrs.iconStroke.d);
+					node.setAttrByPath('iconStroke/display', stereoAttrs.iconStroke.display);
+					node.setAttrByPath('iconStroke/transform', (stereoAttrs.iconStroke as any).transform ?? '');
+					node.setAttrByPath('iconStroke/stroke', (stereoAttrs.iconStroke as any).stroke ?? '');
+
+					node.setAttrByPath('iconAccent/d', stereoAttrs.iconAccent.d);
+					node.setAttrByPath('iconAccent/display', stereoAttrs.iconAccent.display);
+					node.setAttrByPath('iconAccent/transform', (stereoAttrs.iconAccent as any).transform ?? '');
+					node.setAttrByPath('iconAccent/fill', (stereoAttrs.iconAccent as any).fill ?? '');
 
 					if (nextData.kind === 'cls') {
 						node.setAttrByPath('title/text', displayName);
@@ -394,9 +423,13 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							node.setAttrByPath('methods/text', nextData.methods.join('\n'));
 						}
 					} else if (nextData.kind === 'per') {
+						const isInitiating = nextData.stereotype?.toLowerCase().includes('initiates') ?? false;
+						const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
 						const cx = Math.round(boxWidth / 2);
 						node.setAttrByPath('torso/d', `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`);
+						node.setAttrByPath('torso/stroke', strokeColor);
 						node.setAttrByPath('head/cx', cx);
+						node.setAttrByPath('head/stroke', strokeColor);
 						if (qualifier) {
 							node.setAttrByPath('qualifier/text', wrappedQualifier);
 							node.setAttrByPath('qualifier/refY', 60);
@@ -411,12 +444,15 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					} else {
 						if (qualifier) {
 							node.setAttrByPath('qualifier/text', wrappedQualifier);
+							node.setAttrByPath('qualifier/refX', cardTextRefX);
 							node.setAttrByPath('qualifier/refY', 0.35);
 							node.setAttrByPath('label/text', wrappedName);
+							node.setAttrByPath('label/refX', cardTextRefX);
 							node.setAttrByPath('label/refY', 0.65);
 						} else {
 							node.setAttrByPath('qualifier/text', '');
 							node.setAttrByPath('label/text', wrappedName);
+							node.setAttrByPath('label/refX', cardTextRefX);
 							node.setAttrByPath('label/refY', 0.5);
 						}
 						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');

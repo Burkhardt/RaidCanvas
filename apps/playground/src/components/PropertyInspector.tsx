@@ -217,16 +217,56 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
             )}
           </div>
 
-          {/* Stereotype */}
+          {/* Stereotype (OTW & Vasco Ontology v1.3) */}
           <div>
-            <label style={labelStyle}>Stereotype Annotation</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Stereotype Icon / Facet</label>
+              <span style={{ fontSize: 10, color: '#94A3B8' }}>WWWA v1.3 / OTW</span>
+            </div>
             <input
               type="text"
               value={node.stereotype ?? ''}
               onChange={(e) => onUpdateNode(selection.id, { stereotype: e.target.value })}
               style={inputStyle}
-              placeholder="e.g. «initiates», «entity»"
+              placeholder="e.g. Stage, Venue, Bar, Headliner, AI, «initiates»"
             />
+            {/* Quick-toggle preset badges */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+              {[
+                { id: 'Stage', label: '🎪 Stage', desc: 'Live Performance Stage' },
+                { id: 'Venue', label: '📍 Venue', desc: 'Cascais Location Pin' },
+                { id: 'Bar', label: '🍸 Bar', desc: 'Hospitality / Bar' },
+                { id: 'Headliner', label: '⭐ Headliner', desc: 'Artist Performer' },
+                { id: 'AI', label: '🤖 AI', desc: 'Autonomous Machine Actor' },
+                { id: 'initiates', label: '⚡ Initiates', desc: 'Initiating Actor' },
+              ].map((st) => {
+                const isActive = (node.stereotype ?? '').toLowerCase().includes(st.id.toLowerCase());
+                return (
+                  <button
+                    key={st.id}
+                    type="button"
+                    title={st.desc}
+                    onClick={() => {
+                      const nextStereotype = isActive ? '' : st.id;
+                      onUpdateNode(selection.id, { stereotype: nextStereotype });
+                    }}
+                    style={{
+                      padding: '3px 8px',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      borderRadius: 4,
+                      border: `1px solid ${isActive ? '#F59E0B' : '#334155'}`,
+                      background: isActive ? '#F59E0B25' : '#1E293B',
+                      color: isActive ? '#FBBF24' : '#94A3B8',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {st.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Class Attributes & Methods */}

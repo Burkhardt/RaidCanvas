@@ -74,10 +74,16 @@ export const PRESETS: DiagramPreset[] = [
     </g>
 
     <!-- 4. Place: Lisbon Stage -->
-    <g aim-node="true" aim-id="LisbonStage_Plc" aim-kind="plc" aim-display-name="Lisbon Stage" aim-qualifier="Physical Site" aim-href="/places?select=plc-lisbon" transform="translate(750, 100)">
-      <rect width="150" height="70" fill="#FFFFFF" stroke="#F59E0B" stroke-width="1.5" />
-      <text x="75" y="28" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Physical Site</text>
-      <text x="75" y="46" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Lisbon Stage</text>
+    <g aim-node="true" aim-id="LisbonStage_Plc" aim-kind="plc" aim-display-name="Lisbon Stage" aim-qualifier="Physical Site" aim-stereotype="Stage" aim-href="/places?select=plc-lisbon" transform="translate(750, 100)">
+      <rect width="160" height="70" fill="#FFFFFF" stroke="#F59E0B" stroke-width="1.5" />
+      <rect width="160" height="6" fill="#3B82F6" stroke="none" />
+      <g class="aim-stereotype-icon aim-icon-stage" transform="translate(12, 23)">
+        <path d="M 2 5.5 L 5.5 1.5 H 22.5 L 26 5.5 Z M 2 20.5 H 9 V 23 H 2 Z M 19 20.5 H 26 V 23 H 19 Z M 8.5 13 H 12 V 19.5 H 8.5 Z M 16 13 H 19.5 V 19.5 H 16 Z M 8.5 20.5 H 19.5 V 21.8 H 8.5 Z M 9.5 22.2 H 18.5 V 23.5 H 9.5 Z" fill="#1F2937" />
+        <path d="M 7.5 6.5 H 20.5 M 3.5 5.5 V 20.5 M 7.5 5.5 V 20.5 M 3.5 5.5 L 7.5 10.5 M 7.5 5.5 L 3.5 10.5 M 3.5 10.5 L 7.5 15.5 M 7.5 10.5 L 3.5 15.5 M 3.5 15.5 L 7.5 20.5 M 7.5 15.5 L 3.5 20.5 M 20.5 5.5 V 20.5 M 24.5 5.5 V 20.5 M 20.5 5.5 L 24.5 10.5 M 24.5 5.5 L 20.5 10.5 M 20.5 10.5 L 24.5 15.5 M 24.5 10.5 L 20.5 15.5 M 20.5 15.5 L 24.5 20.5 M 24.5 15.5 L 20.5 20.5 M 9.5 6.5 L 8.5 9 M 11.8 6.5 V 9 M 14 6.5 V 9 M 16.2 6.5 V 9 M 18.5 6.5 L 19.5 9 M 7.5 19.5 H 20.5" fill="none" stroke="#1F2937" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M 8 2.2 L 8.4 3.2 L 9.5 3.3 L 8.7 4.1 L 8.9 5.2 L 8 4.6 L 7.1 5.2 L 7.3 4.1 L 6.5 3.3 L 7.6 3.2 Z M 12 2.2 L 12.4 3.2 L 13.5 3.3 L 12.7 4.1 L 12.9 5.2 L 12 4.6 L 11.1 5.2 L 11.3 4.1 L 10.5 3.3 L 11.6 3.2 Z M 16 2.2 L 16.4 3.2 L 17.5 3.3 L 16.7 4.1 L 16.9 5.2 L 16 4.6 L 15.1 5.2 L 15.3 4.1 L 14.5 3.3 L 15.6 3.2 Z M 20 2.2 L 20.4 3.2 L 21.5 3.3 L 20.7 4.1 L 20.9 5.2 L 20 4.6 L 19.1 5.2 L 19.3 4.1 L 18.5 3.3 L 19.6 3.2 Z" fill="#F59E0B" />
+      </g>
+      <text x="102" y="28" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Physical Site</text>
+      <text x="102" y="46" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Lisbon Stage</text>
     </g>
 
     <!-- 5. Object: Signed Contract Document -->

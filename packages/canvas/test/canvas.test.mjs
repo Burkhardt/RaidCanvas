@@ -13,6 +13,11 @@ import {
   escapeXmlText,
   escapeXmlAttr,
   computePortalDoorAttrs,
+  computeStereotypeIconAttrs,
+  resolveStereotype,
+  getStereotypePaths,
+  renderStereotypeIconSvg,
+  KNOWN_STEREOTYPES,
   getDefaultNodeName,
   getDefaultNodeBounds,
 } from '../dist/index.js';
@@ -1534,3 +1539,127 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.ok(exportSvg.includes('y="32"'), 'SVG export chevron must be at y=32 (64 / 2)');
   });
 });
+
+describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 / OTW Alignment', () => {
+  const bridge = new RaiBridge();
+
+  test('Test 1: resolveStereotype normalizes known stereotypes and handles guillemets and case', () => {
+    assert.equal(resolveStereotype('Stage'), 'stage');
+    assert.equal(resolveStereotype('«Stage»'), 'stage');
+    assert.equal(resolveStereotype('STAGE'), 'stage');
+    assert.equal(resolveStereotype('Venue'), 'venue');
+    assert.equal(resolveStereotype('«Venue»'), 'venue');
+    assert.equal(resolveStereotype('Bar'), 'bar');
+    assert.equal(resolveStereotype('Headliner'), 'headliner');
+    assert.equal(resolveStereotype('AI'), 'ai');
+    assert.equal(resolveStereotype('initiates'), 'initiates');
+    assert.equal(resolveStereotype('unknown-custom'), undefined);
+    assert.equal(resolveStereotype(undefined), undefined);
+  });
+
+  test('Test 2: getStereotypePaths generates valid geometry for the 5 seed stereotypes', () => {
+    for (const id of ['stage', 'venue', 'bar', 'headliner', 'ai']) {
+      const paths = getStereotypePaths(id);
+      assert.ok(paths.width > 0, `${id} must have positive width`);
+      assert.ok(paths.height > 0, `${id} must have positive height`);
+      assert.ok(paths.strokeD.length > 0 || paths.fillD.length > 0, `${id} must have SVG path data`);
+    }
+
+    // Stage specific checks (Festival truss, canopy roof, stars, columns, spotlights, steps)
+    const stage = getStereotypePaths('stage');
+    assert.ok(stage.fillD.includes('M 2 5.5'), 'Stage must have canopy trapezoid roof');
+    assert.ok(stage.strokeD.includes('M 3.5 5.5'), 'Stage must have lattice cross-braced columns');
+    assert.ok(stage.starsD && stage.starsD.length > 0, 'Stage canopy must have 4 stars');
+
+    // Venue specific checks (teardrop pin, circular aperture, ground ring)
+    const venue = getStereotypePaths('venue');
+    assert.ok(venue.strokeD.includes('C 8.2 15.5'), 'Venue must have teardrop curvature');
+    assert.ok(venue.strokeD.includes('A 2.5 2.5'), 'Venue must have circular aperture');
+    assert.ok(venue.strokeD.includes('M 5.5 22.5'), 'Venue must have ground target ellipse');
+  });
+
+  test('Test 3: createAimNode for Place with stereotype="Stage" badges Left Hemisphere and shifts text', () => {
+    const nodeMeta = createAimNode({
+      id: 'LisbonStage_Plc',
+      kind: 'plc',
+      displayName: 'Lisbon Stage',
+      qualifier: 'Physical Site',
+      stereotype: 'Stage',
+      href: '/places?select=plc-lisbon',
+      bounds: { x: 750, y: 100, width: 160, height: 70 },
+    });
+
+    const attrs = nodeMeta.attrs;
+    assert.ok(attrs, 'Node metadata must have attrs');
+    assert.equal(attrs.iconFill?.display, 'block', 'Stage icon fill must be displayed');
+    assert.equal(attrs.iconStroke?.display, 'block', 'Stage icon stroke must be displayed');
+    assert.equal(attrs.iconAccent?.display, 'block', 'Stage canopy stars must be displayed');
+
+    // Text refX must be shifted into the right half of the card (0.62) to prevent icon collision
+    assert.equal(attrs.label?.refX, 0.62, 'Label must be shifted to refX=0.62 to clear left stereotype icon');
+    assert.equal(attrs.qualifier?.refX, 0.62, 'Qualifier must be shifted to refX=0.62 to clear left stereotype icon');
+    assert.equal(attrs.label?.text, 'Lisbon Stage', 'Label must not contain redundant "Stage" prefix text');
+    assert.equal(attrs.qualifier?.text, 'Physical Site');
+  });
+
+  test('Test 4: createAimNode for Person with stereotype="Headliner" adorns artist crown', () => {
+    const nodeMeta = createAimNode({
+      id: 'Star_Artist',
+      kind: 'per',
+      displayName: 'Amália',
+      qualifier: 'Fado Singer',
+      stereotype: 'Headliner',
+      bounds: { x: 50, y: 80, width: 100, height: 90 },
+    });
+
+    const attrs = nodeMeta.attrs;
+    assert.ok(attrs, 'Node metadata must have attrs');
+    assert.equal(attrs.iconFill?.display, 'block', 'Crown fill must be displayed');
+    assert.equal(attrs.iconFill?.fill, CascaisPalette.NetGold, 'Crown must be filled with Net Gold');
+    assert.equal(attrs.iconAccent?.display, 'block', 'Crown jewels must be displayed in Chalk White');
+  });
+
+  test('Test 5: RaiBridge.renderNodeInnerSvg produces valid vector SVG with aim-stereotype-icon', () => {
+    const innerSvg = bridge.renderNodeInnerSvg({
+      id: 'LisbonStage_Plc',
+      kind: 'plc',
+      displayName: 'Lisbon Stage',
+      qualifier: 'Physical Site',
+      stereotype: 'Stage',
+      bounds: { x: 750, y: 100, width: 160, height: 70 },
+    });
+
+    assert.ok(innerSvg.includes('class="aim-stereotype-icon aim-icon-stage"'), 'Exported SVG must contain stage icon group');
+    assert.ok(innerSvg.includes('Physical Site'), 'Must contain qualifier');
+    assert.ok(innerSvg.includes('Lisbon Stage'), 'Must contain display name');
+  });
+
+  test('Test 6: Full round-trip SVG hydration and serialization preserves aim-stereotype', () => {
+    const originalSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" id="Test_Dia" aim-archetype="Testing">
+  <g class="aim-nodes-layer">
+    <g aim-node="true" aim-id="Stage_1" aim-kind="plc" aim-display-name="Main Stage" aim-stereotype="Stage" aim-href="/stages/1" transform="translate(100, 100)">
+      <rect width="160" height="70" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.5" />
+    </g>
+  </g>
+</svg>`;
+
+    const mockGraph = {
+      clearCells: () => {},
+      addNode: () => {},
+      addEdge: () => {},
+      on: () => {},
+      getPorts: () => [],
+      getNodes: () => [],
+      getEdges: () => [],
+    };
+
+    const metamodel = bridge.hydrateFromSvg(originalSvg, mockGraph);
+    assert.equal(metamodel.nodes.length, 1);
+    assert.equal(metamodel.nodes[0]?.stereotype, 'Stage', 'Metamodel must extract aim-stereotype');
+
+    const updatedSvg = bridge.updateExistingSvg(originalSvg, metamodel, {});
+    assert.ok(updatedSvg.includes('aim-stereotype="Stage"'), 'Updated SVG must preserve aim-stereotype attribute');
+    assert.ok(updatedSvg.includes('class="aim-stereotype-icon aim-icon-stage"'), 'Updated SVG must render stage icon');
+  });
+});
+

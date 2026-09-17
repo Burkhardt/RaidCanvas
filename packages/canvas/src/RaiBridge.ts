@@ -32,6 +32,10 @@ import {
 	wrapAimText,
 	computeMaxLineLength,
 } from './X6Shapes.js';
+import {
+	resolveStereotype,
+	renderStereotypeIconSvg,
+} from './StereotypeIcons.js';
 
 /**
  * Escapes XML special characters for safe inclusion in XML text nodes.
@@ -998,23 +1002,40 @@ export class RaiBridge {
 		const isInstance = node.instance === true;
 		const width = node.bounds.width;
 		const height = node.bounds.height;
+		const resolvedStereo = resolveStereotype(node.stereotype);
+		const hasStereoIcon = Boolean(resolvedStereo && resolvedStereo !== 'initiates');
+		const cardTextCx = hasStereoIcon ? Math.round(width * 0.62) : width / 2;
+		const cardTextWidth = hasStereoIcon ? Math.max(40, width - 52) : width;
+		const iconY = Math.max(6, Math.round((height - 24) / 2));
 
 		if (node.kind === 'uc') {
 			const rx = width / 2;
 			const ry = height / 2;
 			svg += `      <ellipse cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGold}" stroke-width="2" />\n`;
-			svg += this.renderSvgText(node.displayName, rx, ry, 13, 'bold', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+			if (hasStereoIcon) {
+				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
+			}
+			svg += this.renderSvgText(node.displayName, cardTextCx, ry, 13, 'bold', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
 		} else if (node.kind === 'act') {
 			svg += `      <rect width="${width}" height="${height}" rx="12" ry="12" fill="${CascaisPalette.CanvasCream}" stroke="${CascaisPalette.HeraldicGreen}" stroke-width="2" />\n`;
-			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 13, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+			if (hasStereoIcon) {
+				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
+			}
+			svg += this.renderSvgText(node.displayName, cardTextCx, height / 2, 13, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
 		} else if (node.kind === 'cls') {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
 			svg += `      <rect width="${width}" height="28" fill="${CascaisPalette.CanvasCream}" stroke="none" />\n`;
 			svg += `      <line x1="0" y1="28" x2="${width}" y2="28" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
-			svg += this.renderSvgText(node.displayName, width / 2, 14, 12, 'bold', CascaisPalette.TextPrimary, isInstance, undefined, width);
+			if (hasStereoIcon) {
+				svg += renderStereotypeIconSvg(node.stereotype, 8, 2);
+			}
+			svg += this.renderSvgText(node.displayName, cardTextCx, 14, 12, 'bold', CascaisPalette.TextPrimary, isInstance, undefined, cardTextWidth);
 		} else if (node.kind === 'obj') {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
-			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+			if (hasStereoIcon) {
+				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
+			}
+			svg += this.renderSvgText(node.displayName, cardTextCx, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
 		} else if (node.kind === 'per') {
 			const isInitiating = node.stereotype?.toLowerCase().includes('initiates') ?? false;
 			const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
@@ -1022,17 +1043,31 @@ export class RaiBridge {
 			svg += `      <rect width="${width}" height="${height}" fill="none" stroke="none" />\n`;
 			svg += `      <path d="M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />\n`;
 			svg += `      <circle cx="${cx}" cy="22" r="8" fill="${CascaisPalette.ChalkWhite}" stroke="${strokeColor}" stroke-width="2" />\n`;
+			if (resolvedStereo === 'headliner') {
+				svg += renderStereotypeIconSvg('headliner', cx - 12, 2);
+			} else if (resolvedStereo === 'ai') {
+				svg += renderStereotypeIconSvg('ai', cx + 10, 10);
+			}
 			svg += this.renderSvgText(node.displayName, cx, 68, 12, '500', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
 		} else if (node.kind === 'plc') {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
 			svg += `      <rect width="${width}" height="6" fill="#3B82F6" stroke="none" />\n`;
-			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+			if (hasStereoIcon) {
+				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
+			}
+			svg += this.renderSvgText(node.displayName, cardTextCx, height / 2, 12, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
 		} else if (node.kind === 'rol') {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" stroke-dasharray="4,3" />\n`;
-			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+			if (hasStereoIcon) {
+				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
+			}
+			svg += this.renderSvgText(node.displayName, cardTextCx, height / 2, 12, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
 		} else {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" />\n`;
-			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+			if (hasStereoIcon) {
+				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
+			}
+			svg += this.renderSvgText(node.displayName, cardTextCx, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
 		}
 
 		// The Duality of the Object: Portuguese Bicolor Seam & Portal Door

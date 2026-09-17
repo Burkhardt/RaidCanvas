@@ -40,10 +40,22 @@ export {
   getDefaultNodeBounds,
   getDefaultNodeName,
   computePortalDoorAttrs,
+  computeStereotypeIconAttrs,
   setNodeDualityActive,
   wrapAimText,
   computeMaxLineLength,
 } from './X6Shapes.js';
+
+// Stereotype Iconography & Vasco Ontology v1.3 / OTW Library
+export {
+  KNOWN_STEREOTYPES,
+  resolveStereotype,
+  getStereotypePaths,
+  renderStereotypeIconSvg,
+  type StereotypeId,
+  type StereotypeDefinition,
+  type StereotypePaths,
+} from './StereotypeIcons.js';
 
 // Anti-Entropy Semantic Connection Rules
 export {
