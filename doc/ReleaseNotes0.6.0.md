@@ -1,63 +1,55 @@
-# Release Notes - RaidCanvas v0.6.0 (CR033 Ontological Deep Linking & Navigation)
+# Release Notes - RaidCanvas v0.6.0 (The Duality of the Object & CR033 Ontological Navigation)
 
-**Author & Principal Architect:** Dr. Rainer Burkhardt <Rainer@Burkhardt.com>  
-**Lead Implementation Engineer:** Alan (7012), Visual Systems & Canvas Lead (`Burkhardt/RaidCanvas`)  
+**Principal Architect:** Dr. Rainer Burkhardt <Rainer@Burkhardt.com>  
+**Visual Systems & Canvas Lead:** Alan (7012) (`Burkhardt/RaidCanvas`)  
 **Requesting Agent & Product Review:** Adele (7010), AIA Product Manager  
 **Platform Review:** Zébio (7011), Full-Stack Lead Developer (`AIA Platform`)  
 **Package:** `@dr2rai/raid-canvas@0.6.0`  
-**Date:** 2026-09-17  
+**Date:** September 2026  
+**Foundational Treatise:** [`doc/DualityOfTheObject.md`](file:///Users/RSB/Projects/GitHub/RaidCanvas/doc/DualityOfTheObject.md)  
 
 ---
 
 ## 1. Executive Summary
 
-`@dr2rai/raid-canvas@0.6.0` delivers the complete implementation and formal verification of **CR033** (*Ontological Deep Linking & Navigation*), requested by Adele and aligned with Dr. Rainer Burkhardt for the AIA Platform.
+`@dr2rai/raid-canvas@0.6.0` marks a landmark release uniting the 1968 Dynabook touch vision, the Breutmann & Burkhardt 1991/1992 Object Technology foundations, the AfricaStage WWWA ontology, and modern iPad ergonomics into a unified visual computing architecture: **The Duality of the Object**.
 
-CR033 realizes the foundational Dynabook and Smalltalk-80 vision: **no graphical object on screen is a dead picture—every node is a live gateway to its underlying entity.**
+Inspired by the self-portrait of Rainer's fourteen-year-old son split precisely down the center seam, every entity in RaidCanvas now acknowledges its dual reality:
+- **The Left Hemisphere (The Persona / The Anchor):** Represents the entity as it participates in the immediate scene. Tapping it opens the In Situ Inspector Drawer without leaving the diagram.
+- **The Right Hemisphere (The Portal / The Door):** Represents the gateway into the entity's underlying reality (sub-workflow, model dossier, or URL). Tapping it steps through the doorway.
 
-With v0.6.0:
-1. **Ontological Contract (`aim-href`)**: Visual diagram nodes carry typed destination links, serialized to and hydrated from the canonical SVG attribute `aim-href`.
-2. **Standalone Clickable Vector SVGs**: Exported SVGs wrap the visual shape markup in standard SVG 2 `<a href="..." target="_blank">...</a>` elements, enabling users to click diagram nodes directly in web browsers (Chrome, Safari, Firefox), Keynote presentations, and exported PDF documents.
-3. **Interactive Component Props & Drag Immunity Guard**: `<RaidCanvas />` provides `onNodeClick` and `onNodeDblClick` callbacks delivering full, fresh `RaidNodeData`. Crucially, an interaction guard distinguishes intentional clicks from diagram rearrangement gestures ($\Delta > 4\text{px}$ or active drag movement), eliminating accidental navigation while dragging shapes across the canvas.
+This release completely retires the desktop double-click paradigm in favor of single-tap hemisphere disambiguation tailored for Next.js, TailwindCSS, and DaisyUI on modern slates.
 
 ---
 
-## 2. Changes in v0.6.0
+## 2. Key Architecture & Features in v0.6.0
 
-### Item 1: Metamodel & Contract (`aim-href`)
-* **`AimSvgContract.ATTR_HREF`**: Added `ATTR_HREF: 'aim-href'` to the canonical SVG contract constant.
-* **`RaidNodeData.href`**: Added `readonly href?: string;` to the immutable node data interface.
-* **Metamodel Extraction (`RaiBridge.extractMetamodel`)**:
-  - Extracts `aim-href` directly from the node group `<g class="aim-node">`.
-  - Also inspects any inner `<a href="...">` or `<a xlink:href="...">` element as a fallback.
-  - Automatically populates `node.href` in the extracted metamodel.
-* **Metamodel Serialization & Updating (`RaiBridge.generateFreshSvg` & `RaiBridge.updateExistingSvg`)**:
-  - Writes `aim-href="${escapeXmlAttr(node.href)}"` onto the `<g class="aim-node">` container.
-  - Dynamically updates or removes `aim-href` when updating existing SVG documents.
+### 2.1 The Portuguese Bicolor Seam & Portal Door
+* **Visual Expression**: When a node carries an ontological link (`node.href` / `aim-href`), its right hemisphere is washed in translucent Cascais Heraldic Green (`rgba(16, 185, 129, 0.10)`, class `.aim-portal-door`) alongside a quiet doorway chevron (`<text class="aim-portal-chevron">›</text>`).
+* **Selective Revelation**: If `node.href` is absent or empty, no door or chevron is rendered. The node remains a monolithic, solid archetype shape, allowing operators to instantly spot which nodes are portals and which are terminal facts.
+* **Archetype Door Geometries**:
+  - `uc` (UseCase ellipse): Elliptical right arc `M ${rx} 0 A ${rx} ${ry} 0 0 1 ${rx} ${height} Z`
+  - `act` (Activity rounded rect): Rounded right corners `M ${midX} 0 H ${w - 12} a 12 12 0 0 1 12 12 v ${h - 24} a 12 12 0 0 1 -12 12 H ${midX} Z`
+  - `cls`, `obj`, `per`, `plc`, `rol`: Clean rectangular right hemisphere `M ${midX} 0 H ${w} v ${h} H ${midX} Z`
+* **Clickable Standalone Vector SVGs**: In exported SVG documents, the portal door path and chevron are wrapped in standard `<a href="${escapedHref}" target="_blank">`, maintaining functional vector portals in Safari, Keynote, and PDF viewers outside the browser.
 
-### Item 2: Clickable Standalone Vector SVGs
-* **Inner Shape Anchor Wrapping**:
-  - In `RaiBridge.renderNodeInnerSvg`: When `node.href` is specified, the node's visual markup (rectangles, ellipses, paths, text spans) is wrapped inside `<a href="${escapeXmlAttr(node.href)}" target="_blank">...</a>`.
-  - Standalone SVG files opened in Safari, Chrome, Keynote, or compiled into PDF documents allow users to click any linked node to navigate directly to its corresponding entity or sub-diagram.
-  - Nodes without `node.href` do not produce `<a>` wrapper elements.
+### 2.2 Touch-First Ergonomics & Event Dispatch (`<RaidCanvas />`)
+* **Retirement of Double-Click**: Deprecates `onNodeDblClick` to avoid Mobile Safari's 300ms perceptual tap delay and viewport zoom conflicts.
+* **Hemisphere Disambiguation**:
+  - `onNodeClick(node, event)`: Fired on left-hemisphere taps; consumed by AIA to toggle the DaisyUI Inspector Drawer.
+  - `onNodePortalClick(node, event)`: Fired on right-hemisphere taps (or `.aim-portal-door`); consumed by AIA to execute page/route transitions.
+* **Fitts' Law Touch Target**: In a standard 160×70px Activity, the right door is a generous 80×70px touch target—easily tappable by an iPad operator's thumb.
+* **Drag-Immunity Guard**: Pointer movement exceeding 4px or triggering X6 drag moving events automatically suppresses both click callbacks, ensuring rearrangement never causes accidental navigation.
 
-### Item 3: Component Props & Drag-Immunity Guard (`<RaidCanvas />`)
-* **`RaidCanvasProps`**:
-  - `onNodeClick?: (node: RaidNodeData, event: MouseEvent) => void`
-  - `onNodeDblClick?: (node: RaidNodeData, event: MouseEvent) => void`
-* **Interaction Drag-Immunity Guard**:
-  - Distinguishes click/tap gestures from node dragging.
-  - On `node:mousedown`, initial pointer coordinates are captured (`moved = false`).
-  - On `node:moving` or `node:move`, `moved` is flagged as `true`.
-  - On `node:click`, if `start.moved` is `true` or $\text{distance} = \sqrt{\Delta x^2 + \Delta y^2} > 4\text{px}$, the event is recognized as a drag gesture and `onNodeClick` is suppressed.
-  - Only intentional clicks (or micro-jitter $\le 4\text{px}$) fire `onNodeClick`.
-* **Double Click Navigation**:
-  - `node:dblclick` is wired to `onNodeDblClickRef`, passing the full `RaidNodeData` with fresh bounding box coordinates and the underlying event.
-* **Imperative Ref Preservation (`RaidCanvasHandle`)**:
-  - `addNode(kind, x, y, customData)` and `updateNode(id, updates)` accept and preserve `customData.href` and `updates.href`.
-
-### Item 4: URL Attribute & Text Escaping
-* All serialized URLs pass through `escapeXmlAttr()`, ensuring query parameters containing ampersands (`&` -> `&amp;`), quotes (`"` -> `&quot;`), and angle brackets parse with 0 XML parser errors.
+### 2.3 The Complete Ontological Pantheon
+Expanded `AimOntologyKind` to reflect the complete symmetrical ontology of the Activity–Object Manifesto and KL-ONE role theory:
+- `act`: Activity (instance execution in time)
+- `uc`: UseCase (behavioral blueprint / method signature)
+- `cls`: Class (attribute & method specification card)
+- `obj`: Object (living instance with runtime state)
+- `per`: Person / Actor (living role filler with head circle and torso arc)
+- `plc`: Place (spatial venue / stage card with blue architectural header)
+- `rol`: Role (structural constraint / KL-ONE rule with dashed boundary)
 
 ---
 
@@ -66,37 +58,48 @@ With v0.6.0:
 | Requirement / Acceptance Test | Target / Contract | Result | Status |
 | :--- | :--- | :--- | :---: |
 | **CR033 Test 1: Round-Trip Preservation** | `aim-href` round-trips from SVG -> Metamodel -> SVG without data loss | Verified via `extractMetamodel`, `generateFreshSvg`, and `updateExistingSvg` | ✅ PASS |
-| **CR033 Test 2: Vector SVG Export** | Node shape markup wrapped in `<a href="..." target="_blank">`; unlinked nodes untouched | Verified via `DOMParser` query selector inspection | ✅ PASS |
+| **CR033 Test 2: Bicolor Vector SVG Export** | Right hemisphere wrapped in `<a href="..." target="_blank">`; base shape in persona layer | Verified via `DOMParser` query selector inspection | ✅ PASS |
 | **CR033 Test 3: XML Escaping of URLs** | Complex query params with `&`, quotes, and special chars parse with 0 `<parsererror>` | Verified with DOMParser round-trip and attribute checks | ✅ PASS |
-| **CR033 Test 4: Node Data Payload** | `createAimNode` retains `href` in metadata data payload | Verified in unit test | ✅ PASS |
+| **CR033 Test 4: Node Data Payload & Attrs** | `createAimNode` computes portal attrs (`door`, `chevron`) when `href` is present | Verified in unit test | ✅ PASS |
 | **CR033 Test 5: SVG Sync Updates** | `updateExistingSvg` synchronizes `aim-href` additions/modifications | Verified in unit test | ✅ PASS |
-| **CR033 Test 6: Component Props** | `onNodeClick` and `onNodeDblClick` accepted and exposed | Verified via React element inspection | ✅ PASS |
-| **CR033 Test 7: Drag Immunity Guard** | 100px drag or $\Delta > 4\text{px}$ suppresses `onNodeClick`; micro-jitter $\le 4\text{px}$ fires | Verified via drag guard simulation | ✅ PASS |
-| **CR033 Test 8: Imperative Handle** | `addNode` and `updateNode` preserve `href` | Verified via mock graph handle calls | ✅ PASS |
-| **TypeScript Compilation** | Strict typecheck (`exactOptionalPropertyTypes: true`) across monorepo | 0 errors | ✅ PASS |
+| **CR033 Test 6: Portal Door Geometries** | `computePortalDoorAttrs` validates `uc` arc, `act` rounded rect, and selective revelation | Verified in unit test | ✅ PASS |
+| **CR033 Test 7: Complete Pantheon** | `plc` and `rol` archetypes, stencil sizes, and defaults round-trip correctly | Verified in unit test | ✅ PASS |
+| **CR033 Test 8: Hemisphere Event Dispatch** | Left hemisphere fires `onNodeClick`; right hemisphere fires `onNodePortalClick` | Verified in interaction simulation | ✅ PASS |
+| **CR033 Test 9: Drag Immunity Guard** | 100px drag or $\Delta > 4\text{px}$ suppresses click callbacks; micro-jitter $\le 4\text{px}$ fires | Verified via drag guard simulation | ✅ PASS |
+| **TypeScript Strictness** | Strict typecheck (`exactOptionalPropertyTypes: true`) across monorepo | 0 errors | ✅ PASS |
 | **Production Build** | `tsc -b --force` and Vite bundle build | Clean build | ✅ PASS |
-| **Full Regression Suite** | All 56 tests across 8 test suites pass | 56 passing, 0 failing | ✅ PASS |
+| **Full Regression Suite** | All 59 tests across 8 test suites pass | 59 passing, 0 failing | ✅ PASS |
 | **Authorship Attribution** | Dr. Rainer Burkhardt (`author`), Alan (`contributor`) | Preserved in `package.json` | ✅ PASS |
-| **Documentation** | `README.md`, `ImplementationPlan0.6.0.md`, `ReleaseNotes0.6.0.md` | Fully documented | ✅ PASS |
+| **Treatise & Documentation** | `doc/DualityOfTheObject.md`, `README.md`, `ReleaseNotes0.6.0.md` | Fully documented | ✅ PASS |
 
 ---
 
-## 4. Upstream Integration Guidance for AIA (`AIA Platform` / `aia-workbench`)
+## 4. Upstream Integration Guidance for AIA (`aia-workbench`)
 
-### Live Canvas Deep Linking
 ```tsx
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { RaidCanvas, type RaidNodeData } from '@dr2rai/raid-canvas';
 
-export function DiagramView({ svgString }: { svgString: string }) {
-  const handleNodeClick = (node: RaidNodeData, event: MouseEvent) => {
-    if (node.href) {
-      if (node.href.startsWith('http://') || node.href.startsWith('https://')) {
-        window.open(node.href, '_blank');
-      } else {
-        // In-app routing (e.g. Next.js / React Router / Workbench navigation)
-        router.push(node.href);
-      }
+export function OntologicalCanvasView({ svgString }: { svgString: string }) {
+  const router = useRouter();
+
+  // Left Hemisphere: Persona Anchor -> Open In Situ Inspector Drawer
+  const handleNodeClick = (node: RaidNodeData) => {
+    openInspectorDrawer({
+      entityId: node.id,
+      kind: node.kind,
+      displayName: node.displayName,
+    });
+  };
+
+  // Right Hemisphere: Portal Door -> Navigate to Target Reality
+  const handleNodePortalClick = (node: RaidNodeData) => {
+    if (!node.href) return;
+    if (node.href.startsWith('http://') || node.href.startsWith('https://')) {
+      window.open(node.href, '_blank', 'noopener,noreferrer');
+    } else {
+      router.push(node.href);
     }
   };
 
@@ -104,10 +107,8 @@ export function DiagramView({ svgString }: { svgString: string }) {
     <RaidCanvas
       svgContent={svgString}
       onNodeClick={handleNodeClick}
+      onNodePortalClick={handleNodePortalClick}
     />
   );
 }
 ```
-
-### Standalone SVG Consumption
-SVGs generated by `RaiBridge.serializeToSvg` or `RaiBridge.generateFreshSvg` embed clickable `<a href="..." target="_blank">` wrappers around shape elements. Consumers can directly download, email, or embed these SVGs, and all linked nodes remain clickable in standard vector viewers.

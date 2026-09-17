@@ -96,7 +96,26 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
               <option value="act">Activity (aim-act)</option>
               <option value="cls">Class (aim-cls)</option>
               <option value="obj">Object / Instance (aim-obj)</option>
+              <option value="plc">Place / Stage (aim-plc)</option>
+              <option value="rol">Role (aim-rol)</option>
             </select>
+          </div>
+
+          {/* Ontological Deep Link / Portal Door (CR033) */}
+          <div>
+            <label style={labelStyle}>Ontological Deep Link (aim-href / Portal Door)</label>
+            <input
+              type="text"
+              value={node.href ?? ''}
+              onChange={(e) => onUpdateNode(selection.id, { href: e.target.value })}
+              style={inputStyle}
+              placeholder="e.g. http://localhost:3042/activities/123"
+            />
+            <span style={{ fontSize: 10, color: '#10B981', marginTop: 3, display: 'block' }}>
+              {node.href && node.href.trim().length > 0
+                ? '🟢 Portuguese Bicolor Portal Door Active'
+                : '⚪ Monolithic Archetype (No link)'}
+            </span>
           </div>
 
           {/* Stereotype */}

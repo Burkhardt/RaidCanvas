@@ -173,6 +173,7 @@ export class RaiBridge {
 					width: size.width,
 					height: size.height,
 				},
+				...(customData.href !== undefined && customData.href.trim().length > 0 ? { href: customData.href.trim() } : {}),
 				...(customData.properties !== undefined ? { properties: customData.properties } : {}),
 			};
 
@@ -1005,6 +1006,11 @@ export class RaiBridge {
 		} else if (node.kind === 'act') {
 			svg += `      <rect width="${width}" height="${height}" rx="12" ry="12" fill="${CascaisPalette.CanvasCream}" stroke="${CascaisPalette.HeraldicGreen}" stroke-width="2" />\n`;
 			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 13, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+		} else if (node.kind === 'cls') {
+			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
+			svg += `      <rect width="${width}" height="28" fill="${CascaisPalette.CanvasCream}" stroke="none" />\n`;
+			svg += `      <line x1="0" y1="28" x2="${width}" y2="28" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
+			svg += this.renderSvgText(node.displayName, width / 2, 14, 12, 'bold', CascaisPalette.TextPrimary, isInstance, undefined, width);
 		} else if (node.kind === 'obj') {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
 			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
@@ -1016,14 +1022,39 @@ export class RaiBridge {
 			svg += `      <path d="M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />\n`;
 			svg += `      <circle cx="${cx}" cy="22" r="8" fill="${CascaisPalette.ChalkWhite}" stroke="${strokeColor}" stroke-width="2" />\n`;
 			svg += this.renderSvgText(node.displayName, cx, 68, 12, '500', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+		} else if (node.kind === 'plc') {
+			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
+			svg += `      <rect width="${width}" height="6" fill="#3B82F6" stroke="none" />\n`;
+			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+		} else if (node.kind === 'rol') {
+			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" stroke-dasharray="4,3" />\n`;
+			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
 		} else {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" />\n`;
 			svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
 		}
 
+		// The Duality of the Object: Portuguese Bicolor Seam & Portal Door
 		if (node.href !== undefined && node.href.trim().length > 0) {
 			const escapedHref = escapeXmlAttr(node.href.trim());
-			return `      <a href="${escapedHref}" target="_blank">\n${svg}      </a>\n`;
+			const midX = Math.round(width / 2);
+			let doorPath = `M ${midX} 0 H ${width} v ${height} H ${midX} Z`;
+			if (node.kind === 'uc') {
+				const rx = Math.round(width / 2);
+				const ry = Math.round(height / 2);
+				doorPath = `M ${rx} 0 A ${rx} ${ry} 0 0 1 ${rx} ${height} Z`;
+			} else if (node.kind === 'act') {
+				const r = 12;
+				doorPath = `M ${midX} 0 H ${width - r} a ${r} ${r} 0 0 1 ${r} ${r} v ${height - 2 * r} a ${r} ${r} 0 0 1 -${r} ${r} H ${midX} Z`;
+			}
+
+			const chevronX = width - 12;
+			const chevronY = Math.round(height / 2);
+
+			svg += `      <a href="${escapedHref}" target="_blank">\n`;
+			svg += `        <path d="${doorPath}" fill="rgba(16, 185, 129, 0.10)" class="aim-portal-door" />\n`;
+			svg += `        <text x="${chevronX}" y="${chevronY}" fill="rgba(16, 185, 129, 0.60)" font-size="14" font-weight="bold" font-family="Inter, system-ui, -apple-system, sans-serif" text-anchor="middle" dominant-baseline="central" class="aim-portal-chevron">›</text>\n`;
+			svg += `      </a>\n`;
 		}
 
 		return svg;
@@ -1140,6 +1171,8 @@ export class RaiBridge {
 		if (lower === 'cls' || lower === 'class') return 'cls';
 		if (lower === 'obj' || lower === 'object') return 'obj';
 		if (lower === 'per' || lower === 'person' || lower === 'actor') return 'per';
+		if (lower === 'plc' || lower === 'place' || lower === 'venue') return 'plc';
+		if (lower === 'rol' || lower === 'role') return 'rol';
 		return 'act';
 	}
 
@@ -1159,6 +1192,8 @@ export class RaiBridge {
 		if (shape.includes('cls')) return 'cls';
 		if (shape.includes('obj')) return 'obj';
 		if (shape.includes('per')) return 'per';
+		if (shape.includes('plc')) return 'plc';
+		if (shape.includes('rol')) return 'rol';
 		return 'act';
 	}
 }

@@ -12,6 +12,9 @@ import {
   computeMaxLineLength,
   escapeXmlText,
   escapeXmlAttr,
+  computePortalDoorAttrs,
+  getDefaultNodeName,
+  getDefaultNodeBounds,
 } from '../dist/index.js';
 
 const jsdom = new JSDOM();
@@ -1151,7 +1154,7 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.ok(updatedSvg.includes('aim-href="http://localhost:3042/activities/ACT_123"'));
   });
 
-  test('Test 2: Clickable vector SVG export wraps node shape markup in <a href="..." target="_blank">', () => {
+  test('Test 2: Clickable vector SVG export wraps right hemisphere portal door in <a href="..." target="_blank">', () => {
     const metamodel = {
       diagramId: 'TestDiag_CR033',
       archetype: 'InteractiveCanvas',
@@ -1181,17 +1184,29 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.ok(linkedGroup, 'Linked group exists');
     assert.equal(linkedGroup.getAttribute('aim-href'), 'http://localhost:3042/diagrams/D1');
 
+    // Left hemisphere persona / anchor: base rect and display text remain outside <a>
+    const baseRect = linkedGroup.querySelector('rect');
+    assert.ok(baseRect, 'Base rect exists in persona hemisphere');
+    const mainText = linkedGroup.querySelector('text:not(.aim-portal-chevron)');
+    assert.ok(mainText, 'Main text exists in persona hemisphere');
+
+    // Right hemisphere portal door: wrapped in <a>
     const anchor = linkedGroup.querySelector('a');
-    assert.ok(anchor, 'Inner <a> anchor element wraps node content');
+    assert.ok(anchor, 'Inner <a> anchor element wraps portal door');
     assert.equal(anchor.getAttribute('href'), 'http://localhost:3042/diagrams/D1');
     assert.equal(anchor.getAttribute('target'), '_blank');
-    assert.ok(anchor.querySelector('rect'), 'Rect is inside anchor');
-    assert.ok(anchor.querySelector('text'), 'Text is inside anchor');
+    const doorPath = anchor.querySelector('.aim-portal-door');
+    assert.ok(doorPath, 'Portal door path is inside anchor');
+    const chevron = anchor.querySelector('.aim-portal-chevron');
+    assert.ok(chevron, 'Doorway chevron is inside anchor');
+    assert.equal(chevron?.textContent?.trim(), '›');
 
+    // Selective Revelation: unlinked node has no <a> and no portal door
     const unlinkedGroup = doc.querySelector('g[aim-id="Unlinked_Node"]');
     assert.ok(unlinkedGroup, 'Unlinked group exists');
     assert.equal(unlinkedGroup.hasAttribute('aim-href'), false);
     assert.equal(unlinkedGroup.querySelector('a'), null, 'No anchor element for unlinked node');
+    assert.equal(unlinkedGroup.querySelector('.aim-portal-door'), null, 'No portal door for unlinked node');
   });
 
   test('Test 3: XML escaping of URLs containing query parameters with ampersands, quotes, or special characters', () => {
@@ -1231,7 +1246,7 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(extracted.nodes[0]?.href, complexUrl);
   });
 
-  test('Test 4: createAimNode retains href in node metadata data payload', () => {
+  test('Test 4: createAimNode retains href in node metadata data payload and computes portal attrs', () => {
     const nodeMeta = createAimNode({
       id: 'Act_Linked',
       kind: 'act',
@@ -1241,6 +1256,10 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     });
 
     assert.equal(nodeMeta.data?.href, 'http://localhost:3042/activities/ACT_999');
+    assert.equal(nodeMeta.attrs?.door?.display, 'block');
+    assert.ok(nodeMeta.attrs?.door?.d?.includes('M 70 0'));
+    assert.equal(nodeMeta.attrs?.chevron?.display, 'block');
+    assert.equal(nodeMeta.attrs?.chevron?.text, '›');
   });
 
   test('Test 5: updateExistingSvg synchronizes aim-href updates on nodes', () => {
@@ -1270,5 +1289,97 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.ok(updatedSvg.includes('aim-href="http://localhost:3042/activities/SYNC_1"'));
     const reExtracted = bridge.extractMetamodel(updatedSvg);
     assert.equal(reExtracted.nodes[0]?.href, 'http://localhost:3042/activities/SYNC_1');
+  });
+
+  test('Test 6: Portuguese Bicolor Seam portal door geometries and selective revelation', () => {
+    // Unlinked node: hidden door and chevron
+    const unlinkedAttrs = computePortalDoorAttrs({
+      id: 'n1',
+      kind: 'act',
+      displayName: 'Unlinked',
+      bounds: { x: 0, y: 0, width: 140, height: 60 },
+    });
+    assert.equal(unlinkedAttrs.door.display, 'none');
+    assert.equal(unlinkedAttrs.chevron.display, 'none');
+
+    // UseCase (ellipse): elliptical arc right hemisphere
+    const ucAttrs = computePortalDoorAttrs({
+      id: 'n2',
+      kind: 'uc',
+      displayName: 'UC',
+      href: 'http://localhost:3042/uc',
+      bounds: { x: 0, y: 0, width: 140, height: 70 },
+    });
+    assert.equal(ucAttrs.door.display, 'block');
+    assert.ok(ucAttrs.door.d.startsWith('M 70 0 A 70 35'));
+    assert.equal(ucAttrs.chevron.x, 128);
+    assert.equal(ucAttrs.chevron.y, 35);
+
+    // Activity (rounded rect r=12): rounded right corners
+    const actAttrs = computePortalDoorAttrs({
+      id: 'n3',
+      kind: 'act',
+      displayName: 'Act',
+      href: 'http://localhost:3042/act',
+      bounds: { x: 0, y: 0, width: 150, height: 60 },
+    });
+    assert.equal(actAttrs.door.display, 'block');
+    assert.ok(actAttrs.door.d.includes('M 75 0 H 138 a 12 12'));
+    assert.equal(actAttrs.chevron.x, 138);
+    assert.equal(actAttrs.chevron.y, 30);
+
+    // Class / Object / Place / Role: sharp right rect
+    const objAttrs = computePortalDoorAttrs({
+      id: 'n4',
+      kind: 'obj',
+      displayName: 'Obj',
+      href: 'http://localhost:3042/obj',
+      bounds: { x: 0, y: 0, width: 160, height: 80 },
+    });
+    assert.equal(objAttrs.door.display, 'block');
+    assert.equal(objAttrs.door.d, 'M 80 0 H 160 v 80 H 80 Z');
+    assert.equal(objAttrs.chevron.x, 148);
+    assert.equal(objAttrs.chevron.y, 40);
+  });
+
+  test('Test 7: Complete Pantheon: Place (plc) and Role (rol) archetypes', () => {
+    const metamodel = {
+      diagramId: 'PantheonDiag',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        {
+          id: 'Plc_Stage',
+          kind: 'plc',
+          displayName: 'Lisbon Stage',
+          qualifier: 'Main Arena',
+          href: 'http://localhost:3042/places/LISBON',
+          bounds: { x: 10, y: 10, width: 160, height: 70 },
+        },
+        {
+          id: 'Rol_Signer',
+          kind: 'rol',
+          displayName: 'Signer',
+          qualifier: 'Role Constraint',
+          bounds: { x: 200, y: 10, width: 140, height: 50 },
+        },
+      ],
+      edges: [],
+    };
+
+    const svg = bridge.generateFreshSvg(metamodel, {});
+    assert.ok(svg.includes('aim-kind="plc"'));
+    assert.ok(svg.includes('aim-kind="rol"'));
+
+    const extracted = bridge.extractMetamodel(svg);
+    assert.equal(extracted.nodes[0]?.kind, 'plc');
+    assert.equal(extracted.nodes[0]?.href, 'http://localhost:3042/places/LISBON');
+    assert.equal(extracted.nodes[1]?.kind, 'rol');
+    assert.equal(extracted.nodes[1]?.href, undefined);
+
+    // Stencil defaults
+    assert.equal(getDefaultNodeName('plc'), 'Place');
+    assert.equal(getDefaultNodeName('rol'), 'Role');
+    assert.deepEqual(getDefaultNodeBounds('plc', 0, 0), { x: 0, y: 0, width: 160, height: 70 });
+    assert.deepEqual(getDefaultNodeBounds('rol', 0, 0), { x: 0, y: 0, width: 140, height: 50 });
   });
 });

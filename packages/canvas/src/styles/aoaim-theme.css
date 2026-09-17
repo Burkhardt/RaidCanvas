@@ -137,9 +137,49 @@
   transition: stroke 0.15s ease;
 }
 
-.aim-node[aim-per][aim-role="initiating"] path,
-.aim-node[aim-per][aim-role="initiating"] circle {
-  stroke: var(--aim-net-gold);
+/* 6. Place / Spatial Venue Nodes ('plc') */
+.aim-node[aim-plc],
+.aim-node[aim-kind="plc"],
+.aim-plc {
+  fill: var(--aim-chalk-white);
+  stroke: var(--aim-silver-line-dark);
+  stroke-width: 1.5px;
+}
+
+/* 7. Role / Structural Constraint Nodes ('rol') */
+.aim-node[aim-rol],
+.aim-node[aim-kind="rol"],
+.aim-rol {
+  fill: var(--aim-chalk-white);
+  stroke: var(--aim-warm-graphite);
+  stroke-width: 1.5px;
+  stroke-dasharray: 4, 3;
+}
+
+/* The Duality of the Object: Portuguese Bicolor Seam & Portal Door */
+.aim-portal-door {
+  fill: rgba(16, 185, 129, 0.10);
+  cursor: pointer;
+  transition: fill 0.2s ease, opacity 0.2s ease;
+}
+
+.aim-node:hover .aim-portal-door,
+.aim-portal-door:hover {
+  fill: rgba(16, 185, 129, 0.18);
+}
+
+.aim-portal-chevron {
+  fill: rgba(16, 185, 129, 0.60);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: bold;
+  pointer-events: none;
+  user-select: none;
+  transition: transform 0.2s ease, fill 0.2s ease;
+}
+
+.aim-node:hover .aim-portal-chevron {
+  fill: rgba(16, 185, 129, 0.90);
 }
 
 /* Relationship Edges */

@@ -15,8 +15,10 @@
  * - 'cls' : Class (compartmentalized class specification card)
  * - 'obj' : Object / Instance (runtime instance card with underlined title)
  * - 'per' : Person / Actor (Initiating or Defined role stick-figure/card)
+ * - 'plc' : Place / Where (architectural venue or spatial stage card)
+ * - 'rol' : Role (structural relationship / KL-ONE constraint)
  */
-export type AimOntologyKind = 'act' | 'uc' | 'cls' | 'obj' | 'per';
+export type AimOntologyKind = 'act' | 'uc' | 'cls' | 'obj' | 'per' | 'plc' | 'rol';
 
 /**
  * Routing strategy for diagram edges.

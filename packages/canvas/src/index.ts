@@ -39,6 +39,7 @@ export {
   applyEdgeRouting,
   getDefaultNodeBounds,
   getDefaultNodeName,
+  computePortalDoorAttrs,
   wrapAimText,
   computeMaxLineLength,
 } from './X6Shapes.js';

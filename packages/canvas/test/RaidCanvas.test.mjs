@@ -192,17 +192,20 @@ describe('RaidCanvas React Component Export & Contracts', () => {
     assert.equal(mockHandle.canRedo(), false);
   });
 
-  test('CR033: RaidCanvas accepts onNodeClick and onNodeDblClick props', () => {
+  test('CR033: RaidCanvas accepts onNodeClick, onNodePortalClick, and onNodeDblClick props', () => {
     const onNodeClick = (node, evt) => {};
+    const onNodePortalClick = (node, evt) => {};
     const onNodeDblClick = (node, evt) => {};
 
     const element = React.createElement(RaidCanvas, {
       svg: '<svg id="test-cr033" xmlns="http://www.w3.org/2000/svg" />',
       onNodeClick,
+      onNodePortalClick,
       onNodeDblClick,
     });
 
     assert.equal(element.props.onNodeClick, onNodeClick);
+    assert.equal(element.props.onNodePortalClick, onNodePortalClick);
     assert.equal(element.props.onNodeDblClick, onNodeDblClick);
   });
 
@@ -311,6 +314,67 @@ describe('RaidCanvas React Component Export & Contracts', () => {
     };
     mockNode.setData(nextData);
     assert.equal(storedData?.href, 'http://localhost:3042/entities/456');
+  });
+
+  test('CR033: Duality of the Object: Left hemisphere fires onNodeClick, Right hemisphere fires onNodePortalClick', () => {
+    let clickCount = 0;
+    let portalClickCount = 0;
+
+    const onNodeClick = () => { clickCount++; };
+    const onNodePortalClick = () => { portalClickCount++; };
+
+    const dispatchNodeClick = (node, clickX, targetClasses = [], hasHref = true) => {
+      const nodeData = {
+        id: node.id,
+        kind: node.kind,
+        displayName: node.displayName,
+        href: hasHref ? node.href : undefined,
+        bounds: node.bounds,
+      };
+
+      const bbox = node.bounds;
+      const isDoorElement = targetClasses.includes('aim-portal-door') || targetClasses.includes('aim-portal-chevron');
+      const isRightHemisphere = clickX !== undefined && bbox.width > 0
+        ? clickX >= (bbox.x + bbox.width / 2)
+        : isDoorElement;
+
+      const hasValidHref = Boolean(nodeData.href && nodeData.href.trim().length > 0);
+      const isPortalClick = hasValidHref && (isDoorElement || isRightHemisphere);
+
+      if (isPortalClick) {
+        onNodePortalClick(nodeData);
+      } else {
+        onNodeClick(nodeData);
+      }
+    };
+
+    const nodeWithHref = {
+      id: 'Act_Dual',
+      kind: 'act',
+      displayName: 'Dual Activity',
+      href: 'http://localhost:3042/act/dual',
+      bounds: { x: 100, y: 100, width: 160, height: 60 },
+    };
+
+    // 1. Tap left hemisphere (x = 120 < 100 + 80 = 180): fires onNodeClick (Inspector)
+    dispatchNodeClick(nodeWithHref, 120);
+    assert.equal(clickCount, 1);
+    assert.equal(portalClickCount, 0);
+
+    // 2. Tap right hemisphere (x = 190 >= 180): fires onNodePortalClick (Portal Door)
+    dispatchNodeClick(nodeWithHref, 190);
+    assert.equal(clickCount, 1);
+    assert.equal(portalClickCount, 1);
+
+    // 3. Tap portal door element directly
+    dispatchNodeClick(nodeWithHref, 110, ['aim-portal-door']);
+    assert.equal(clickCount, 1);
+    assert.equal(portalClickCount, 2);
+
+    // 4. Node without href: tapping right hemisphere still fires onNodeClick (no portal door)
+    dispatchNodeClick(nodeWithHref, 190, [], false);
+    assert.equal(clickCount, 2);
+    assert.equal(portalClickCount, 2);
   });
 });
 

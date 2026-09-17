@@ -292,6 +292,14 @@ export const App: React.FC = () => {
               onChange={handleCanvasChange}
               onSelectionChange={handleSelectionChange}
               onRoutingModeChange={setRoutingMode}
+              onNodeClick={(_node) => {
+                setActiveTab('inspector');
+              }}
+              onNodePortalClick={(node) => {
+                if (node.href) {
+                  window.open(node.href, '_blank', 'noopener,noreferrer');
+                }
+              }}
             />
           </div>
         </div>

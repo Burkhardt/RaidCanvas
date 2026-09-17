@@ -203,12 +203,20 @@ export function registerAimShapes(): void {
         selector: 'body',
       },
       {
+        tagName: 'path',
+        selector: 'door',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
       {
         tagName: 'text',
         selector: 'label',
+      },
+      {
+        tagName: 'text',
+        selector: 'chevron',
       },
     ],
     attrs: {
@@ -217,6 +225,22 @@ export function registerAimShapes(): void {
         stroke: CascaisPalette.NetGold,
         strokeWidth: 2,
         class: 'aim-node aim-uc',
+      },
+      door: {
+        fill: 'rgba(16, 185, 129, 0.10)',
+        display: 'none',
+        class: 'aim-portal-door',
+      },
+      chevron: {
+        text: '›',
+        fill: 'rgba(16, 185, 129, 0.60)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'none',
+        class: 'aim-portal-chevron',
       },
       qualifier: {
         text: '',
@@ -258,12 +282,20 @@ export function registerAimShapes(): void {
         selector: 'body',
       },
       {
+        tagName: 'path',
+        selector: 'door',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
       {
         tagName: 'text',
         selector: 'label',
+      },
+      {
+        tagName: 'text',
+        selector: 'chevron',
       },
     ],
     attrs: {
@@ -274,6 +306,22 @@ export function registerAimShapes(): void {
         rx: 12,
         ry: 12,
         class: 'aim-node aim-act',
+      },
+      door: {
+        fill: 'rgba(16, 185, 129, 0.10)',
+        display: 'none',
+        class: 'aim-portal-door',
+      },
+      chevron: {
+        text: '›',
+        fill: 'rgba(16, 185, 129, 0.60)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'none',
+        class: 'aim-portal-chevron',
       },
       qualifier: {
         text: '',
@@ -338,6 +386,14 @@ export function registerAimShapes(): void {
         tagName: 'text',
         selector: 'methods',
       },
+      {
+        tagName: 'path',
+        selector: 'door',
+      },
+      {
+        tagName: 'text',
+        selector: 'chevron',
+      },
     ],
     attrs: {
       body: {
@@ -345,6 +401,22 @@ export function registerAimShapes(): void {
         stroke: CascaisPalette.WarmGraphite,
         strokeWidth: 1.5,
         class: 'aim-node aim-cls',
+      },
+      door: {
+        fill: 'rgba(16, 185, 129, 0.10)',
+        display: 'none',
+        class: 'aim-portal-door',
+      },
+      chevron: {
+        text: '›',
+        fill: 'rgba(16, 185, 129, 0.60)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'none',
+        class: 'aim-portal-chevron',
       },
       header: {
         fill: CascaisPalette.CanvasCream,
@@ -412,12 +484,20 @@ export function registerAimShapes(): void {
         selector: 'body',
       },
       {
+        tagName: 'path',
+        selector: 'door',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
       {
         tagName: 'text',
         selector: 'label',
+      },
+      {
+        tagName: 'text',
+        selector: 'chevron',
       },
     ],
     attrs: {
@@ -426,6 +506,22 @@ export function registerAimShapes(): void {
         stroke: CascaisPalette.SilverLineDark,
         strokeWidth: 1.5,
         class: 'aim-node aim-obj',
+      },
+      door: {
+        fill: 'rgba(16, 185, 129, 0.10)',
+        display: 'none',
+        class: 'aim-portal-door',
+      },
+      chevron: {
+        text: '›',
+        fill: 'rgba(16, 185, 129, 0.60)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'none',
+        class: 'aim-portal-chevron',
       },
       qualifier: {
         text: '',
@@ -467,6 +563,10 @@ export function registerAimShapes(): void {
       },
       {
         tagName: 'path',
+        selector: 'door',
+      },
+      {
+        tagName: 'path',
         selector: 'torso',
       },
       {
@@ -481,6 +581,10 @@ export function registerAimShapes(): void {
         tagName: 'text',
         selector: 'label',
       },
+      {
+        tagName: 'text',
+        selector: 'chevron',
+      },
     ],
     attrs: {
       body: {
@@ -488,6 +592,22 @@ export function registerAimShapes(): void {
         stroke: 'transparent',
         strokeWidth: 0,
         class: 'aim-node aim-per',
+      },
+      door: {
+        fill: 'rgba(16, 185, 129, 0.10)',
+        display: 'none',
+        class: 'aim-portal-door',
+      },
+      chevron: {
+        text: '›',
+        fill: 'rgba(16, 185, 129, 0.60)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'none',
+        class: 'aim-portal-chevron',
       },
       torso: {
         d: 'M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4',
@@ -533,7 +653,171 @@ export function registerAimShapes(): void {
     ports: createOrthogonalPorts(),
   });
 
-  // 6. AimEdge — Orthogonal Manhattan edge with rounded corners
+  // 6. AimPlaceNode ('plc') — Spatial Venue / Stage card
+  Shape.Rect.define({
+    shape: 'aim-plc',
+    overwrite: true,
+    width: 160,
+    height: 70,
+    markup: [
+      {
+        tagName: 'rect',
+        selector: 'body',
+      },
+      {
+        tagName: 'rect',
+        selector: 'header',
+      },
+      {
+        tagName: 'path',
+        selector: 'door',
+      },
+      {
+        tagName: 'text',
+        selector: 'qualifier',
+      },
+      {
+        tagName: 'text',
+        selector: 'label',
+      },
+      {
+        tagName: 'text',
+        selector: 'chevron',
+      },
+    ],
+    attrs: {
+      body: {
+        fill: CascaisPalette.ChalkWhite,
+        stroke: CascaisPalette.SilverLineDark,
+        strokeWidth: 1.5,
+        class: 'aim-node aim-plc',
+      },
+      header: {
+        fill: '#3B82F6',
+        height: 6,
+        refWidth: '100%',
+      },
+      door: {
+        fill: 'rgba(16, 185, 129, 0.10)',
+        display: 'none',
+        class: 'aim-portal-door',
+      },
+      chevron: {
+        text: '›',
+        fill: 'rgba(16, 185, 129, 0.60)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'none',
+        class: 'aim-portal-chevron',
+      },
+      qualifier: {
+        text: '',
+        fill: CascaisPalette.TextSecondary,
+        fontSize: 11,
+        fontStyle: 'italic',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        refX: 0.5,
+        refY: 0.38,
+      },
+      label: {
+        text: 'Place',
+        fill: CascaisPalette.TextPrimary,
+        fontSize: 12,
+        fontWeight: '600',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        refX: 0.5,
+        refY: 0.62,
+      },
+    },
+    ports: createOrthogonalPorts(),
+  });
+
+  // 7. AimRoleNode ('rol') — Structural Role / KL-ONE constraint card
+  Shape.Rect.define({
+    shape: 'aim-rol',
+    overwrite: true,
+    width: 140,
+    height: 50,
+    markup: [
+      {
+        tagName: 'rect',
+        selector: 'body',
+      },
+      {
+        tagName: 'path',
+        selector: 'door',
+      },
+      {
+        tagName: 'text',
+        selector: 'qualifier',
+      },
+      {
+        tagName: 'text',
+        selector: 'label',
+      },
+      {
+        tagName: 'text',
+        selector: 'chevron',
+      },
+    ],
+    attrs: {
+      body: {
+        fill: CascaisPalette.ChalkWhite,
+        stroke: CascaisPalette.WarmGraphite,
+        strokeWidth: 1.5,
+        strokeDasharray: '4,3',
+        class: 'aim-node aim-rol',
+      },
+      door: {
+        fill: 'rgba(16, 185, 129, 0.10)',
+        display: 'none',
+        class: 'aim-portal-door',
+      },
+      chevron: {
+        text: '›',
+        fill: 'rgba(16, 185, 129, 0.60)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'none',
+        class: 'aim-portal-chevron',
+      },
+      qualifier: {
+        text: '',
+        fill: CascaisPalette.TextSecondary,
+        fontSize: 11,
+        fontStyle: 'italic',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        refX: 0.5,
+        refY: 0.35,
+      },
+      label: {
+        text: 'Role',
+        fill: CascaisPalette.TextPrimary,
+        fontSize: 12,
+        fontWeight: '600',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        refX: 0.5,
+        refY: 0.65,
+      },
+    },
+    ports: createOrthogonalPorts(),
+  });
+
+  // 8. AimEdge — Orthogonal Manhattan edge with rounded corners
   Shape.Edge.define({
     shape: 'aim-edge',
     overwrite: true,
@@ -568,6 +852,61 @@ export function registerAimShapes(): void {
 }
 
 /**
+ * Computes X6 attribute dictionary for the Portuguese Bicolor Seam & Portal Door.
+ * If data.href is absent or empty, door and chevron are hidden (selective revelation).
+ */
+export function computePortalDoorAttrs(data: RaidNodeData) {
+  const hasPortal = Boolean(data.href && data.href.trim().length > 0);
+  if (!hasPortal) {
+    return {
+      door: {
+        d: '',
+        display: 'none',
+      },
+      chevron: {
+        display: 'none',
+      },
+    };
+  }
+
+  const w = data.bounds.width;
+  const h = data.bounds.height;
+  const midX = Math.round(w / 2);
+
+  let pathD = `M ${midX} 0 H ${w} v ${h} H ${midX} Z`;
+  if (data.kind === 'uc') {
+    const rx = Math.round(w / 2);
+    const ry = Math.round(h / 2);
+    pathD = `M ${rx} 0 A ${rx} ${ry} 0 0 1 ${rx} ${h} Z`;
+  } else if (data.kind === 'act') {
+    const r = 12;
+    pathD = `M ${midX} 0 H ${w - r} a ${r} ${r} 0 0 1 ${r} ${r} v ${h - 2 * r} a ${r} ${r} 0 0 1 -${r} ${r} H ${midX} Z`;
+  }
+
+  return {
+    door: {
+      d: pathD,
+      display: 'block',
+      fill: 'rgba(16, 185, 129, 0.10)',
+      class: 'aim-portal-door',
+    },
+    chevron: {
+      text: '›',
+      x: w - 12,
+      y: Math.round(h / 2),
+      fill: 'rgba(16, 185, 129, 0.60)',
+      fontSize: 14,
+      fontWeight: 'bold',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+      textAnchor: 'middle',
+      textVerticalAnchor: 'middle',
+      display: 'block',
+      class: 'aim-portal-chevron',
+    },
+  };
+}
+
+/**
  * Configure an AntV X6 Graph instance with default AOAIM canvas settings:
  * Manhattan routing, orthogonal connection rules, port hover visibility.
  */
@@ -593,12 +932,29 @@ export function configureAimGraph(graph: Graph): void {
     }
   });
 
-  // Re-center person head and torso dynamically if resized
+  // Re-center person head and torso dynamically if resized, and update portal door
   graph.on('node:change:size', ({ node, current }) => {
     if (node.shape === 'aim-per' && current?.width) {
       const cx = Math.round(current.width / 2);
       node.setAttrByPath('torso/d', `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`);
       node.setAttrByPath('head/cx', cx);
+    }
+    const nodeData = node.getData<RaidNodeData>();
+    if (nodeData?.href && current?.width && current?.height) {
+      const updatedData: RaidNodeData = {
+        ...nodeData,
+        bounds: {
+          ...nodeData.bounds,
+          width: current.width,
+          height: current.height,
+        },
+      };
+      const portalAttrs = computePortalDoorAttrs(updatedData);
+      node.setAttrByPath('door/d', portalAttrs.door.d);
+      node.setAttrByPath('door/display', portalAttrs.door.display);
+      node.setAttrByPath('chevron/x', portalAttrs.chevron.x);
+      node.setAttrByPath('chevron/y', portalAttrs.chevron.y);
+      node.setAttrByPath('chevron/display', portalAttrs.chevron.display);
     }
   });
 }
@@ -628,6 +984,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
   const hasQualifier = Boolean(data.qualifier && data.qualifier.trim().length > 0);
   const wrappedQualifier = hasQualifier ? wrapAimText(data.qualifier!, maxLineLength) : '';
   const wrappedName = wrapAimText(data.displayName, maxLineLength);
+  const portalAttrs = computePortalDoorAttrs(data);
 
   // Archetype-specific customization
   switch (data.kind) {
@@ -635,6 +992,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
       return {
         ...baseMetadata,
         attrs: {
+          ...portalAttrs,
           qualifier: {
             text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
             fontStyle: 'italic',
@@ -654,6 +1012,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
       return {
         ...baseMetadata,
         attrs: {
+          ...portalAttrs,
           qualifier: {
             text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
             fontStyle: 'italic',
@@ -673,6 +1032,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
       return {
         ...baseMetadata,
         attrs: {
+          ...portalAttrs,
           title: {
             text: data.displayName,
             textDecoration: isInstance ? 'underline' : 'none',
@@ -690,6 +1050,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
       return {
         ...baseMetadata,
         attrs: {
+          ...portalAttrs,
           qualifier: {
             text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
             fontStyle: 'italic',
@@ -712,6 +1073,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
       return {
         ...baseMetadata,
         attrs: {
+          ...portalAttrs,
           torso: {
             d: `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`,
             stroke: strokeColor,
@@ -738,8 +1100,57 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
       };
     }
 
+    case 'plc': {
+      return {
+        ...baseMetadata,
+        attrs: {
+          ...portalAttrs,
+          qualifier: {
+            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            fontStyle: 'italic',
+            textDecoration: 'none',
+            refX: 0.5,
+            refY: 0.38,
+          },
+          label: {
+            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            textDecoration: isInstance ? 'underline' : 'none',
+            refX: 0.5,
+            refY: 0.62,
+          },
+        },
+      };
+    }
+
+    case 'rol': {
+      return {
+        ...baseMetadata,
+        attrs: {
+          ...portalAttrs,
+          qualifier: {
+            text: hasQualifier ? (data.stereotype ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier) : '',
+            fontStyle: 'italic',
+            textDecoration: 'none',
+            refX: 0.5,
+            refY: 0.35,
+          },
+          label: {
+            text: hasQualifier ? wrappedName : (data.stereotype ? `${data.stereotype}\n${wrappedName}` : wrappedName),
+            textDecoration: isInstance ? 'underline' : 'none',
+            refX: 0.5,
+            refY: 0.65,
+          },
+        },
+      };
+    }
+
     default:
-      return baseMetadata;
+      return {
+        ...baseMetadata,
+        attrs: {
+          ...portalAttrs,
+        },
+      };
   }
 }
 
@@ -934,6 +1345,10 @@ export function getDefaultNodeBounds(
       return { x, y, width: 160, height: 80 };
     case 'per':
       return { x, y, width: 90, height: 90 };
+    case 'plc':
+      return { x, y, width: 160, height: 70 };
+    case 'rol':
+      return { x, y, width: 140, height: 50 };
     default:
       return { x, y, width: 140, height: 60 };
   }
@@ -954,6 +1369,10 @@ export function getDefaultNodeName(kind: AimOntologyKind | string): string {
       return 'new Object';
     case 'per':
       return 'Actor';
+    case 'plc':
+      return 'Place';
+    case 'rol':
+      return 'Role';
     default:
       return 'Entity';
   }

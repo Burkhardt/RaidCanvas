@@ -62,9 +62,11 @@ export interface RaidCanvasProps {
 	onDropStencil?: (kind: AimOntologyKind, point: { x: number; y: number }) => void;
 	/** Callback fired when the active routing mode changes (e.g. hydrated from SVG or switched by user) */
 	onRoutingModeChange?: (mode: AimRoutingMode) => void;
-	/** Callback fired when a node is clicked without dragging */
+	/** Callback fired when the left hemisphere (Persona / Anchor) of a node is tapped */
 	onNodeClick?: (node: RaidNodeData, event: MouseEvent) => void;
-	/** Callback fired when a node is double-clicked */
+	/** Callback fired when the right hemisphere (Portal Door) of a node is tapped */
+	onNodePortalClick?: (node: RaidNodeData, event: MouseEvent) => void;
+	/** Deprecated desktop double-click fallback */
 	onNodeDblClick?: (node: RaidNodeData, event: MouseEvent) => void;
 	/** Whether to render built-in navigation controls (Zoom In/Out, Fit, Center, Reset). Default: true */
 	showToolbar?: boolean;
@@ -136,6 +138,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			onDropStencil,
 			onRoutingModeChange,
 			onNodeClick,
+			onNodePortalClick,
 			onNodeDblClick,
 			showToolbar = true,
 		},
@@ -178,6 +181,9 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 		const onNodeClickRef = useRef(onNodeClick);
 		onNodeClickRef.current = onNodeClick;
+
+		const onNodePortalClickRef = useRef(onNodePortalClick);
+		onNodePortalClickRef.current = onNodePortalClick;
 
 		const onNodeDblClickRef = useRef(onNodeDblClick);
 		onNodeDblClickRef.current = onNodeDblClick;
@@ -888,7 +894,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				}
 			});
 
-			graph.on('node:click', ({ node, e }) => {
+			graph.on('node:click', ({ node, e, x }: any) => {
 				const start = pointerDownState;
 				pointerDownState = null;
 
@@ -901,9 +907,29 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					return;
 				}
 
-				if (onNodeClickRef.current) {
-					const nodeData = extractNodeData(node);
-					const mouseEvt = ((e as any).originalEvent ?? e) as MouseEvent;
+				const nodeData = extractNodeData(node);
+				const mouseEvt = ((e as any).originalEvent ?? e) as MouseEvent;
+
+				const bbox = node.getBBox ? node.getBBox() : { x: 0, y: 0, width: 140, height: 60 };
+				const targetElem = (mouseEvt?.target as Element | null);
+				const isDoorElement = Boolean(
+					targetElem?.classList?.contains('aim-portal-door') ||
+					targetElem?.classList?.contains('aim-portal-chevron') ||
+					targetElem?.closest?.('.aim-portal-door') ||
+					targetElem?.closest?.('.aim-portal-chevron')
+				);
+
+				const clickX = x ?? (e as any)?.x;
+				const isRightHemisphere = clickX !== undefined && bbox.width > 0
+					? clickX >= (bbox.x + bbox.width / 2)
+					: isDoorElement;
+
+				const hasHref = Boolean(nodeData.href && nodeData.href.trim().length > 0);
+				const isPortalClick = hasHref && (isDoorElement || isRightHemisphere);
+
+				if (isPortalClick && onNodePortalClickRef.current) {
+					onNodePortalClickRef.current(nodeData, mouseEvt);
+				} else if (onNodeClickRef.current) {
 					onNodeClickRef.current(nodeData, mouseEvt);
 				}
 			});
