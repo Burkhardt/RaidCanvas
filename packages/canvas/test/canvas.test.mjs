@@ -297,7 +297,7 @@ describe('RaidCanvas Core Tests', () => {
     // Initiating actor gets NetGold accent
     assert.equal(actor.attrs?.torso?.stroke, CascaisPalette.NetGold);
     assert.equal(actor.attrs?.head?.stroke, CascaisPalette.NetGold);
-    assert.ok(actor.attrs?.label?.text?.includes('«initiates»'));
+    assert.ok(actor.attrs?.qualifier?.text?.includes('«initiates»') || actor.attrs?.label?.text?.includes('«initiates»'));
     assert.ok(actor.attrs?.label?.text?.includes('Customer'));
 
     const standardActor = createAimNode({
@@ -1578,7 +1578,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.ok(venue.strokeD.includes('M 5.5 22.5'), 'Venue must have ground target ellipse');
   });
 
-  test('Test 3: createAimNode for Place with stereotype="Stage" badges Left Hemisphere and shifts text', () => {
+  test('Test 3: createAimNode for Place with stereotype="Stage" renders frameless with centered glyph in Net Gold', () => {
     const nodeMeta = createAimNode({
       id: 'LisbonStage_Plc',
       kind: 'plc',
@@ -1586,20 +1586,64 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       qualifier: 'Physical Site',
       stereotype: 'Stage',
       href: '/places?select=plc-lisbon',
-      bounds: { x: 750, y: 100, width: 160, height: 70 },
+      bounds: { x: 750, y: 100, width: 160, height: 75 },
     });
 
     const attrs = nodeMeta.attrs;
     assert.ok(attrs, 'Node metadata must have attrs');
+    // Frameless: body fill and stroke are transparent
+    assert.equal(attrs.body?.fill, 'transparent', 'Place with stereotype must be frameless');
+    assert.equal(attrs.body?.stroke, 'transparent', 'Place with stereotype must have no stroke frame');
+    assert.equal(attrs.header?.display, 'none', 'Blue window header must be dropped');
+
+    // Centered stereotype icon in Net Gold
     assert.equal(attrs.iconFill?.display, 'block', 'Stage icon fill must be displayed');
     assert.equal(attrs.iconStroke?.display, 'block', 'Stage icon stroke must be displayed');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Stage icon stroke must be Net Gold');
     assert.equal(attrs.iconAccent?.display, 'block', 'Stage canopy stars must be displayed');
 
-    // Text refX must be shifted into the right half of the card (0.62) to prevent icon collision
-    assert.equal(attrs.label?.refX, 0.62, 'Label must be shifted to refX=0.62 to clear left stereotype icon');
-    assert.equal(attrs.qualifier?.refX, 0.62, 'Qualifier must be shifted to refX=0.62 to clear left stereotype icon');
-    assert.equal(attrs.label?.text, 'Lisbon Stage', 'Label must not contain redundant "Stage" prefix text');
+    // Text centered underneath the glyph
+    assert.equal(attrs.label?.refX, 0.5, 'Label must be centered horizontally at refX=0.5');
+    assert.equal(attrs.qualifier?.refX, 0.5, 'Qualifier must be centered horizontally at refX=0.5');
+    assert.equal(attrs.qualifier?.refY, 48, 'Qualifier must sit below the glyph at refY=48');
+    assert.equal(attrs.label?.refY, 66, 'Label must sit below qualifier at refY=66');
+    assert.equal(attrs.label?.text, 'Lisbon Stage');
     assert.equal(attrs.qualifier?.text, 'Physical Site');
+  });
+
+  test('Test 3b: createAimNode for Place WITHOUT stereotype renders red frame without blue header', () => {
+    const nodeMeta = createAimNode({
+      id: 'Simple_Place',
+      kind: 'plc',
+      displayName: 'Cascais Arena',
+      qualifier: 'Indoor Venue',
+      bounds: { x: 100, y: 100, width: 160, height: 70 },
+    });
+
+    const attrs = nodeMeta.attrs;
+    assert.ok(attrs, 'Node metadata must have attrs');
+    assert.equal(attrs.body?.stroke, CascaisPalette.CascaisRed, 'Place without stereotype must have CascaisRed frame');
+    assert.equal(attrs.header?.display, 'none', 'Blue window header must be dropped');
+    assert.equal(attrs.qualifier?.refX, 0.5);
+    assert.equal(attrs.label?.refX, 0.5);
+  });
+
+  test('Test 3c: createAimNode for Person guarantees non-overlapping text between qualifier and label', () => {
+    const nodeMeta = createAimNode({
+      id: 'Customer_Actor',
+      kind: 'per',
+      displayName: 'Dr. Rainer Burkhardt',
+      qualifier: 'Project Director',
+      stereotype: 'initiates',
+      bounds: { x: 50, y: 90, width: 140, height: 90 },
+    });
+
+    const attrs = nodeMeta.attrs;
+    assert.ok(attrs, 'Node metadata must have attrs');
+    assert.equal(attrs.torso?.stroke, CascaisPalette.NetGold, 'Initiating actor has Net Gold stroke');
+    assert.equal(attrs.qualifier?.text, 'Project Director', 'initiates is not injected into qualifier text');
+    assert.equal(attrs.qualifier?.refY, 58, 'Qualifier starts at refY=58');
+    assert.equal(attrs.label?.refY, 74, 'Label starts safely below qualifier at refY=74 with zero collision');
   });
 
   test('Test 4: createAimNode for Person with stereotype="Headliner" adorns artist crown', () => {

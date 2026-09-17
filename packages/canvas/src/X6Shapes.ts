@@ -30,6 +30,7 @@ import {
 export const CascaisPalette = {
   NetGold: '#F59E0B',
   HeraldicGreen: '#10B981',
+  CascaisRed: '#D22B2B',
   WarmGraphite: '#1F2937',
   GraphiteMuted: '#4B5563',
   SilverLine: '#E5E7EB',
@@ -953,14 +954,13 @@ export function registerAimShapes(): void {
     attrs: {
       body: {
         fill: CascaisPalette.ChalkWhite,
-        stroke: CascaisPalette.SilverLineDark,
+        stroke: CascaisPalette.CascaisRed,
         strokeWidth: 1.5,
         class: 'aim-node aim-plc',
       },
       header: {
-        fill: '#3B82F6',
-        height: 6,
-        refWidth: '100%',
+        display: 'none',
+        height: 0,
       },
       door: {
         fill: 'rgba(16, 185, 129, 0.10)',
@@ -1421,7 +1421,48 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
     };
   }
 
-  // Structured cards: plc, act, obj, uc, cls, rol
+  if (data.kind === 'plc') {
+    const cx = Math.round(w / 2);
+    const iconX = cx - Math.round(paths.width / 2);
+    const iconY = 8;
+
+    // Location glyph stroke/fill in Net Gold (matching Person stroke and UseCase stroke)
+    const strokeColor = CascaisPalette.NetGold;
+    const fillColor = CascaisPalette.NetGold;
+    const accentColor = CascaisPalette.NetGold;
+
+    return {
+      iconFill: {
+        d: paths.fillD,
+        transform: `translate(${iconX}, ${iconY})`,
+        fill: fillColor,
+        stroke: 'none',
+        display: paths.fillD ? 'block' : 'none',
+        class: 'aim-stereotype-icon-fill',
+      },
+      iconStroke: {
+        d: paths.strokeD,
+        transform: `translate(${iconX}, ${iconY})`,
+        stroke: strokeColor,
+        strokeWidth: 1.4,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        fill: 'none',
+        display: paths.strokeD ? 'block' : 'none',
+        class: 'aim-stereotype-icon-stroke',
+      },
+      iconAccent: {
+        d: paths.starsD ?? paths.accentFillD ?? '',
+        transform: `translate(${iconX}, ${iconY})`,
+        fill: accentColor,
+        stroke: 'none',
+        display: (paths.starsD || paths.accentFillD) ? 'block' : 'none',
+        class: 'aim-stereotype-icon-accent',
+      },
+    };
+  }
+
+  // Structured cards: act, obj, uc, cls, rol
   const iconX = 12;
   const iconY = Math.max(6, Math.round((h - paths.height) / 2));
 
@@ -1570,7 +1611,9 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
   const isInstance = data.instance === true;
   const boxWidth = data.bounds.width;
   const fontSize = data.kind === 'uc' || data.kind === 'act' ? 13 : 12;
-  const availableTextWidth = hasStereotypeIcon && data.kind !== 'per' ? Math.max(40, boxWidth - 52) : boxWidth;
+  const availableTextWidth = (hasStereotypeIcon && data.kind !== 'per' && data.kind !== 'plc')
+    ? Math.max(40, boxWidth - 52)
+    : (data.kind === 'per' ? Math.max(boxWidth, 140) : boxWidth);
   const maxLineLength = computeMaxLineLength(availableTextWidth, fontSize);
 
   const hasQualifier = Boolean(data.qualifier && data.qualifier.trim().length > 0);
@@ -1578,13 +1621,12 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
   const wrappedName = wrapAimText(data.displayName, maxLineLength);
   const portalAttrs = computePortalDoorAttrs(data);
 
-  const cardTextRefX = hasStereotypeIcon ? 0.62 : 0.5;
+  const cardTextRefX = hasStereotypeIcon && data.kind !== 'plc' ? 0.62 : 0.5;
+
   const qualifierText = hasQualifier
-    ? (data.stereotype && !hasStereotypeIcon ? `${data.stereotype}\n${wrappedQualifier}` : wrappedQualifier)
-    : '';
-  const labelText = hasQualifier
-    ? wrappedName
-    : (data.stereotype && !hasStereotypeIcon ? `${data.stereotype}\n${wrappedName}` : wrappedName);
+    ? wrappedQualifier
+    : (!hasStereotypeIcon && data.stereotype ? data.stereotype : '');
+  const labelText = wrappedName;
 
   // Archetype-specific customization
   switch (data.kind) {
@@ -1680,6 +1722,8 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
       const isInitiating = data.stereotype?.toLowerCase().includes('initiates') ?? false;
       const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
       const cx = Math.round(boxWidth / 2);
+      const qualifierLines = qualifierText ? qualifierText.split('\n').length : 0;
+      const labelRefY = qualifierLines > 0 ? 58 + qualifierLines * 16 : 62;
       return {
         ...baseMetadata,
         attrs: {
@@ -1699,35 +1743,75 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
             fontStyle: 'italic',
             textDecoration: 'none',
             refX: 0.5,
-            refY: 60,
+            refY: 58,
           },
           label: {
             text: labelText,
             textDecoration: isInstance ? 'underline' : 'none',
             refX: 0.5,
-            refY: hasQualifier ? 75 : 62,
+            refY: labelRefY,
           },
         },
       };
     }
 
     case 'plc': {
+      if (hasStereotypeIcon) {
+        return {
+          ...baseMetadata,
+          attrs: {
+            ...portalAttrs,
+            ...stereoAttrs,
+            body: {
+              fill: 'transparent',
+              stroke: 'transparent',
+              strokeWidth: 0,
+            },
+            header: {
+              display: 'none',
+              height: 0,
+            },
+            qualifier: {
+              text: qualifierText,
+              fontStyle: 'italic',
+              textDecoration: 'none',
+              refX: 0.5,
+              refY: 48,
+            },
+            label: {
+              text: labelText,
+              textDecoration: isInstance ? 'underline' : 'none',
+              refX: 0.5,
+              refY: 66,
+            },
+          },
+        };
+      }
       return {
         ...baseMetadata,
         attrs: {
           ...portalAttrs,
           ...stereoAttrs,
+          body: {
+            fill: CascaisPalette.ChalkWhite,
+            stroke: CascaisPalette.CascaisRed,
+            strokeWidth: 1.5,
+          },
+          header: {
+            display: 'none',
+            height: 0,
+          },
           qualifier: {
             text: qualifierText,
             fontStyle: 'italic',
             textDecoration: 'none',
-            refX: cardTextRefX,
+            refX: 0.5,
             refY: 0.38,
           },
           label: {
             text: labelText,
             textDecoration: isInstance ? 'underline' : 'none',
-            refX: cardTextRefX,
+            refX: 0.5,
             refY: 0.62,
           },
         },

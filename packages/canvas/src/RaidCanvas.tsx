@@ -430,15 +430,41 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						node.setAttrByPath('torso/stroke', strokeColor);
 						node.setAttrByPath('head/cx', cx);
 						node.setAttrByPath('head/stroke', strokeColor);
+						const qualifierLines = wrappedQualifier ? wrappedQualifier.split('\n').length : 0;
+						const labelRefY = qualifierLines > 0 ? 58 + qualifierLines * 16 : 62;
 						if (qualifier) {
 							node.setAttrByPath('qualifier/text', wrappedQualifier);
-							node.setAttrByPath('qualifier/refY', 60);
+							node.setAttrByPath('qualifier/refY', 58);
 							node.setAttrByPath('label/text', wrappedName);
-							node.setAttrByPath('label/refY', 75);
+							node.setAttrByPath('label/refY', labelRefY);
 						} else {
 							node.setAttrByPath('qualifier/text', '');
 							node.setAttrByPath('label/text', wrappedName);
 							node.setAttrByPath('label/refY', 62);
+						}
+						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');
+					} else if (nextData.kind === 'plc') {
+						node.setAttrByPath('header/display', 'none');
+						if (hasStereotypeIcon) {
+							node.setAttrByPath('body/fill', 'transparent');
+							node.setAttrByPath('body/stroke', 'transparent');
+							node.setAttrByPath('body/strokeWidth', 0);
+							node.setAttrByPath('qualifier/text', wrappedQualifier);
+							node.setAttrByPath('qualifier/refX', 0.5);
+							node.setAttrByPath('qualifier/refY', 48);
+							node.setAttrByPath('label/text', wrappedName);
+							node.setAttrByPath('label/refX', 0.5);
+							node.setAttrByPath('label/refY', 66);
+						} else {
+							node.setAttrByPath('body/fill', CascaisPalette.ChalkWhite);
+							node.setAttrByPath('body/stroke', CascaisPalette.CascaisRed);
+							node.setAttrByPath('body/strokeWidth', 1.5);
+							node.setAttrByPath('qualifier/text', wrappedQualifier);
+							node.setAttrByPath('qualifier/refX', 0.5);
+							node.setAttrByPath('qualifier/refY', 0.38);
+							node.setAttrByPath('label/text', wrappedName);
+							node.setAttrByPath('label/refX', 0.5);
+							node.setAttrByPath('label/refY', 0.62);
 						}
 						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');
 					} else {

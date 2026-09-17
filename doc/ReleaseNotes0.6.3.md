@@ -35,11 +35,17 @@ Precision vector glyphs implemented directly from Dr. Rainer's architectural ske
 6. **⚡ `initiates` (Role / Dynamic Relation):** Directional Net Gold trigger arrow denoting dynamic stimulus.
 
 ### 2.2 Persona Anchor & Typography Layout Protection
-* **Anchor Positioning ($x \in [12, 40]$):** Stereotype icons are housed strictly within the **Left Hemisphere (The Persona)**.
+* **Anchor Positioning ($x \in [12, 40]$):** Stereotype icons on standard cards are housed strictly within the **Left Hemisphere (The Persona)**.
 * **Non-Colliding Typography:** When a stereotype icon is active on a node, `createAimNode` dynamically adjusts `cardTextRefX` to `0.62` and wraps label text against `boxWidth - 52`, ensuring labels and qualifiers never collide with the icon.
-* **Heraldic Person Glyph Refinement:** Person nodes (`per`) render directly with Cascais Green head circle and shoulder arc—retiring rectangular bounding boxes in favor of pure heraldic silhouettes.
+* **Actor & Person Non-Collision:** On Person nodes (`per`), `label.refY` dynamically calculates from qualifier line count (`refY: 58 + qualifierLines * 16`), with wrapping width expanded to `Math.max(boxWidth, 140)`. Titles such as `Dr. Rainer Burkhardt` and qualifiers such as `Project Director` never collide or wrap prematurely.
+* **Heraldic Person Silhouette:** Person nodes (`per`) render directly with Cascais Green head circle and shoulder arc—retiring rectangular bounding boxes in favor of pure heraldic silhouettes.
 
-### 2.3 Two-Tap Dynabook Lifecycle & The Net Gold Meridian Seam
+### 2.3 Frameless Location Glyphs & Cascais Red Place Frames
+* **Frameless Stereotyped Place (`plc`):** When a stereotype is assigned to a Location/Place (`Stage`, `Venue`, `Bar`), the node renders **frameless** (`body: { fill: 'transparent', stroke: 'transparent', strokeWidth: 0 }`), placing the location glyph centered at the top ($y=8$) in **Net Gold** (`CascaisPalette.NetGold = '#F59E0B'`), matching the Person and UseCase vector strokes. Text elements (`qualifier` and `label`) are centered underneath.
+* **Cascais Red Frame (`#D22B2B`):** When unstereotyped, Place nodes render a crisp rectangle in theme red (`CascaisRed`), honoring the AIA Brand & Design Spec.
+* **Header Bar Retired:** The legacy blue window header (`#3B82F6`) has been completely excised from `aim-plc`.
+
+### 2.4 Two-Tap Dynabook Lifecycle & The Net Gold Meridian Seam
 * **Dormant State:** Nodes rest quietly on the canvas, displaying their clean archetype background and Persona stereotype glyph.
 * **Tap 1 (Awakened Duality):** Tapping the node awakens its dual nature:
   - The vertical **Net Gold Meridian Seam** (`#F59E0B`) drops down the center line ($x = \text{midX}$).
@@ -48,11 +54,12 @@ Precision vector glyphs implemented directly from Dr. Rainer's architectural ske
 * **Tap 2 (Right / Portal):** Fires `onNodePortalClick` to transition through the portal into the target UseCase Browser, sub-workflow, or dossier.
 * **Tap Outside:** Smoothly deselects the node and returns it to its dormant state.
 
-### 2.4 RaidCanvas Studio Playground Enhancements
-* **Preset #1 Updated:** `LisbonStage_Plc` now showcases the vector Stage icon and `aim-stereotype="Stage"` out of the box.
+### 2.5 RaidCanvas Studio Playground Enhancements
+* **Preset #1 Updated:** `LisbonStage_Plc` now showcases the frameless vector Stage icon in Net Gold and `aim-stereotype="Stage"` out of the box, with `Customer_Actor` rendered with non-colliding typography.
 * **Property Inspector Toolbar:** Added an interactive 1-tap **Stereotype Badges Toolbar** (`🎪 Stage`, `📍 Venue`, `🍸 Bar`, `⭐ Headliner`, `🤖 AI`, `⚡ Initiates`) enabling instant live canvas toggling.
+* **Stencil Drawer Updated:** Place / Venue stencil item renders in Cascais Red without header bar.
 
-### 2.5 Documentation & Integration Guide for Zébio
+### 2.6 Documentation & Integration Guide for Zébio
 * Authored [`doc/CR034_AIA_to_RaidCanvas_Stereotype_Icons_Guide.md`](file:///Users/RSB/Projects/GitHub/RaidCanvas/doc/CR034_AIA_to_RaidCanvas_Stereotype_Icons_Guide.md) providing step-by-step Next.js / DaisyUI integration code for `aia-workbench`.
 * Updated [`doc/DualityOfTheObject.md`](file:///Users/RSB/Projects/GitHub/RaidCanvas/doc/DualityOfTheObject.md) with Section 4.3 (The Two-Tap Dynabook Lifecycle) and Section 4.4 (Stereotype Iconography and the Persona Anchor).
 
@@ -60,12 +67,14 @@ Precision vector glyphs implemented directly from Dr. Rainer's architectural ske
 
 ## 3. Automated Test Verification
 
-All 67 tests in the test suite pass with 0 failures (`pnpm -r run test`):
+All 69 tests in the test suite pass with 0 failures (`pnpm -r run test`):
 - CR034 Test 1: Vector Stage Icon Generation & Structure
 - CR034 Test 2: Venue Pin Icon Generation & Structure
 - CR034 Test 3: Stereotype Normalization & Resolution
-- CR034 Test 4: Node Data with Stereotype Generates Left-Anchored Icon Markup
-- CR034 Test 5: SVG Synchronization Bridge Injects Vector Stereotype Icon in Left Hemisphere
+- CR034 Test 3b: Place without stereotype has Cascais Red frame and no blue header
+- CR034 Test 3c: Person node with multi-line qualifier and long title has zero vertical text collision
+- CR034 Test 4: Node Data with Stereotype Generates Left-Anchored or Top-Centered Icon Markup
+- CR034 Test 5: SVG Synchronization Bridge Injects Vector Stereotype Icon in Net Gold / Left Hemisphere
 - CR034 Test 6: Round-Trip Preservation of `aim-stereotype` in Metamodel
 - Plus all 61 existing CR020–CR033 regression tests.
 

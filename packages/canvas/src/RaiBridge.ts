@@ -1050,12 +1050,15 @@ export class RaiBridge {
 			}
 			svg += this.renderSvgText(node.displayName, cx, 68, 12, '500', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
 		} else if (node.kind === 'plc') {
-			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
-			svg += `      <rect width="${width}" height="6" fill="#3B82F6" stroke="none" />\n`;
 			if (hasStereoIcon) {
-				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
+				const cx = Math.round(width / 2);
+				svg += `      <rect width="${width}" height="${height}" fill="none" stroke="none" />\n`;
+				svg += renderStereotypeIconSvg(node.stereotype, cx - 12, 8, CascaisPalette.NetGold, CascaisPalette.NetGold);
+				svg += this.renderSvgText(node.displayName, cx, 66, 12, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+			} else {
+				svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.CascaisRed}" stroke-width="1.5" />\n`;
+				svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
 			}
-			svg += this.renderSvgText(node.displayName, cardTextCx, height / 2, 12, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
 		} else if (node.kind === 'rol') {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" stroke-dasharray="4,3" />\n`;
 			if (hasStereoIcon) {

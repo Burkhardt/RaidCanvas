@@ -254,13 +254,14 @@ In the 1990s, Dr. Rainer Burkhardt developed the **Object-Technology Workbench (
 With the release of WWWA Ontology v1.3 (authored by Vasco, Lead Ontologist, `7015`), this philosophy is natively resurrected in RaidCanvas through the `aim-stereotype` SVG contract.
 
 1. **The Persona Anchor ($x \in [12, 40]$):**
-   * The Stereotype Icon lives exclusively within the **Left Hemisphere (The Persona)**.
-   * By anchoring the icon on the far left, the entity's ontological qualifier and display name shift gracefully to the right (`cardTextRefX: 0.62`), with text wrapping adjusted (`boxWidth - 52`) to prevent visual collisions.
-   * On Heraldic Person nodes (`per`), the stereotype glyph hovers with dignity above or beside the green head and shoulder silhouette, eliminating unnecessary rectangular frames.
+   * The Stereotype Icon lives within the **Left Hemisphere (The Persona)** or crowns the entity top meridian.
+   * By anchoring the icon on the far left of standard cards, the entity's ontological qualifier and display name shift gracefully to the right (`cardTextRefX: 0.62`), with text wrapping adjusted (`boxWidth - 52`) to prevent visual collisions.
+   * On **Heraldic Person nodes (`per`)**, the stereotype glyph hovers with dignity above or beside the green head and shoulder silhouette, eliminating unnecessary rectangular frames. Typography dynamically spaces (`refY: 58 + qualifierLines * 16`) across an expanded boundary (`Math.max(boxWidth, 140)`) to eliminate collisions between qualifiers and titles.
+   * On **Place / Venue nodes (`plc`)**, assigning a stereotype transforms the card into a **frameless** entity (`fill: 'transparent', stroke: 'transparent'`), centering the location glyph at the top ($y=8$) in **Net Gold** (`#F59E0B`)—matching the Person and UseCase vector strokes—with centered typography underneath. When unstereotyped, Place nodes render a crisp theme red frame (**Cascais Red** `#D22B2B`) with the legacy blue window header completely excised.
 
 2. **The Cascais Palette & Vector Glyphs:**
-   * **🎪 `Stage` (Place / Venue):** Sourced directly from festival stage architecture—a trapezoidal canopy adorned with 4 Net Gold stars across the fascia, dual cross-braced lattice truss towers (`#1F2937`), an overhead crossbeam rig with 5 hanging spotlights, dual speaker stacks, and a stepped stage deck.
-   * **📍 `Venue` (Place):** The classic Cascais location teardrop pin with a circular aperture cutout hovering over a ground target ring ellipse.
+   * **🎪 `Stage` (Place / Venue):** Sourced directly from festival stage architecture—a trapezoidal canopy adorned with 4 Net Gold stars across the fascia, dual cross-braced lattice truss towers, an overhead crossbeam rig with 5 hanging spotlights, dual speaker stacks, and a stepped stage deck. Rendered in frameless Net Gold glyph mode.
+   * **📍 `Venue` (Place):** The classic Cascais location teardrop pin with a circular aperture cutout hovering over a ground target ring ellipse. Rendered in frameless Net Gold glyph mode.
    * **🍸 `Bar` / `Lounge` (Place / Object):** A refined cocktail martini glass with slender stem, weighted base, and angular olive skewer.
    * **⭐ `Headliner` (Person / Role):** An artist performer crown with three jewels, a Net Gold star medallion, and curved brow band.
    * **🤖 `AI` / `Agent` (Person / Actor):** An autonomous neural processor chip with quad perimeter connector pins and a luminous Net Gold center core.

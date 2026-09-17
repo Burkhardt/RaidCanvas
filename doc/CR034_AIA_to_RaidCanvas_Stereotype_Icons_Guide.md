@@ -59,9 +59,9 @@ RaidCanvas v0.6.3 includes precision-crafted, scalable vector SVG glyphs (`Stere
 
 | Stereotype Key | Archetype | Visual Description | Palette & Accents | Source Reference |
 | :--- | :--- | :--- | :--- | :--- |
-| **`stage`** | `plc` (Place) | Festival concert stage with canopy, 4 Net Gold stars across fascia, dual cross-braced lattice truss towers, overhead crossbeam rig, 5 hanging spotlights, dual speaker stacks, and stepped deck. | `#1F2937` (Truss & Deck), `#F59E0B` (Stars), `#10B981` (Canopy wash) | User sketch (`media_1789674487269.png`) |
-| **`venue`** | `plc` (Place) | Cascais location teardrop pin with circular aperture cutout and ground target ring ellipse. | `#1F2937` (Pin body), `#FFFFFF` (Center aperture), `#94A3B8` (Ground ring) | Reference (`media_1789674495092.png`) |
-| **`bar`** | `plc` / `obj` | Sophisticated cocktail martini glass with slender stem, circular base, triangular bowl, and olive skewer. | `#1F2937` (Glass & Stem), `#10B981` (Olive / Liquid wash) | OTW Hospitality Iconography |
+| **`stage`** | `plc` (Place) | Festival concert stage with canopy, 4 Net Gold stars across fascia, dual cross-braced lattice truss towers, overhead crossbeam rig, 5 hanging spotlights, dual speaker stacks, and stepped deck. Centered at node top in frameless Net Gold glyph mode. | `#F59E0B` (Net Gold Primary), `#1F2937` (Truss & Deck), `#10B981` (Canopy wash) | User sketch (`media_1789674487269.png`) |
+| **`venue`** | `plc` (Place) | Cascais location teardrop pin with circular aperture cutout and ground target ring ellipse. Centered at node top in frameless Net Gold glyph mode. | `#F59E0B` (Net Gold Primary), `#FFFFFF` (Center aperture), `#94A3B8` (Ground ring) | Reference (`media_1789674495092.png`) |
+| **`bar`** | `plc` / `obj` | Sophisticated cocktail martini glass with slender stem, circular base, triangular bowl, and olive skewer. | `#F59E0B` (Net Gold Primary), `#10B981` (Olive / Liquid wash) | OTW Hospitality Iconography |
 | **`headliner`** | `per` / `rol` | Performer crown with three jeweled peaks, arched brow band, and Net Gold center star badge. | `#1F2937` (Crown frame), `#F59E0B` (Star medallion & Jewels) | User sketch (`media_1789614616719.jpg`) |
 | **`ai`** | `per` / `act` | Autonomous neural processor chip with quad perimeter pins, inner circuit boundary, and gold core spark. | `#1F2937` (Chip body), `#F59E0B` (Neural core spark) | WWWA Agent Iconography |
 | **`initiates`** | `rol` / `act` | Dynamic directional trigger arrow indicating workflow kickoff or stimulus. | `#F59E0B` (Net Gold trigger) | OTW Dynamic Model Iconography |
@@ -79,37 +79,31 @@ The `resolveStereotype` helper automatically normalizes incoming strings:
 In RaidCanvas nodes, the Stereotype Icon is strictly positioned within the **Left Hemisphere (The Persona / The Anchor)**:
 
 ```
-                  NODE WITH STEREOTYPE ICON
-  ┌─────────────────────────────────────────────────────────────┐
-  │  x: 12..40                                                  │
-  │  ┌──────────┐   «Place»                    [ DORMANT        │
-  │  │ 🎪 STAGE │   LisbonStage_Plc              STATE ]        │
-  │  │   ICON   │                                               │
-  │  └──────────┘                                               │
-  └─────────────────────────────────────────────────────────────┘
-  
-  ┌──────────────────────────────┬──────────────────────────────┐
-  │  x: 12..40                   │ Net Gold Seam: x = midX      │
-  │  ┌──────────┐  «Place»       │ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-  │  │ 🎪 STAGE │  LisbonStage   │ ░░░ [ AWAKENED DUALITY ] ░░░ │
-  │  │   ICON   │                │ ░░░ Cascais Green Wash   ░░░ │
-  │  └──────────┘                │ ░░░ Doorway Chevron:  ›  ░░░ │
-  │                              │ ░░░                          │
-  │  TAP LEFT:                   │ ░░░ TAP RIGHT:               │
-  │  Open DaisyUI Inspector      │ ░░░ Plunge into Portal       │
-  └──────────────────────────────┴──────────────────────────────┘
+          FRAMELESS STEREOTYPED PLACE (plc)                  HERALDIC PERSON (per)
+    ┌───────────────────────────────────────────────┐     ┌─────────────────────────┐
+    │              🎪 STAGE (y: 8, Net Gold)        │     │      O  (Head, Green)   │
+    │                                               │     │    /───\ (Torso, Green) │
+    │                   «Place»                     │     │                         │
+    │               LisbonStage_Plc                 │     │      «initiates»        │
+    │                                               │     │    Project Director     │
+    │         [ Frameless Bounding Box ]            │     │  Dr. Rainer Burkhardt   │
+    └───────────────────────────────────────────────┘     └─────────────────────────┘
 ```
 
-1. **Left Placement ($x \in [12, 40]$):**
-   - Icon is anchored at $x = 12\text{px}$, $y = 12\text{px}$ (or centered along the top meridian on heraldic Person glyphs).
+1. **Left Placement ($x \in [12, 40]$) for Standard Nodes:**
+   - Standard object and role cards anchor the icon at $x = 12\text{px}$, $y = 12\text{px}$.
    - Icon dimensions are strictly bounded to $28 \times 28\text{px}$ or $26 \times 26\text{px}$.
-2. **Typography Protection:**
-   - When an icon is detected, `createAimNode` dynamically shifts `cardTextRefX` from `0.5` to `0.62`.
-   - Text wrapping bounds are tightened from `boxWidth - 20` to `boxWidth - 52`.
-   - This ensures the label and qualifier **never collide or overlap** with the stereotype glyph.
-3. **Heraldic Person Glyph (`per`):**
-   - Head circle and torso arc render directly in Cascais Heraldic Green (`#10B981`) without awkward surrounding boxes.
-   - Stereotype glyph hovers proudly above or alongside the head.
+2. **Typography Protection & Zero Collision:**
+   - When an icon is detected on standard cards, `createAimNode` dynamically shifts `cardTextRefX` from `0.5` to `0.62` and tightens wrapping bounds to `boxWidth - 52`.
+   - On **Person / Actor (`per`)** nodes, `label.refY` dynamically calculates from qualifier lines (`refY: 58 + qualifierLines * 16`), with wrapping width expanded to `Math.max(boxWidth, 140)`. Titles such as `Dr. Rainer Burkhardt` and qualifiers such as `Project Director` never split awkwardly or collide.
+3. **Frameless Stereotyped Place / Venue (`plc`):**
+   - When a Stereotype (e.g., `Stage`, `Venue`, `Bar`) is assigned to a Location/Place, the bounding rectangle becomes **frameless** (`fill: 'transparent', stroke: 'transparent', strokeWidth: 0`), and the location glyph is centered at the top ($y=8$) in **Net Gold** (`#F59E0B`), mirroring the Person head-and-shoulders heraldic representation.
+   - The qualifier (`«Place»`) and display name (`LisbonStage_Plc`) are centered directly underneath the glyph.
+4. **Theme Red Frame for Unstereotyped Place (`plc`):**
+   - Unstereotyped Place nodes render a crisp rectangle in theme color red (**Cascais Red** `#D22B2B`).
+   - The legacy blue window header (`#3B82F6`) has been completely excised, leaving a clean, dignified frame.
+5. **Heraldic Person Silhouette (`per`):**
+   - Head circle and shoulder arc render directly in Cascais Heraldic Green (`#10B981`) without surrounding rectangular bounding boxes.
 
 ---
 

@@ -79,12 +79,11 @@ export const AOAIM_STENCILS: StencilItem[] = [
     kind: 'plc',
     name: 'Place / Venue',
     badge: 'WHERE',
-    badgeColor: '#3B82F6',
+    badgeColor: '#D22B2B',
     description: 'Spatial venue or architectural stage anchoring the activity',
     iconSvg: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D22B2B" strokeWidth="2">
         <rect x="3" y="4" width="18" height="16" rx="2" />
-        <line x1="3" y1="8" x2="21" y2="8" strokeWidth="2.5" />
       </svg>
     ),
   },

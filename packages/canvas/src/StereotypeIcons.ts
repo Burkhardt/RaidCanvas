@@ -281,8 +281,8 @@ export function renderStereotypeIconSvg(
   rawStereotype: string | undefined,
   x: number,
   y: number,
-  primaryColor = CascaisPalette.WarmGraphite,
-  accentColor = CascaisPalette.NetGold,
+  primaryColor: string = CascaisPalette.WarmGraphite,
+  accentColor: string = CascaisPalette.NetGold,
 ): string {
   const resolved = resolveStereotype(rawStereotype);
   if (!resolved) return '';
