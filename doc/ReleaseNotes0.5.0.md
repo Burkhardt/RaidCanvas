@@ -113,3 +113,12 @@ Ontological consumers can emit `aim-qualifier` and `aim-instance` per the mappin
 - **Registry:** `https://registry.npmjs.org/@dr2rai/raid-canvas`
 - **Status:** ✅ Successfully published and verified as `"latest": "0.5.0"`.
 
+---
+
+## 6. Follow-up Patch: v0.5.1 (Person Head Re-Centering)
+
+- **Fix**: Removed `refX: 0.5` from Person glyph head (`<circle>`) in live X6 shapes. In AntV X6, combining explicit `cx = boxWidth / 2` with `refX: 0.5` applied an extraneous `translate(boxWidth / 2, 0)` SVG matrix, shifting the head by half the box width to the right edge.
+- **Verification**: 48/48 tests pass; verified in both Studio (`localhost:5173`) and Workbench (`localhost:3042`).
+- **Package:** `@dr2rai/raid-canvas@0.5.1` published and verified as `"latest": "0.5.1"`.
+
+
