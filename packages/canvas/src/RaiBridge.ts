@@ -669,6 +669,7 @@ export class RaiBridge {
 			style.textContent = (style.textContent ? style.textContent + '\n' : '') + `
 			.aim-node { cursor: pointer; transition: filter 0.15s ease; }
 			.aim-node:hover { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+			.aim-portal-seam { stroke: ${CascaisPalette.NetGold}; stroke-width: 1.5; pointer-events: none; }
 			.aim-edge { fill: none; stroke: ${CascaisPalette.WarmGraphite}; stroke-width: 1.5; }
 			text { font-family: Inter, system-ui, sans-serif; }
 			.aim-node[aim-instance="true"] text.aim-name, .aim-node[aim-instance="true"] tspan.aim-name { text-decoration: underline; }
@@ -1038,8 +1039,31 @@ export class RaiBridge {
 		if (node.href !== undefined && node.href.trim().length > 0) {
 			const escapedHref = escapeXmlAttr(node.href.trim());
 			const midX = Math.round(width / 2);
+
 			let doorPath = `M ${midX} 0 H ${width} v ${height} H ${midX} Z`;
-			if (node.kind === 'uc') {
+			let doorFill = 'rgba(16, 185, 129, 0.10)';
+			let seamX1 = midX;
+			let seamY1 = 0;
+			let seamX2 = midX;
+			let seamY2 = height;
+			let chevronX = width - 14;
+			let chevronY = Math.round(height / 2);
+			let chevronFill = 'rgba(16, 185, 129, 0.70)';
+
+			if (node.kind === 'per') {
+				const cx = Math.round(width / 2);
+				const headRight = `M ${cx} 14 A 8 8 0 0 1 ${cx} 30 Z`;
+				const torsoRight = `M ${cx} 42 H ${cx + 8} a 8 8 0 0 1 8 8 v 4 H ${cx} Z`;
+				doorPath = `${headRight} ${torsoRight}`;
+				doorFill = 'rgba(16, 185, 129, 0.25)';
+				seamX1 = cx;
+				seamY1 = 14;
+				seamX2 = cx;
+				seamY2 = 54;
+				chevronX = cx + 24;
+				chevronY = 32;
+				chevronFill = 'rgba(16, 185, 129, 0.75)';
+			} else if (node.kind === 'uc') {
 				const rx = Math.round(width / 2);
 				const ry = Math.round(height / 2);
 				doorPath = `M ${rx} 0 A ${rx} ${ry} 0 0 1 ${rx} ${height} Z`;
@@ -1048,12 +1072,10 @@ export class RaiBridge {
 				doorPath = `M ${midX} 0 H ${width - r} a ${r} ${r} 0 0 1 ${r} ${r} v ${height - 2 * r} a ${r} ${r} 0 0 1 -${r} ${r} H ${midX} Z`;
 			}
 
-			const chevronX = width - 12;
-			const chevronY = Math.round(height / 2);
-
 			svg += `      <a href="${escapedHref}" target="_blank">\n`;
-			svg += `        <path d="${doorPath}" fill="rgba(16, 185, 129, 0.10)" class="aim-portal-door" />\n`;
-			svg += `        <text x="${chevronX}" y="${chevronY}" fill="rgba(16, 185, 129, 0.60)" font-size="14" font-weight="bold" font-family="Inter, system-ui, -apple-system, sans-serif" text-anchor="middle" dominant-baseline="central" class="aim-portal-chevron">›</text>\n`;
+			svg += `        <path d="${doorPath}" fill="${doorFill}" class="aim-portal-door" />\n`;
+			svg += `        <line x1="${seamX1}" y1="${seamY1}" x2="${seamX2}" y2="${seamY2}" stroke="${CascaisPalette.NetGold}" stroke-width="1.5" class="aim-portal-seam" />\n`;
+			svg += `        <text x="${chevronX}" y="${chevronY}" fill="${chevronFill}" font-size="14" font-weight="bold" font-family="Inter, system-ui, -apple-system, sans-serif" text-anchor="middle" dominant-baseline="central" class="aim-portal-chevron">›</text>\n`;
 			svg += `      </a>\n`;
 		}
 
@@ -1081,6 +1103,7 @@ export class RaiBridge {
 			svg += `    <style>\n`;
 			svg += `      .aim-node { cursor: pointer; transition: filter 0.15s ease; }\n`;
 			svg += `      .aim-node:hover { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }\n`;
+			svg += `      .aim-portal-seam { stroke: ${CascaisPalette.NetGold}; stroke-width: 1.5; pointer-events: none; }\n`;
 			svg += `      .aim-edge { fill: none; stroke: ${CascaisPalette.WarmGraphite}; stroke-width: 1.5; }\n`;
 			svg += `      text { font-family: Inter, system-ui, sans-serif; }\n`;
 			svg += `      .aim-node[aim-instance="true"] text.aim-name, .aim-node[aim-instance="true"] tspan.aim-name { text-decoration: underline; }\n`;

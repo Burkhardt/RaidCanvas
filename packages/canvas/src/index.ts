@@ -40,6 +40,7 @@ export {
   getDefaultNodeBounds,
   getDefaultNodeName,
   computePortalDoorAttrs,
+  setNodeDualityActive,
   wrapAimText,
   computeMaxLineLength,
 } from './X6Shapes.js';

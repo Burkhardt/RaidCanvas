@@ -1246,7 +1246,7 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(extracted.nodes[0]?.href, complexUrl);
   });
 
-  test('Test 4: createAimNode retains href in node metadata data payload and computes portal attrs', () => {
+  test('Test 4: createAimNode retains href in node metadata payload and initializes dormant at rest', () => {
     const nodeMeta = createAimNode({
       id: 'Act_Linked',
       kind: 'act',
@@ -1256,10 +1256,23 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     });
 
     assert.equal(nodeMeta.data?.href, 'http://localhost:3042/activities/ACT_999');
-    assert.equal(nodeMeta.attrs?.door?.display, 'block');
-    assert.ok(nodeMeta.attrs?.door?.d?.includes('M 70 0'));
-    assert.equal(nodeMeta.attrs?.chevron?.display, 'block');
-    assert.equal(nodeMeta.attrs?.chevron?.text, '›');
+    // Nodes at rest on canvas are dormant (clean diagram)
+    assert.equal(nodeMeta.attrs?.door?.display, 'none');
+    assert.equal(nodeMeta.attrs?.seam?.display, 'none');
+    assert.equal(nodeMeta.attrs?.chevron?.display, 'none');
+
+    // When awakened, portal door, gold seam and chevron are displayed
+    const activeAttrs = computePortalDoorAttrs(nodeMeta.data, true);
+    assert.equal(activeAttrs.door.display, 'block');
+    assert.ok(activeAttrs.door.d.includes('M 70 0'));
+    assert.equal(activeAttrs.seam.display, 'block');
+    assert.equal(activeAttrs.seam.x1, 70);
+    assert.equal(activeAttrs.seam.y1, 0);
+    assert.equal(activeAttrs.seam.x2, 70);
+    assert.equal(activeAttrs.seam.y2, 60);
+    assert.equal(activeAttrs.seam.stroke, '#F59E0B');
+    assert.equal(activeAttrs.chevron.display, 'block');
+    assert.equal(activeAttrs.chevron.text, '›');
   });
 
   test('Test 5: updateExistingSvg synchronizes aim-href updates on nodes', () => {
@@ -1291,54 +1304,105 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(reExtracted.nodes[0]?.href, 'http://localhost:3042/activities/SYNC_1');
   });
 
-  test('Test 6: Portuguese Bicolor Seam portal door geometries and selective revelation', () => {
-    // Unlinked node: hidden door and chevron
+  test('Test 6: Portuguese Bicolor Seam portal door geometries, vertical seam and selective revelation', () => {
+    // Unlinked node: hidden door, seam and chevron even if active requested
     const unlinkedAttrs = computePortalDoorAttrs({
       id: 'n1',
       kind: 'act',
       displayName: 'Unlinked',
       bounds: { x: 0, y: 0, width: 140, height: 60 },
-    });
+    }, true);
     assert.equal(unlinkedAttrs.door.display, 'none');
+    assert.equal(unlinkedAttrs.seam.display, 'none');
     assert.equal(unlinkedAttrs.chevron.display, 'none');
 
-    // UseCase (ellipse): elliptical arc right hemisphere
+    // Linked node dormant (isActive = false): all hidden
+    const dormantAttrs = computePortalDoorAttrs({
+      id: 'n2',
+      kind: 'uc',
+      displayName: 'UC',
+      href: 'http://localhost:3042/uc',
+      bounds: { x: 0, y: 0, width: 140, height: 70 },
+    }, false);
+    assert.equal(dormantAttrs.door.display, 'none');
+    assert.equal(dormantAttrs.seam.display, 'none');
+    assert.equal(dormantAttrs.chevron.display, 'none');
+
+    // UseCase (ellipse): elliptical arc right hemisphere and vertical gold seam
     const ucAttrs = computePortalDoorAttrs({
       id: 'n2',
       kind: 'uc',
       displayName: 'UC',
       href: 'http://localhost:3042/uc',
       bounds: { x: 0, y: 0, width: 140, height: 70 },
-    });
+    }, true);
     assert.equal(ucAttrs.door.display, 'block');
     assert.ok(ucAttrs.door.d.startsWith('M 70 0 A 70 35'));
-    assert.equal(ucAttrs.chevron.x, 128);
+    assert.equal(ucAttrs.seam.display, 'block');
+    assert.equal(ucAttrs.seam.x1, 70);
+    assert.equal(ucAttrs.seam.y1, 0);
+    assert.equal(ucAttrs.seam.x2, 70);
+    assert.equal(ucAttrs.seam.y2, 70);
+    assert.equal(ucAttrs.seam.stroke, '#F59E0B');
+    assert.equal(ucAttrs.chevron.x, 126);
     assert.equal(ucAttrs.chevron.y, 35);
 
-    // Activity (rounded rect r=12): rounded right corners
+    // Activity (rounded rect r=12): rounded right corners and vertical gold seam
     const actAttrs = computePortalDoorAttrs({
       id: 'n3',
       kind: 'act',
       displayName: 'Act',
       href: 'http://localhost:3042/act',
       bounds: { x: 0, y: 0, width: 150, height: 60 },
-    });
+    }, true);
     assert.equal(actAttrs.door.display, 'block');
     assert.ok(actAttrs.door.d.includes('M 75 0 H 138 a 12 12'));
-    assert.equal(actAttrs.chevron.x, 138);
+    assert.equal(actAttrs.seam.display, 'block');
+    assert.equal(actAttrs.seam.x1, 75);
+    assert.equal(actAttrs.seam.y1, 0);
+    assert.equal(actAttrs.seam.x2, 75);
+    assert.equal(actAttrs.seam.y2, 60);
+    assert.equal(actAttrs.chevron.x, 136);
     assert.equal(actAttrs.chevron.y, 30);
 
-    // Class / Object / Place / Role: sharp right rect
-    const objAttrs = computePortalDoorAttrs({
+    // Person (per): Contoured head right semicircle and torso right arc (NO outer rectangle!)
+    const perAttrs = computePortalDoorAttrs({
       id: 'n4',
+      kind: 'per',
+      displayName: 'Actor',
+      href: 'http://localhost:3042/actors/PER_1',
+      bounds: { x: 0, y: 0, width: 90, height: 90 },
+    }, true);
+    assert.equal(perAttrs.door.display, 'block');
+    assert.ok(!perAttrs.door.d.includes('H 90 v 90'), 'Person must NOT have outer bounding box rect in door path');
+    assert.ok(perAttrs.door.d.includes('M 45 14 A 8 8 0 0 1 45 30 Z'), 'Right head semicircle');
+    assert.ok(perAttrs.door.d.includes('M 45 42 H 53 a 8 8 0 0 1 8 8 v 4 H 45 Z'), 'Right torso arc');
+    assert.equal(perAttrs.door.fill, 'rgba(16, 185, 129, 0.25)');
+    assert.equal(perAttrs.seam.display, 'block');
+    assert.equal(perAttrs.seam.x1, 45);
+    assert.equal(perAttrs.seam.y1, 14);
+    assert.equal(perAttrs.seam.x2, 45);
+    assert.equal(perAttrs.seam.y2, 54);
+    assert.equal(perAttrs.seam.stroke, '#F59E0B');
+    assert.equal(perAttrs.chevron.x, 69);
+    assert.equal(perAttrs.chevron.y, 32);
+
+    // Class / Object / Place / Role: sharp right rect and vertical seam
+    const objAttrs = computePortalDoorAttrs({
+      id: 'n5',
       kind: 'obj',
       displayName: 'Obj',
       href: 'http://localhost:3042/obj',
       bounds: { x: 0, y: 0, width: 160, height: 80 },
-    });
+    }, true);
     assert.equal(objAttrs.door.display, 'block');
     assert.equal(objAttrs.door.d, 'M 80 0 H 160 v 80 H 80 Z');
-    assert.equal(objAttrs.chevron.x, 148);
+    assert.equal(objAttrs.seam.display, 'block');
+    assert.equal(objAttrs.seam.x1, 80);
+    assert.equal(objAttrs.seam.y1, 0);
+    assert.equal(objAttrs.seam.x2, 80);
+    assert.equal(objAttrs.seam.y2, 80);
+    assert.equal(objAttrs.chevron.x, 146);
     assert.equal(objAttrs.chevron.y, 40);
   });
 

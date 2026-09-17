@@ -163,6 +163,12 @@
   transition: fill 0.2s ease, opacity 0.2s ease;
 }
 
+.aim-portal-seam {
+  stroke: var(--aim-net-gold);
+  stroke-width: 1.5px;
+  pointer-events: none;
+}
+
 .aim-node:hover .aim-portal-door,
 .aim-portal-door:hover {
   fill: rgba(16, 185, 129, 0.18);

@@ -16,7 +16,7 @@ import React, {
 	useCallback,
 	useImperativeHandle,
 } from 'react';
-import { Graph, Shape, Edge } from '@antv/x6';
+import { Graph, Shape, Node as X6Node, Edge } from '@antv/x6';
 import { History } from '@antv/x6-plugin-history';
 import { RaiBridge } from './RaiBridge.js';
 import {
@@ -29,6 +29,7 @@ import {
 	getDefaultNodeName,
 	computeMaxLineLength,
 	wrapAimText,
+	setNodeDualityActive,
 } from './X6Shapes.js';
 import {
 	validateSemanticConnection,
@@ -116,6 +117,12 @@ export interface RaidCanvasHandle {
 	canRedo: () => boolean;
 	/** Clear undo and redo history stacks */
 	cleanHistory: () => void;
+	/** Awaken Duality Mode (bicolor seam & portal door) on a specific node */
+	activateNodeDuality: (nodeId: string) => void;
+	/** Deactivate Duality Mode, putting all nodes back to sleep */
+	deactivateNodeDuality: () => void;
+	/** Get ID of the currently awakened duality node, or null */
+	getActiveDualityNodeId: () => string | null;
 }
 
 /**
@@ -153,6 +160,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 		const selectedCellIdRef = useRef<string | null>(null);
 		const clearEdgeToolsRef = useRef<(() => void) | null>(null);
 		const routingModeRef = useRef<AimRoutingMode>(defaultRouting);
+		const activeDualityNodeIdRef = useRef<string | null>(null);
 
 		const [zoomLevel, setZoomLevel] = useState<number>(100);
 		const [isDragOver, setIsDragOver] = useState<boolean>(false);
@@ -190,6 +198,36 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 		const svgPropRef = useRef(activeSvg);
 		svgPropRef.current = activeSvg;
+
+		const deactivateDuality = useCallback(() => {
+			if (!activeDualityNodeIdRef.current || !graphRef.current) {
+				activeDualityNodeIdRef.current = null;
+				return;
+			}
+			const prevNode = graphRef.current.getCellById(activeDualityNodeIdRef.current);
+			if (prevNode && prevNode.isNode()) {
+				setNodeDualityActive(prevNode, false);
+			}
+			activeDualityNodeIdRef.current = null;
+		}, []);
+
+		const activateDuality = useCallback((nodeOrId: X6Node | string) => {
+			if (!graphRef.current) return;
+			const node = typeof nodeOrId === 'string' ? graphRef.current.getCellById(nodeOrId) : nodeOrId;
+			if (node && node.isNode()) {
+				const nodeData = (node.getData() ?? {}) as Partial<RaidNodeData>;
+				if (nodeData.href && nodeData.href.trim().length > 0) {
+					if (activeDualityNodeIdRef.current && activeDualityNodeIdRef.current !== String(node.id)) {
+						const prevNode = graphRef.current.getCellById(activeDualityNodeIdRef.current);
+						if (prevNode && prevNode.isNode()) {
+							setNodeDualityActive(prevNode, false);
+						}
+					}
+					setNodeDualityActive(node, true);
+					activeDualityNodeIdRef.current = String(node.id);
+				}
+			}
+		}, []);
 
 		// Helper: Debounced Serialization and notification
 		const triggerDebouncedChange = useCallback(() => {
@@ -384,6 +422,17 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');
 					}
 
+					if (updates.href !== undefined) {
+						if (!updates.href || !updates.href.trim()) {
+							if (activeDualityNodeIdRef.current === id) {
+								setNodeDualityActive(node, false);
+								activeDualityNodeIdRef.current = null;
+							}
+						} else if (activeDualityNodeIdRef.current === id) {
+							setNodeDualityActive(node, true);
+						}
+					}
+
 					if (updates.bounds) {
 						node.setPosition(updates.bounds.x, updates.bounds.y);
 						node.setSize(updates.bounds.width, updates.bounds.height);
@@ -481,6 +530,9 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					const graph = graphRef.current;
 					if (!graph || readOnly) return;
 					if (selectedCellIdRef.current) {
+						if (selectedCellIdRef.current === activeDualityNodeIdRef.current) {
+							activeDualityNodeIdRef.current = null;
+						}
 						const cell = graph.getCellById(selectedCellIdRef.current);
 						if (cell) {
 							clearEdgeToolsRef.current?.();
@@ -495,6 +547,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				clear: () => {
 					const graph = graphRef.current;
 					if (!graph || readOnly) return;
+					deactivateDuality();
 					graph.clearCells();
 					selectedCellIdRef.current = null;
 					onSelectRef.current?.(null);
@@ -537,6 +590,13 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					if (!graph || readOnly) return;
 					(graph as unknown as { cleanHistory?: () => void }).cleanHistory?.();
 				},
+				activateNodeDuality: (nodeId: string) => {
+					activateDuality(nodeId);
+				},
+				deactivateNodeDuality: () => {
+					deactivateDuality();
+				},
+				getActiveDualityNodeId: () => activeDualityNodeIdRef.current,
 			}),
 			[
 				handleCenter,
@@ -546,6 +606,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				handleZoomOut,
 				readOnly,
 				triggerDebouncedChange,
+				activateDuality,
+				deactivateDuality,
 			],
 		);
 
@@ -829,6 +891,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						id;
 					onSelectRef.current?.({ id, kind, label });
 				} else if (cell.isEdge()) {
+					deactivateDuality();
 					setEdgeTools(cell);
 					const data = (cell.getData() ?? {}) as Partial<RaidEdgeData>;
 					const label =
@@ -909,7 +972,28 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 				const nodeData = extractNodeData(node);
 				const mouseEvt = ((e as any).originalEvent ?? e) as MouseEvent;
+				const hasHref = Boolean(nodeData.href && nodeData.href.trim().length > 0);
 
+				if (!hasHref) {
+					// Unlinked node: put any active duality to sleep and fire standard onNodeClick
+					deactivateDuality();
+					if (onNodeClickRef.current) {
+						onNodeClickRef.current(nodeData, mouseEvt);
+					}
+					return;
+				}
+
+				const nodeId = String(node.id);
+				if (activeDualityNodeIdRef.current !== nodeId) {
+					// Tap 1 (Awakening Tap):
+					// Awaken duality mode on this node (reveals gold seam & green door).
+					// Deactivates any previously awakened node.
+					// Does NOT fire navigation or inspector callbacks yet.
+					activateDuality(node);
+					return;
+				}
+
+				// Tap 2 (Action Tap on Active Dual Node):
 				const bbox = node.getBBox ? node.getBBox() : { x: 0, y: 0, width: 140, height: 60 };
 				const targetElem = (mouseEvt?.target as Element | null);
 				const isDoorElement = Boolean(
@@ -924,8 +1008,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					? clickX >= (bbox.x + bbox.width / 2)
 					: isDoorElement;
 
-				const hasHref = Boolean(nodeData.href && nodeData.href.trim().length > 0);
-				const isPortalClick = hasHref && (isDoorElement || isRightHemisphere);
+				const isPortalClick = isDoorElement || isRightHemisphere;
 
 				if (isPortalClick && onNodePortalClickRef.current) {
 					onNodePortalClickRef.current(nodeData, mouseEvt);
@@ -944,6 +1027,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 			graph.on('blank:click', () => {
 				clearEdgeTools();
+				deactivateDuality();
 				pointerDownState = null;
 				selectedCellIdRef.current = null;
 				onSelectRef.current?.(null);

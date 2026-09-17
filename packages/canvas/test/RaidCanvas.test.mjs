@@ -316,9 +316,10 @@ describe('RaidCanvas React Component Export & Contracts', () => {
     assert.equal(storedData?.href, 'http://localhost:3042/entities/456');
   });
 
-  test('CR033: Duality of the Object: Left hemisphere fires onNodeClick, Right hemisphere fires onNodePortalClick', () => {
+  test('CR033: Duality of the Object: Two-tap lifecycle (Awakening tap followed by action tap)', () => {
     let clickCount = 0;
     let portalClickCount = 0;
+    let activeDualityNodeId = null;
 
     const onNodeClick = () => { clickCount++; };
     const onNodePortalClick = () => { portalClickCount++; };
@@ -332,14 +333,30 @@ describe('RaidCanvas React Component Export & Contracts', () => {
         bounds: node.bounds,
       };
 
+      const hasValidHref = Boolean(nodeData.href && nodeData.href.trim().length > 0);
+
+      // Unlinked node: direct click, clear duality
+      if (!hasValidHref) {
+        activeDualityNodeId = null;
+        onNodeClick(nodeData);
+        return;
+      }
+
+      // Tap 1: Awakening tap
+      if (activeDualityNodeId !== node.id) {
+        activeDualityNodeId = node.id;
+        // Do NOT trigger callbacks on awakening tap
+        return;
+      }
+
+      // Tap 2: Action tap on active dual node
       const bbox = node.bounds;
       const isDoorElement = targetClasses.includes('aim-portal-door') || targetClasses.includes('aim-portal-chevron');
       const isRightHemisphere = clickX !== undefined && bbox.width > 0
         ? clickX >= (bbox.x + bbox.width / 2)
         : isDoorElement;
 
-      const hasValidHref = Boolean(nodeData.href && nodeData.href.trim().length > 0);
-      const isPortalClick = hasValidHref && (isDoorElement || isRightHemisphere);
+      const isPortalClick = isDoorElement || isRightHemisphere;
 
       if (isPortalClick) {
         onNodePortalClick(nodeData);
@@ -356,25 +373,74 @@ describe('RaidCanvas React Component Export & Contracts', () => {
       bounds: { x: 100, y: 100, width: 160, height: 60 },
     };
 
-    // 1. Tap left hemisphere (x = 120 < 100 + 80 = 180): fires onNodeClick (Inspector)
+    // --- Sequence 1: Awakening ---
+    // Tap 1: First tap awakens the node without navigating or opening inspector
     dispatchNodeClick(nodeWithHref, 120);
-    assert.equal(clickCount, 1);
+    assert.equal(activeDualityNodeId, 'Act_Dual', 'Tap 1 must awaken duality mode on node');
+    assert.equal(clickCount, 0, 'Tap 1 must not fire onNodeClick');
+    assert.equal(portalClickCount, 0, 'Tap 1 must not fire onNodePortalClick');
+
+    // --- Sequence 2: Action on Left Hemisphere ---
+    // Tap 2: Second tap on Left hemisphere (x = 120 < 100 + 80 = 180) fires onNodeClick (Inspector)
+    dispatchNodeClick(nodeWithHref, 120);
+    assert.equal(clickCount, 1, 'Tap 2 on left hemisphere must fire onNodeClick');
     assert.equal(portalClickCount, 0);
 
-    // 2. Tap right hemisphere (x = 190 >= 180): fires onNodePortalClick (Portal Door)
+    // --- Sequence 3: Action on Right Hemisphere ---
+    // Tap 3: Tap on Right hemisphere (x = 190 >= 180) fires onNodePortalClick (Portal Door)
     dispatchNodeClick(nodeWithHref, 190);
     assert.equal(clickCount, 1);
-    assert.equal(portalClickCount, 1);
+    assert.equal(portalClickCount, 1, 'Tap on right hemisphere must fire onNodePortalClick');
 
-    // 3. Tap portal door element directly
+    // --- Sequence 4: Blank Canvas puts node to sleep ---
+    activeDualityNodeId = null; // simulate blank:click
+    assert.equal(activeDualityNodeId, null);
+
+    // --- Sequence 5: Next tap on node is again Tap 1 (Awakening) ---
+    dispatchNodeClick(nodeWithHref, 190);
+    assert.equal(activeDualityNodeId, 'Act_Dual');
+    assert.equal(portalClickCount, 1, 'Should awaken node, not immediately trigger portal click');
+
+    // Tap on door element directly on awakened node triggers portal click
     dispatchNodeClick(nodeWithHref, 110, ['aim-portal-door']);
-    assert.equal(clickCount, 1);
     assert.equal(portalClickCount, 2);
 
-    // 4. Node without href: tapping right hemisphere still fires onNodeClick (no portal door)
-    dispatchNodeClick(nodeWithHref, 190, [], false);
-    assert.equal(clickCount, 2);
-    assert.equal(portalClickCount, 2);
+    // --- Sequence 6: Unlinked node bypasses awakening ---
+    const unlinkedNode = {
+      id: 'Act_Unlinked',
+      kind: 'act',
+      displayName: 'Plain Activity',
+      bounds: { x: 100, y: 100, width: 160, height: 60 },
+    };
+    dispatchNodeClick(unlinkedNode, 190, [], false);
+    assert.equal(clickCount, 2, 'Unlinked node fires onNodeClick on Tap 1');
+    assert.equal(activeDualityNodeId, null, 'Unlinked node resets active duality');
+  });
+
+  test('CR033: Imperative handle exposes activateNodeDuality, deactivateNodeDuality, and getActiveDualityNodeId', () => {
+    let currentDualityId = null;
+
+    const mockHandle = {
+      activateNodeDuality: (id) => {
+        currentDualityId = id;
+      },
+      deactivateNodeDuality: () => {
+        currentDualityId = null;
+      },
+      getActiveDualityNodeId: () => currentDualityId,
+    };
+
+    assert.equal(typeof mockHandle.activateNodeDuality, 'function');
+    assert.equal(typeof mockHandle.deactivateNodeDuality, 'function');
+    assert.equal(typeof mockHandle.getActiveDualityNodeId, 'function');
+
+    assert.equal(mockHandle.getActiveDualityNodeId(), null);
+
+    mockHandle.activateNodeDuality('Node_123');
+    assert.equal(mockHandle.getActiveDualityNodeId(), 'Node_123');
+
+    mockHandle.deactivateNodeDuality();
+    assert.equal(mockHandle.getActiveDualityNodeId(), null);
   });
 });
 

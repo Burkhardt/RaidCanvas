@@ -207,6 +207,10 @@ export function registerAimShapes(): void {
         selector: 'door',
       },
       {
+        tagName: 'line',
+        selector: 'seam',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -231,9 +235,15 @@ export function registerAimShapes(): void {
         display: 'none',
         class: 'aim-portal-door',
       },
+      seam: {
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'none',
+        class: 'aim-portal-seam',
+      },
       chevron: {
         text: '›',
-        fill: 'rgba(16, 185, 129, 0.60)',
+        fill: 'rgba(16, 185, 129, 0.70)',
         fontSize: 14,
         fontWeight: 'bold',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -286,6 +296,10 @@ export function registerAimShapes(): void {
         selector: 'door',
       },
       {
+        tagName: 'line',
+        selector: 'seam',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -312,9 +326,15 @@ export function registerAimShapes(): void {
         display: 'none',
         class: 'aim-portal-door',
       },
+      seam: {
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'none',
+        class: 'aim-portal-seam',
+      },
       chevron: {
         text: '›',
-        fill: 'rgba(16, 185, 129, 0.60)',
+        fill: 'rgba(16, 185, 129, 0.70)',
         fontSize: 14,
         fontWeight: 'bold',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -391,6 +411,10 @@ export function registerAimShapes(): void {
         selector: 'door',
       },
       {
+        tagName: 'line',
+        selector: 'seam',
+      },
+      {
         tagName: 'text',
         selector: 'chevron',
       },
@@ -407,9 +431,15 @@ export function registerAimShapes(): void {
         display: 'none',
         class: 'aim-portal-door',
       },
+      seam: {
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'none',
+        class: 'aim-portal-seam',
+      },
       chevron: {
         text: '›',
-        fill: 'rgba(16, 185, 129, 0.60)',
+        fill: 'rgba(16, 185, 129, 0.70)',
         fontSize: 14,
         fontWeight: 'bold',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -488,6 +518,10 @@ export function registerAimShapes(): void {
         selector: 'door',
       },
       {
+        tagName: 'line',
+        selector: 'seam',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -512,9 +546,15 @@ export function registerAimShapes(): void {
         display: 'none',
         class: 'aim-portal-door',
       },
+      seam: {
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'none',
+        class: 'aim-portal-seam',
+      },
       chevron: {
         text: '›',
-        fill: 'rgba(16, 185, 129, 0.60)',
+        fill: 'rgba(16, 185, 129, 0.70)',
         fontSize: 14,
         fontWeight: 'bold',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -563,15 +603,19 @@ export function registerAimShapes(): void {
       },
       {
         tagName: 'path',
-        selector: 'door',
-      },
-      {
-        tagName: 'path',
         selector: 'torso',
       },
       {
         tagName: 'circle',
         selector: 'head',
+      },
+      {
+        tagName: 'path',
+        selector: 'door',
+      },
+      {
+        tagName: 'line',
+        selector: 'seam',
       },
       {
         tagName: 'text',
@@ -593,22 +637,6 @@ export function registerAimShapes(): void {
         strokeWidth: 0,
         class: 'aim-node aim-per',
       },
-      door: {
-        fill: 'rgba(16, 185, 129, 0.10)',
-        display: 'none',
-        class: 'aim-portal-door',
-      },
-      chevron: {
-        text: '›',
-        fill: 'rgba(16, 185, 129, 0.60)',
-        fontSize: 14,
-        fontWeight: 'bold',
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        textAnchor: 'middle',
-        textVerticalAnchor: 'middle',
-        display: 'none',
-        class: 'aim-portal-chevron',
-      },
       torso: {
         d: 'M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4',
         fill: 'none',
@@ -624,6 +652,28 @@ export function registerAimShapes(): void {
         fill: CascaisPalette.ChalkWhite,
         stroke: CascaisPalette.WarmGraphite,
         strokeWidth: 2,
+      },
+      door: {
+        fill: 'rgba(16, 185, 129, 0.25)',
+        display: 'none',
+        class: 'aim-portal-door',
+      },
+      seam: {
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'none',
+        class: 'aim-portal-seam',
+      },
+      chevron: {
+        text: '›',
+        fill: 'rgba(16, 185, 129, 0.75)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'none',
+        class: 'aim-portal-chevron',
       },
       qualifier: {
         text: '',
@@ -673,6 +723,10 @@ export function registerAimShapes(): void {
         selector: 'door',
       },
       {
+        tagName: 'line',
+        selector: 'seam',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -702,9 +756,15 @@ export function registerAimShapes(): void {
         display: 'none',
         class: 'aim-portal-door',
       },
+      seam: {
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'none',
+        class: 'aim-portal-seam',
+      },
       chevron: {
         text: '›',
-        fill: 'rgba(16, 185, 129, 0.60)',
+        fill: 'rgba(16, 185, 129, 0.70)',
         fontSize: 14,
         fontWeight: 'bold',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -755,6 +815,10 @@ export function registerAimShapes(): void {
         selector: 'door',
       },
       {
+        tagName: 'line',
+        selector: 'seam',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -780,9 +844,15 @@ export function registerAimShapes(): void {
         display: 'none',
         class: 'aim-portal-door',
       },
+      seam: {
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'none',
+        class: 'aim-portal-seam',
+      },
       chevron: {
         text: '›',
-        fill: 'rgba(16, 185, 129, 0.60)',
+        fill: 'rgba(16, 185, 129, 0.70)',
         fontSize: 14,
         fontWeight: 'bold',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -853,14 +923,22 @@ export function registerAimShapes(): void {
 
 /**
  * Computes X6 attribute dictionary for the Portuguese Bicolor Seam & Portal Door.
- * If data.href is absent or empty, door and chevron are hidden (selective revelation).
+ * If data.href is absent or empty, or isActive is false, door, seam and chevron are hidden (dormant by default).
+ * When awakened (isActive = true):
+ * - Reveals vertical gold seam (Cascais Net Gold, stroke-width: 1.5) down the center meridian.
+ * - Reveals right-hemisphere green wash (Cascais Heraldic Green with alpha).
+ * - For person ('per'), green wash contours strictly to right head semi-circle and right torso arc.
+ * - Reveals doorway chevron '›'.
  */
-export function computePortalDoorAttrs(data: RaidNodeData) {
+export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
   const hasPortal = Boolean(data.href && data.href.trim().length > 0);
-  if (!hasPortal) {
+  if (!hasPortal || !isActive) {
     return {
       door: {
         d: '',
+        display: 'none',
+      },
+      seam: {
         display: 'none',
       },
       chevron: {
@@ -872,6 +950,43 @@ export function computePortalDoorAttrs(data: RaidNodeData) {
   const w = data.bounds.width;
   const h = data.bounds.height;
   const midX = Math.round(w / 2);
+
+  if (data.kind === 'per') {
+    const cx = Math.round(w / 2);
+    const headRight = `M ${cx} 14 A 8 8 0 0 1 ${cx} 30 Z`;
+    const torsoRight = `M ${cx} 42 H ${cx + 8} a 8 8 0 0 1 8 8 v 4 H ${cx} Z`;
+    return {
+      door: {
+        d: `${headRight} ${torsoRight}`,
+        display: 'block',
+        fill: 'rgba(16, 185, 129, 0.25)',
+        class: 'aim-portal-door',
+      },
+      seam: {
+        x1: cx,
+        y1: 14,
+        x2: cx,
+        y2: 54,
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'block',
+        class: 'aim-portal-seam',
+      },
+      chevron: {
+        text: '›',
+        x: cx + 24,
+        y: 32,
+        fill: 'rgba(16, 185, 129, 0.75)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'block',
+        class: 'aim-portal-chevron',
+      },
+    };
+  }
 
   let pathD = `M ${midX} 0 H ${w} v ${h} H ${midX} Z`;
   if (data.kind === 'uc') {
@@ -890,11 +1005,21 @@ export function computePortalDoorAttrs(data: RaidNodeData) {
       fill: 'rgba(16, 185, 129, 0.10)',
       class: 'aim-portal-door',
     },
+    seam: {
+      x1: midX,
+      y1: 0,
+      x2: midX,
+      y2: h,
+      stroke: CascaisPalette.NetGold,
+      strokeWidth: 1.5,
+      display: 'block',
+      class: 'aim-portal-seam',
+    },
     chevron: {
       text: '›',
-      x: w - 12,
+      x: w - 14,
       y: Math.round(h / 2),
-      fill: 'rgba(16, 185, 129, 0.60)',
+      fill: 'rgba(16, 185, 129, 0.70)',
       fontSize: 14,
       fontWeight: 'bold',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -904,6 +1029,31 @@ export function computePortalDoorAttrs(data: RaidNodeData) {
       class: 'aim-portal-chevron',
     },
   };
+}
+
+/**
+ * Activates or deactivates Duality Mode (bicolor seam & portal door) on an X6 Node instance.
+ */
+export function setNodeDualityActive(node: Node, active: boolean): void {
+  const data = node.getData<RaidNodeData>();
+  if (!data?.href) {
+    return;
+  }
+  const attrs = computePortalDoorAttrs(data, active);
+  node.setAttrByPath('door/d', attrs.door.d);
+  node.setAttrByPath('door/display', attrs.door.display);
+  if (attrs.seam.display === 'block') {
+    node.setAttrByPath('seam/x1', (attrs.seam as any).x1);
+    node.setAttrByPath('seam/y1', (attrs.seam as any).y1);
+    node.setAttrByPath('seam/x2', (attrs.seam as any).x2);
+    node.setAttrByPath('seam/y2', (attrs.seam as any).y2);
+  }
+  node.setAttrByPath('seam/display', attrs.seam.display);
+  if (attrs.chevron.display === 'block') {
+    node.setAttrByPath('chevron/x', (attrs.chevron as any).x);
+    node.setAttrByPath('chevron/y', (attrs.chevron as any).y);
+  }
+  node.setAttrByPath('chevron/display', attrs.chevron.display);
 }
 
 /**
@@ -949,11 +1099,22 @@ export function configureAimGraph(graph: Graph): void {
           height: current.height,
         },
       };
-      const portalAttrs = computePortalDoorAttrs(updatedData);
+      node.setData(updatedData);
+      const isCurrentlyActive = node.getAttrByPath('door/display') === 'block';
+      const portalAttrs = computePortalDoorAttrs(updatedData, isCurrentlyActive);
       node.setAttrByPath('door/d', portalAttrs.door.d);
       node.setAttrByPath('door/display', portalAttrs.door.display);
-      node.setAttrByPath('chevron/x', portalAttrs.chevron.x);
-      node.setAttrByPath('chevron/y', portalAttrs.chevron.y);
+      if (portalAttrs.seam.display === 'block') {
+        node.setAttrByPath('seam/x1', (portalAttrs.seam as any).x1);
+        node.setAttrByPath('seam/y1', (portalAttrs.seam as any).y1);
+        node.setAttrByPath('seam/x2', (portalAttrs.seam as any).x2);
+        node.setAttrByPath('seam/y2', (portalAttrs.seam as any).y2);
+      }
+      node.setAttrByPath('seam/display', portalAttrs.seam.display);
+      if (portalAttrs.chevron.display === 'block') {
+        node.setAttrByPath('chevron/x', (portalAttrs.chevron as any).x);
+        node.setAttrByPath('chevron/y', (portalAttrs.chevron as any).y);
+      }
       node.setAttrByPath('chevron/display', portalAttrs.chevron.display);
     }
   });
