@@ -1397,7 +1397,7 @@ export function setNodeDualityActive(node: Node, active: boolean): void {
   if (!data?.href) {
     return;
   }
-  const opt = { ignoreHistory: true, silent: true };
+  const opt = { ignoreHistory: true };
   const attrs = computePortalDoorAttrs(data, active);
   node.setAttrByPath('door/d', attrs.door.d, opt);
   node.setAttrByPath('door/display', attrs.door.display, opt);

@@ -2272,14 +2272,14 @@ describe('Role definitions, contextual bindings and wrapped descriptions', () =>
     assert.equal(clsToRol.attrs.line.targetMarker, null);
   });
 
-  test('CR035: setNodeDualityActive passes ignoreHistory: true and silent: true to setAttrByPath', () => {
+  test('CR035.1: setNodeDualityActive drops silent: true and sets ignoreHistory: true so NodeView re-renders DOM', () => {
     const recordedCalls = [];
     const mockNode = {
       getData: () => ({
-        id: 'node-cr035',
+        id: 'node-cr035-1',
         kind: 'act',
         displayName: 'Activity',
-        href: 'https://example.com/cr035',
+        href: 'https://example.com/cr035-1',
         bounds: { x: 0, y: 0, width: 160, height: 60 },
       }),
       setAttrByPath: (path, value, options) => {
@@ -2287,10 +2287,31 @@ describe('Role definitions, contextual bindings and wrapped descriptions', () =>
       },
     };
 
+    // 1. Awakening (active = true)
     setNodeDualityActive(mockNode, true);
     assert.ok(recordedCalls.length > 0, 'Must make attribute calls');
     for (const call of recordedCalls) {
-      assert.deepEqual(call.options, { ignoreHistory: true, silent: true }, `Call to ${call.path} must have ignoreHistory and silent`);
+      assert.deepEqual(call.options, { ignoreHistory: true }, `Call to ${call.path} must have ignoreHistory: true and NO silent: true`);
     }
+
+    const doorDisplayCall = recordedCalls.find(c => c.path === 'door/display');
+    const seamDisplayCall = recordedCalls.find(c => c.path === 'seam/display');
+    const chevronDisplayCall = recordedCalls.find(c => c.path === 'chevron/display');
+    assert.equal(doorDisplayCall?.value, 'block', 'Awakened door must have display: block');
+    assert.equal(seamDisplayCall?.value, 'block', 'Awakened seam must have display: block');
+    assert.equal(chevronDisplayCall?.value, 'block', 'Awakened chevron must have display: block');
+
+    // 2. Returning to sleep (active = false)
+    recordedCalls.length = 0;
+    setNodeDualityActive(mockNode, false);
+    for (const call of recordedCalls) {
+      assert.deepEqual(call.options, { ignoreHistory: true }, `Call to ${call.path} must have ignoreHistory: true and NO silent: true`);
+    }
+    const doorSleepCall = recordedCalls.find(c => c.path === 'door/display');
+    const seamSleepCall = recordedCalls.find(c => c.path === 'seam/display');
+    const chevronSleepCall = recordedCalls.find(c => c.path === 'chevron/display');
+    assert.equal(doorSleepCall?.value, 'none', 'Sleeping door must have display: none');
+    assert.equal(seamSleepCall?.value, 'none', 'Sleeping seam must have display: none');
+    assert.equal(chevronSleepCall?.value, 'none', 'Sleeping chevron must have display: none');
   });
 });
