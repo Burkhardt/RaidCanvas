@@ -13,6 +13,10 @@ import { StudioToolbar } from './components/StudioToolbar';
 export const App: React.FC = () => {
   const canvasRef = useRef<RaidCanvasHandle | null>(null);
 
+  useEffect(() => {
+    (window as any).canvasHandle = canvasRef.current;
+  });
+
   const [selectedPresetId, setSelectedPresetId] = useState<string>(PRESETS[0]!.id);
   const currentPreset = useMemo(
     () => PRESETS.find((p) => p.id === selectedPresetId) ?? PRESETS[0]!,
@@ -24,8 +28,8 @@ export const App: React.FC = () => {
   const [selectedEntity, setSelectedEntity] = useState<SelectedEntityData | null>(null);
   const [activeTab, setActiveTab] = useState<'inspector' | 'svg' | 'metamodel'>('inspector');
   const [copied, setCopied] = useState<boolean>(false);
-  const [stencilCollapsed, setStencilCollapsed] = useState<boolean>(false);
-  const [routingMode, setRoutingMode] = useState<'manhattan' | 'normal' | 'smooth'>('manhattan');
+  const [stencilCollapsed, setStencilCollapsed] = useState<boolean>(true);
+  const [routingMode, setRoutingMode] = useState<'manhattan' | 'normal' | 'smooth'>('normal');
   const [portalToast, setPortalToast] = useState<{ entityName: string; href: string } | null>(null);
 
   const handlePortalNavigate = useCallback((nodeOrHref: string | Partial<RaidNodeData>) => {
@@ -49,6 +53,7 @@ export const App: React.FC = () => {
     setSelectedPresetId(presetId);
     const target = PRESETS.find((p) => p.id === presetId);
     if (target) {
+      setRoutingMode('normal');
       setSvg(target.svg);
       setSelectedEntity(null);
       setHistory([target.svg]);
@@ -106,6 +111,15 @@ export const App: React.FC = () => {
         type: 'node',
         nodeData: {
           ...nodeData,
+          properties: { ...nodeData.properties, connections: graph.getConnectedEdges(cell).map(e => {
+            const outgoing = e.getSourceCellId() === id;
+            const other = graph.getCellById(outgoing ? e.getTargetCellId() : e.getSourceCellId());
+            const otherData = other?.getData() as Partial<RaidNodeData> | undefined;
+            const role = nodeData.kind === 'rf'
+              ? (outgoing ? (otherData?.kind === 'rol' ? 'Role definition' : 'Filler object') : 'Originating object')
+              : (outgoing ? 'Filler type' : (otherData?.kind === 'rf' ? 'RoleFiller' : 'Originating class / context'));
+            return `${role}: ${otherData?.displayName || other?.id || '—'}`;
+          }) },
           displayName:
             nodeData.displayName ??
             (cell.getAttrByPath('label/text') as string) ??
@@ -131,6 +145,9 @@ export const App: React.FC = () => {
           sourcePort: cell.getSourcePortId() ?? edgeData.sourcePort,
           targetPort: cell.getTargetPortId() ?? edgeData.targetPort,
           routing: edgeData.routing,
+          bendPoints: (cell as any).getVertices
+            ? (cell as any).getVertices().map((v: any) => ({ x: Math.round(v.x), y: Math.round(v.y) }))
+            : [],
           label:
             edgeData.label ??
             (cell.getLabels()?.[0]?.attrs?.['text']?.['text'] as string) ??
@@ -254,16 +271,16 @@ export const App: React.FC = () => {
       />
 
       {/* Main 3-Column IDE Layout */}
-      <main style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <main className="studio-main" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left Column: AOAIM Stencil Drawer (Drag-and-Drop Palette) */}
-        <StencilDrawer
+        <StencilDrawer archetype={currentPreset.archetype}
           onAddNode={(kind) => canvasRef.current?.addNode(kind)}
           collapsed={stencilCollapsed}
           onToggleCollapse={() => setStencilCollapsed((c) => !c)}
         />
 
         {/* Center Column: Interactive Visual Canvas */}
-        <div
+        <div className="studio-canvas"
           style={{
             flex: 1,
             display: 'flex',
@@ -364,7 +381,7 @@ export const App: React.FC = () => {
         </div>
 
         {/* Right Column: Multi-tab Drawer (Inspector, Live SVG, Metamodel Facts) */}
-        <div
+        <div className="studio-inspector"
           style={{
             width: 360,
             display: 'flex',

@@ -15,6 +15,7 @@ import {
   computePortalDoorAttrs,
   computeStereotypeIconAttrs,
   resolveStereotype,
+  isInitiatingStereotype,
   getStereotypePaths,
   renderStereotypeIconSvg,
   KNOWN_STEREOTYPES,
@@ -82,10 +83,20 @@ describe('RaidCanvas Core Tests', () => {
     });
 
     assert.equal(edge.id, 'rel-1');
-    assert.equal(edge.shape, 'aim-edge');
+    assert.equal(edge.shape, 'aim-arrow');
     assert.deepEqual(edge.source, { cell: 'Actor_1', port: 'port-right' });
     assert.deepEqual(edge.target, { cell: 'SignContract_UC', port: 'port-left' });
     assert.equal(edge.vertices.length, 2);
+
+    const undirectedEdge = createAimEdge({
+      id: 'rel-2',
+      kind: 'association',
+      directed: false,
+      sourceId: 'ContractDoc_Obj',
+      targetId: 'SignerRole_Rf',
+    });
+    assert.equal(undirectedEdge.shape, 'aim-edge');
+    assert.equal(undirectedEdge.attrs.line.targetMarker, null);
   });
 
   test('RaiBridge parses and formats orthogonal bend points', () => {
@@ -150,6 +161,11 @@ describe('RaidCanvas Core Tests', () => {
     assert.ok(EdgeCtor, 'aim-edge should be registered in Edge registry');
     const edgeInstance = new EdgeCtor();
     assert.ok(edgeInstance.markup, 'aim-edge must have defined markup');
+
+    const ArrowCtor = Edge.registry.get('aim-arrow');
+    assert.ok(ArrowCtor, 'aim-arrow should be registered in Edge registry');
+    const arrowInstance = new ArrowCtor();
+    assert.ok(arrowInstance.markup, 'aim-arrow must have defined markup');
   });
 
   test('createAimEdge respects routing modes (manhattan, normal, smooth)', async () => {
@@ -309,7 +325,7 @@ describe('RaidCanvas Core Tests', () => {
     assert.equal(standardActor.attrs?.torso?.stroke, CascaisPalette.WarmGraphite);
   });
 
-  test('createAimNode configures textDecoration underline only when instance === true (CR032)', () => {
+  test('createAimNode underlines explicit instances and object archetypes', () => {
     const actPlain = createAimNode({
       id: 'Act_1',
       kind: 'act',
@@ -334,7 +350,7 @@ describe('RaidCanvas Core Tests', () => {
       displayName: 'invoice: Invoice',
       bounds: { x: 0, y: 0, width: 160, height: 80 },
     });
-    assert.equal(objPlain.attrs?.label?.textDecoration, 'none');
+    assert.equal(objPlain.attrs?.label?.textDecoration, 'underline');
 
     const objInstance = createAimNode({
       id: 'Obj_2',
@@ -445,8 +461,8 @@ describe('RaidCanvas Core Tests', () => {
     // 1. Diagram root has aim-routing="smooth"
     assert.ok(svg.includes('aim-routing="smooth"'));
     // 2. Person glyph markup is generated
-    assert.ok(svg.includes('<circle cx="45" cy="22" r="8"'));
-    assert.ok(svg.includes('M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4'));
+    assert.ok(svg.includes('<circle cx="45" cy="20" r="12"'));
+    assert.ok(svg.includes('M 66 54 v -6 a 10 10 0 0 0 -10 -10 H 34 a 10 10 0 0 0 -10 10 v 6'));
     // 3. Underline applied to instance node (CR032)
     assert.ok(svg.includes('text-decoration="underline"'));
     // 4. Multi-line tspan generated from <wbr> soft break when line length exceeded
@@ -557,11 +573,11 @@ describe('RaidCanvas Core Tests', () => {
     const updatedSvg = bridge.updateExistingSvg(baseSvg, model, {});
 
     // Count head circles: must be exactly 4 for the 4 Person nodes!
-    const headCircleMatches = updatedSvg.match(/<circle cx="45" cy="22" r="8"/g);
+    const headCircleMatches = updatedSvg.match(/<circle cx="45" cy="20" r="12"/g);
     assert.equal(headCircleMatches?.length, 4, 'Emits 4 head circles for 4 Person nodes');
 
     // Count torso paths: must be exactly 4!
-    const torsoPathMatches = updatedSvg.match(/d="M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4"/g);
+    const torsoPathMatches = updatedSvg.match(/d="M 66 54 v -6 a 10 10 0 0 0 -10 -10 H 34 a 10 10 0 0 0 -10 10 v 6"/g);
     assert.equal(torsoPathMatches?.length, 4, 'Emits 4 torso paths for 4 Person nodes');
 
     // Check initiating color on Per_1
@@ -995,7 +1011,7 @@ describe('CR032 Acceptance Tests: Consumer-Controlled Labels, Centering, Wrappin
       });
       assert.equal(nodeMeta.attrs?.head?.cx, cx, `Head circle cx is ${cx} for width ${w}`);
       assert.equal(nodeMeta.attrs?.head?.refX, undefined, `Head circle does not have refX for width ${w}`);
-      const expectedTorso = `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`;
+      const expectedTorso = `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`;
       assert.equal(nodeMeta.attrs?.torso?.d, expectedTorso, `Torso path is centered at cx=${cx} for width ${w}`);
 
       // 2. SVG Export
@@ -1008,7 +1024,7 @@ describe('CR032 Acceptance Tests: Consumer-Controlled Labels, Centering, Wrappin
         edges: [],
       };
       const svg = bridge.generateFreshSvg(model, {});
-      assert.ok(svg.includes(`<circle cx="${cx}" cy="22" r="8"`), `Export circle cx is ${cx} for width ${w}`);
+      assert.ok(svg.includes(`<circle cx="${cx}" cy="20" r="12"`), `Export circle cx is ${cx} for width ${w}`);
       assert.ok(svg.includes(`d="${expectedTorso}"`), `Export torso path is centered at cx=${cx} for width ${w}`);
       assert.ok(svg.includes(`x="${cx}"`), `Export text label is centered at x=${cx} for width ${w}`);
     }
@@ -1382,23 +1398,85 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
       kind: 'per',
       displayName: 'Actor',
       href: 'http://localhost:3042/actors/PER_1',
-      bounds: { x: 0, y: 0, width: 90, height: 90 },
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
     }, true);
     assert.equal(perAttrs.door.display, 'block');
-    assert.ok(!perAttrs.door.d.includes('H 90 v 90'), 'Person must NOT have outer bounding box rect in door path');
-    assert.ok(perAttrs.door.d.includes('M 45 14 A 8 8 0 0 1 45 30 Z'), 'Right head semicircle');
-    assert.ok(perAttrs.door.d.includes('M 45 42 H 53 a 8 8 0 0 1 8 8 v 4 H 45 Z'), 'Right torso arc');
+    assert.ok(!perAttrs.door.d.includes('H 120 v 110'), 'Person must NOT have outer bounding box rect in door path');
+    assert.ok(perAttrs.door.d.includes('M 60 8 A 12 12 0 0 1 60 32 Z'), 'Right head semicircle');
+    assert.ok(perAttrs.door.d.includes('M 60 38 H 71 a 10 10 0 0 1 10 10 v 6 H 60 Z'), 'Right torso arc');
     assert.equal(perAttrs.door.fill, 'rgba(16, 185, 129, 0.25)');
     assert.equal(perAttrs.seam.display, 'block');
-    assert.equal(perAttrs.seam.x1, 45);
-    assert.equal(perAttrs.seam.y1, 14);
-    assert.equal(perAttrs.seam.x2, 45);
+    assert.equal(perAttrs.seam.x1, 60);
+    assert.equal(perAttrs.seam.y1, 8);
+    assert.equal(perAttrs.seam.x2, 60);
     assert.equal(perAttrs.seam.y2, 54);
     assert.equal(perAttrs.seam.stroke, '#F59E0B');
     assert.equal(perAttrs.chevron.refX, 1);
     assert.equal(perAttrs.chevron.refDx, -12);
     assert.equal(perAttrs.chevron.refY, 0.5);
     assert.equal(perAttrs.chevron.display, 'block');
+
+    // Venue Place (plc + stereotype="Venue"): Contoured teardrop right half + vertical seam
+    const venueAttrs = computePortalDoorAttrs({
+      id: 'v1',
+      kind: 'plc',
+      displayName: 'Lisbon Stage',
+      stereotype: 'Venue',
+      href: 'http://localhost:3042/places/PLC_1',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    }, true);
+    assert.equal(venueAttrs.door.display, 'block');
+    assert.ok(!venueAttrs.door.d.includes('H 120 v 110'), 'Venue must NOT have outer bounding box rect in door path');
+    assert.ok(venueAttrs.door.d.includes('M 60 9 A 13.5 13.5 0 0 1 73.5 22.5'), 'Venue pin right half teardrop arc');
+    assert.equal(venueAttrs.door.fill, 'rgba(16, 185, 129, 0.25)');
+    assert.equal(venueAttrs.seam.display, 'block');
+    assert.equal(venueAttrs.seam.x1, 60);
+    assert.equal(venueAttrs.seam.y1, 6);
+    assert.equal(venueAttrs.seam.x2, 60);
+    assert.equal(venueAttrs.seam.y2, 60);
+    assert.equal(venueAttrs.seam.stroke, '#F59E0B');
+    assert.equal(venueAttrs.chevron.refX, 0.5);
+    assert.equal(venueAttrs.chevron.refDx, 34);
+    assert.equal(venueAttrs.chevron.refY, 26);
+    assert.equal(venueAttrs.chevron.display, 'block');
+
+    // Stage Place (plc + stereotype="Stage"): Contoured outer bounds right half + vertical seam
+    const stageAttrs = computePortalDoorAttrs({
+      id: 's1',
+      kind: 'plc',
+      displayName: 'Festival Main Stage',
+      stereotype: 'Stage',
+      href: 'http://localhost:3042/places/PLC_Stage',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    }, true);
+    assert.equal(stageAttrs.door.display, 'block');
+    assert.ok(stageAttrs.door.d.includes('M 60 8.6 H 74.4 L 80.5 15.6 V 46.2 H 60 Z'), 'Stage right half outer silhouette path');
+    assert.equal(stageAttrs.door.fill, 'rgba(16, 185, 129, 0.25)');
+    assert.equal(stageAttrs.seam.display, 'block');
+    assert.equal(stageAttrs.seam.x1, 60);
+    assert.equal(stageAttrs.seam.y1, 8.6);
+    assert.equal(stageAttrs.seam.x2, 60);
+    assert.equal(stageAttrs.seam.y2, 46.2);
+    assert.equal(stageAttrs.seam.stroke, '#F59E0B');
+
+    // Bar Place (plc + stereotype="Bar"): Emerald right half of glass bowl
+    const barAttrs = computePortalDoorAttrs({
+      id: 'b1',
+      kind: 'plc',
+      displayName: 'Lounge Bar',
+      stereotype: 'Bar',
+      href: 'http://localhost:3042/places/PLC_Bar',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    }, true);
+    assert.equal(barAttrs.door.display, 'block');
+    assert.ok(barAttrs.door.d.includes('M 60 14 H 75 L 60 34 Z'), 'Bar right half of glass bowl path');
+    assert.equal(barAttrs.door.fill, 'rgba(16, 185, 129, 0.40)');
+    assert.equal(barAttrs.seam.display, 'block');
+    assert.equal(barAttrs.seam.x1, 60);
+    assert.equal(barAttrs.seam.y1, 14);
+    assert.equal(barAttrs.seam.x2, 60);
+    assert.equal(barAttrs.seam.y2, 50);
+    assert.equal(barAttrs.seam.stroke, '#F59E0B');
 
     // Class / Object / Place / Role: sharp right rect and vertical seam
     const objAttrs = computePortalDoorAttrs({
@@ -1458,8 +1536,8 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     // Stencil defaults
     assert.equal(getDefaultNodeName('plc'), 'Place');
     assert.equal(getDefaultNodeName('rol'), 'Role');
-    assert.deepEqual(getDefaultNodeBounds('plc', 0, 0), { x: 0, y: 0, width: 160, height: 70 });
-    assert.deepEqual(getDefaultNodeBounds('rol', 0, 0), { x: 0, y: 0, width: 140, height: 50 });
+    assert.deepEqual(getDefaultNodeBounds('plc', 0, 0), { x: 0, y: 0, width: 120, height: 110 });
+    assert.deepEqual(getDefaultNodeBounds('rol', 0, 0), { x: 0, y: 0, width: 22, height: 22 });
   });
 
   test('CR033.1: Live portal chevron uses relative coordinates refX=1, refDx=-12, refY=0.5 with no absolute x/y doubling', () => {
@@ -1543,42 +1621,116 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
 describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 / OTW Alignment', () => {
   const bridge = new RaiBridge();
 
-  test('Test 1: resolveStereotype normalizes known stereotypes and handles guillemets and case', () => {
+  test('Test 1: resolveStereotype normalizes known stereotypes and handles guillemets, case, and array values', () => {
     assert.equal(resolveStereotype('Stage'), 'stage');
     assert.equal(resolveStereotype('«Stage»'), 'stage');
     assert.equal(resolveStereotype('STAGE'), 'stage');
     assert.equal(resolveStereotype('Venue'), 'venue');
     assert.equal(resolveStereotype('«Venue»'), 'venue');
     assert.equal(resolveStereotype('Bar'), 'bar');
+    assert.equal(resolveStereotype('Customer'), 'customer');
+    assert.equal(resolveStereotype('«Customer»'), 'customer');
     assert.equal(resolveStereotype('Headliner'), 'headliner');
     assert.equal(resolveStereotype('AI'), 'ai');
     assert.equal(resolveStereotype('initiates'), 'initiates');
+    // System / Server Stack
+    assert.equal(resolveStereotype('System'), 'system');
+    assert.equal(resolveStereotype('«System»'), 'system');
+    assert.equal(resolveStereotype('server'), 'system');
+    assert.equal(resolveStereotype('backend'), 'system');
+    assert.equal(resolveStereotype(['System', 'AI']), 'system');
+
     assert.equal(resolveStereotype('unknown-custom'), undefined);
     assert.equal(resolveStereotype(undefined), undefined);
+
+    // Ontology v1.3: Array of stereotypes — pick the first value
+    assert.equal(resolveStereotype(['Venue', 'Stage']), 'venue');
+    assert.equal(resolveStereotype(['Stage', 'Venue']), 'stage');
+    assert.equal(resolveStereotype(['Customer', 'initiates']), 'customer');
+    assert.equal(resolveStereotype(['Bar']), 'bar');
+    assert.equal(resolveStereotype([]), undefined);
   });
 
-  test('Test 2: getStereotypePaths generates valid geometry for the 5 seed stereotypes', () => {
-    for (const id of ['stage', 'venue', 'bar', 'headliner', 'ai']) {
+  test('Test 2: getStereotypePaths generates valid geometry for the seed stereotypes', () => {
+    for (const id of ['stage', 'venue', 'bar', 'customer', 'headliner', 'ai', 'system']) {
       const paths = getStereotypePaths(id);
       assert.ok(paths.width > 0, `${id} must have positive width`);
       assert.ok(paths.height > 0, `${id} must have positive height`);
       assert.ok(paths.strokeD.length > 0 || paths.fillD.length > 0, `${id} must have SVG path data`);
     }
 
-    // Stage specific checks (Festival truss, canopy roof, stars, columns, spotlights, steps)
+    // Stage specific checks (Festival truss, canopy roof, stars, columns, spotlights, steps) — scaled to 48x44
     const stage = getStereotypePaths('stage');
-    assert.ok(stage.fillD.includes('M 2 5.5'), 'Stage must have canopy trapezoid roof');
-    assert.ok(stage.strokeD.includes('M 3.5 5.5'), 'Stage must have lattice cross-braced columns');
+    assert.equal(stage.width, 48);
+    assert.equal(stage.height, 44);
+    assert.ok(stage.fillD.includes('M 3.5 9.6'), 'Stage must have canopy trapezoid roof');
+    assert.ok(stage.strokeD.includes('M 6 9.6 V 35.8'), 'Stage must have lattice cross-braced columns');
     assert.ok(stage.starsD && stage.starsD.length > 0, 'Stage canopy must have 4 stars');
 
-    // Venue specific checks (teardrop pin, circular aperture, ground ring)
+    // Bar specific checks (martini bowl, liquid, stem, base plate, olive) — scaled to 44x48
+    const bar = getStereotypePaths('bar');
+    assert.equal(bar.width, 44);
+    assert.equal(bar.height, 48);
+    assert.ok(bar.strokeD.includes('M 7 8 H 37 L 22 28 V 44'), 'Bar must have cocktail glass bowl and stem');
+    assert.ok(bar.fillD.includes('M 12.25 15 H 31.75 L 22 28 Z'), 'Bar must have liquid fill');
+
+    // Customer specific checks (Crown body, base band, jewels)
+    const customer = getStereotypePaths('customer');
+    assert.equal(customer.width, 24);
+    assert.equal(customer.height, 24);
+    assert.ok(customer.fillD.includes('M 4 17.5'), 'Customer must have crown body');
+
+    // Headliner specific checks (5-point hollow star for chest)
+    const headliner = getStereotypePaths('headliner');
+    assert.equal(headliner.width, 16);
+    assert.equal(headliner.height, 16);
+    assert.ok(headliner.strokeD.includes('M 8 0.5 L 10.1 5.1'), 'Headliner must have 5-point star path');
+
+    // Venue specific checks (teardrop pin, circular aperture, ground ring) — scaled 50% to 45x54
     const venue = getStereotypePaths('venue');
-    assert.ok(venue.strokeD.includes('C 8.2 15.5'), 'Venue must have teardrop curvature');
-    assert.ok(venue.strokeD.includes('A 2.5 2.5'), 'Venue must have circular aperture');
-    assert.ok(venue.strokeD.includes('M 5.5 22.5'), 'Venue must have ground target ellipse');
+    assert.equal(venue.width, 45);
+    assert.equal(venue.height, 54);
+    assert.ok(venue.strokeD.includes('C 15 33.75'), 'Venue must have teardrop curvature');
+    assert.ok(venue.strokeD.includes('A 5.25 5.25'), 'Venue must have circular aperture');
+    assert.ok(venue.strokeD.includes('M 7.5 49.5'), 'Venue must have ground target ellipse');
   });
 
-  test('Test 3: createAimNode for Place with stereotype="Stage" renders frameless with centered glyph in Net Gold', () => {
+  test('Test 3: createAimNode for Place with stereotype="Venue" renders frameless with tall pin glyph in WarmGraphite anthracite', () => {
+    const nodeMeta = createAimNode({
+      id: 'LisbonStage_Plc',
+      kind: 'plc',
+      displayName: 'Lisbon Stage',
+      qualifier: 'Physical Site',
+      stereotype: 'Venue',
+      href: '/places?select=plc-lisbon',
+      bounds: { x: 750, y: 100, width: 160, height: 75 },
+    });
+
+    const attrs = nodeMeta.attrs;
+    assert.ok(attrs, 'Node metadata must have attrs');
+    // Frameless: body fill transparent, stroke none, class aim-frameless
+    assert.equal(attrs.body?.fill, 'transparent', 'Venue Place must be frameless');
+    assert.equal(attrs.body?.stroke, 'none', 'Venue Place must have no stroke frame');
+    assert.ok(attrs.body?.class?.includes('aim-frameless'), 'Venue Place must have aim-frameless class');
+    assert.equal(nodeMeta.width, 120, 'Venue Place node is scaled Actor-scale width 120');
+    assert.equal(nodeMeta.height, 110, 'Venue Place node is scaled Actor-scale height 110');
+    assert.equal(attrs.header?.display, 'none', 'Blue window header must be dropped');
+
+    // Tall pin glyph in anthracite WarmGraphite (#1F2937) matching non-initiating Actor
+    assert.equal(attrs.iconStroke?.display, 'block', 'Venue icon stroke must be displayed');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.WarmGraphite, 'Venue icon stroke must be WarmGraphite anthracite');
+    assert.equal(attrs.iconFill?.fill, CascaisPalette.ChalkWhite, 'Venue icon fill must be Chalk White');
+
+    // Text centered underneath the glyph
+    assert.equal(attrs.label?.refX, 0.5, 'Label must be centered horizontally at refX=0.5');
+    assert.equal(attrs.qualifier?.refX, 0.5, 'Qualifier must be centered horizontally at refX=0.5');
+    assert.equal(attrs.qualifier?.refY, 66, 'Qualifier sits below tall pin at refY=66');
+    assert.equal(attrs.label?.refY, 84, 'Label sits below qualifier at refY=84');
+    assert.equal(attrs.label?.text, 'Lisbon Stage');
+    assert.equal(attrs.qualifier?.text, 'Physical Site');
+  });
+
+  test('Test 3b: createAimNode for Place with stereotype="Stage" renders frameless glyph matching Actor stature', () => {
     const nodeMeta = createAimNode({
       id: 'LisbonStage_Plc',
       kind: 'plc',
@@ -1586,32 +1738,69 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       qualifier: 'Physical Site',
       stereotype: 'Stage',
       href: '/places?select=plc-lisbon',
-      bounds: { x: 750, y: 100, width: 160, height: 75 },
+      bounds: { x: 750, y: 100, width: 160, height: 110 },
     });
 
     const attrs = nodeMeta.attrs;
     assert.ok(attrs, 'Node metadata must have attrs');
-    // Frameless: body fill and stroke are transparent
-    assert.equal(attrs.body?.fill, 'transparent', 'Place with stereotype must be frameless');
-    assert.equal(attrs.body?.stroke, 'transparent', 'Place with stereotype must have no stroke frame');
-    assert.equal(attrs.header?.display, 'none', 'Blue window header must be dropped');
+    // Frameless glyph matching Actor stature (120x110)
+    assert.equal(attrs.body?.fill, 'transparent', 'Stage Place has transparent fill');
+    assert.equal(attrs.body?.stroke, 'none', 'Stage Place has no frame stroke');
+    assert.equal(nodeMeta.width, 120, 'Stage Place glyph width is 120');
+    assert.equal(nodeMeta.height, 110, 'Stage Place glyph height is 110');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.WarmGraphite, 'Stage icon stroke without initiates must be WarmGraphite');
+    assert.equal(attrs.qualifier?.refX, 0.5);
+    assert.equal(attrs.qualifier?.refY, 66);
+    assert.equal(attrs.label?.refX, 0.5);
+    assert.equal(attrs.label?.refY, 84);
 
-    // Centered stereotype icon in Net Gold
-    assert.equal(attrs.iconFill?.display, 'block', 'Stage icon fill must be displayed');
-    assert.equal(attrs.iconStroke?.display, 'block', 'Stage icon stroke must be displayed');
-    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Stage icon stroke must be Net Gold');
-    assert.equal(attrs.iconAccent?.display, 'block', 'Stage canopy stars must be displayed');
-
-    // Text centered underneath the glyph
-    assert.equal(attrs.label?.refX, 0.5, 'Label must be centered horizontally at refX=0.5');
-    assert.equal(attrs.qualifier?.refX, 0.5, 'Qualifier must be centered horizontally at refX=0.5');
-    assert.equal(attrs.qualifier?.refY, 48, 'Qualifier must sit below the glyph at refY=48');
-    assert.equal(attrs.label?.refY, 66, 'Label must sit below qualifier at refY=66');
-    assert.equal(attrs.label?.text, 'Lisbon Stage');
-    assert.equal(attrs.qualifier?.text, 'Physical Site');
+    // With initiates: Stage becomes NetGold
+    const initiatingStage = createAimNode({
+      id: 'LisbonStage_Init',
+      kind: 'plc',
+      displayName: 'Main Stage',
+      stereotype: ['Stage', 'initiates'],
+      bounds: { x: 750, y: 100, width: 160, height: 110 },
+    });
+    assert.equal(initiatingStage.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Initiating Stage stroke must be Net Gold');
   });
 
-  test('Test 3b: createAimNode for Place WITHOUT stereotype renders red frame without blue header', () => {
+  test('Test 3b2: createAimNode for Place with stereotype="Bar" renders frameless glyph with cocktail glass', () => {
+    const nodeMeta = createAimNode({
+      id: 'LoungeBar_Plc',
+      kind: 'plc',
+      displayName: 'Lounge Bar',
+      qualifier: 'Hospitality',
+      stereotype: 'Bar',
+      href: '/places?select=plc-bar',
+      bounds: { x: 750, y: 100, width: 160, height: 110 },
+    });
+
+    const attrs = nodeMeta.attrs;
+    assert.ok(attrs, 'Node metadata must have attrs');
+    assert.equal(attrs.body?.fill, 'transparent', 'Bar Place has transparent fill');
+    assert.equal(attrs.body?.stroke, 'none', 'Bar Place has no frame stroke');
+    assert.equal(nodeMeta.width, 120, 'Bar Place glyph width is 120');
+    assert.equal(nodeMeta.height, 110, 'Bar Place glyph height is 110');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.WarmGraphite, 'Bar icon stroke without initiates must be WarmGraphite');
+    assert.equal(attrs.iconFill?.fill, CascaisPalette.ChalkWhite, 'Liquid in cocktail glass is ChalkWhite');
+    assert.equal(attrs.iconAccent?.fill, CascaisPalette.WarmGraphite, 'Olive in cocktail glass without initiates is WarmGraphite');
+    assert.equal(attrs.qualifier?.refY, 66);
+    assert.equal(attrs.label?.refY, 84);
+
+    // With initiates: Bar becomes NetGold
+    const initiatingBar = createAimNode({
+      id: 'LoungeBar_Init',
+      kind: 'plc',
+      displayName: 'Lounge Bar',
+      stereotype: ['Bar', 'initiates'],
+      bounds: { x: 750, y: 100, width: 160, height: 110 },
+    });
+    assert.equal(initiatingBar.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Initiating Bar stroke must be Net Gold');
+    assert.equal(initiatingBar.attrs.iconAccent?.fill, CascaisPalette.NetGold, 'Initiating Bar olive must be Net Gold');
+  });
+
+  test('Test 3c: createAimNode for Place WITHOUT stereotype or with non-glyph stereotype renders SilverLineDark frame', () => {
     const nodeMeta = createAimNode({
       id: 'Simple_Place',
       kind: 'plc',
@@ -1622,13 +1811,13 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
 
     const attrs = nodeMeta.attrs;
     assert.ok(attrs, 'Node metadata must have attrs');
-    assert.equal(attrs.body?.stroke, CascaisPalette.CascaisRed, 'Place without stereotype must have CascaisRed frame');
+    assert.equal(attrs.body?.stroke, CascaisPalette.SilverLineDark, 'Place without stereotype must have SilverLineDark frame');
     assert.equal(attrs.header?.display, 'none', 'Blue window header must be dropped');
     assert.equal(attrs.qualifier?.refX, 0.5);
     assert.equal(attrs.label?.refX, 0.5);
   });
 
-  test('Test 3c: createAimNode for Person guarantees non-overlapping text between qualifier and label', () => {
+  test('Test 3d: createAimNode for Person guarantees non-overlapping text between qualifier and label', () => {
     const nodeMeta = createAimNode({
       id: 'Customer_Actor',
       kind: 'per',
@@ -1642,25 +1831,159 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.ok(attrs, 'Node metadata must have attrs');
     assert.equal(attrs.torso?.stroke, CascaisPalette.NetGold, 'Initiating actor has Net Gold stroke');
     assert.equal(attrs.qualifier?.text, 'Project Director', 'initiates is not injected into qualifier text');
-    assert.equal(attrs.qualifier?.refY, 58, 'Qualifier starts at refY=58');
-    assert.equal(attrs.label?.refY, 74, 'Label starts safely below qualifier at refY=74 with zero collision');
+    assert.equal(attrs.qualifier?.refY, 66, 'Qualifier starts at refY=66');
+    assert.equal(attrs.label?.refY, 84, 'Label starts safely below qualifier at refY=84 with zero collision');
   });
 
-  test('Test 4: createAimNode for Person with stereotype="Headliner" adorns artist crown', () => {
+  test('Test 4: createAimNode for Person with stereotype="Customer" places crown on top of head', () => {
     const nodeMeta = createAimNode({
-      id: 'Star_Artist',
+      id: 'Customer_VIP',
       kind: 'per',
       displayName: 'Amália',
-      qualifier: 'Fado Singer',
-      stereotype: 'Headliner',
-      bounds: { x: 50, y: 80, width: 100, height: 90 },
+      qualifier: 'VIP Patron',
+      stereotype: 'Customer',
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
     });
 
     const attrs = nodeMeta.attrs;
     assert.ok(attrs, 'Node metadata must have attrs');
     assert.equal(attrs.iconFill?.display, 'block', 'Crown fill must be displayed');
-    assert.equal(attrs.iconFill?.fill, CascaisPalette.NetGold, 'Crown must be filled with Net Gold');
+    assert.equal(attrs.iconFill?.fill, CascaisPalette.NetGold, 'Crown is NetGold');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Crown stroke is NetGold');
+    assert.equal(attrs.torso?.stroke, CascaisPalette.WarmGraphite, 'Torso is WarmGraphite');
     assert.equal(attrs.iconAccent?.display, 'block', 'Crown jewels must be displayed in Chalk White');
+    // Head cx = 60, crown transform is translate(60-12, -7) = translate(48, -7)
+    assert.equal(attrs.iconFill?.transform, 'translate(48, -7)', 'Crown sits on top of head at y=-7, clear of face');
+
+    // With initiates: Crown remains NetGold, torso becomes NetGold
+    const initiatingCustomer = createAimNode({
+      id: 'Customer_Init',
+      kind: 'per',
+      displayName: 'Amália',
+      stereotype: ['Customer', 'initiates'],
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    });
+    assert.equal(initiatingCustomer.attrs.iconFill?.fill, CascaisPalette.NetGold, 'Crown with initiates is NetGold');
+    assert.equal(initiatingCustomer.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Crown stroke with initiates is NetGold');
+    assert.equal(initiatingCustomer.attrs.torso?.stroke, CascaisPalette.NetGold, 'Customer torso is NetGold when initiating');
+  });
+
+  test('Test 4b: createAimNode for Person with stereotype="AI" centers neural chip directly on head', () => {
+    const nodeMeta = createAimNode({
+      id: 'AI_Agent',
+      kind: 'per',
+      displayName: 'Alan',
+      qualifier: 'AI Co-Architect',
+      stereotype: 'AI',
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    });
+
+    const attrs = nodeMeta.attrs;
+    assert.ok(attrs, 'Node metadata must have attrs');
+    assert.equal(attrs.iconStroke?.display, 'block', 'AI chip stroke must be displayed');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.WarmGraphite, 'AI chip without initiates is WarmGraphite');
+    // Head circle cx = 60, cy = 20. Chip is 24x24. Concentric translate(60-12, 20-12) = translate(48, 8)
+    assert.equal(attrs.iconStroke?.transform, 'translate(48, 8)', 'AI chip is centered directly on Actor head');
+
+    const initiatingAI = createAimNode({
+      id: 'AI_Init',
+      kind: 'per',
+      displayName: 'Alan',
+      stereotype: 'AI, initiates',
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    });
+    assert.equal(initiatingAI.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'AI chip with initiates is NetGold');
+  });
+
+  test('Test 4c: createAimNode for Person with stereotype="Headliner" places hollow 5-point star on chest', () => {
+    const nodeMeta = createAimNode({
+      id: 'Star_Artist',
+      kind: 'per',
+      displayName: 'Carlos do Carmo',
+      qualifier: 'Fado Legend',
+      stereotype: 'Headliner',
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    });
+
+    const attrs = nodeMeta.attrs;
+    assert.ok(attrs, 'Node metadata must have attrs');
+    assert.equal(attrs.iconStroke?.display, 'block', 'Star stroke must be displayed');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Star stroke is NetGold');
+    assert.equal(attrs.torso?.stroke, CascaisPalette.WarmGraphite, 'Headliner torso is WarmGraphite');
+    assert.equal(attrs.iconStroke?.fill, 'none', 'Star is hollow so line and emerald door are visible');
+    // Chest center cx = 60, star is 16x16: translate(60-8, 38.5) = translate(52, 38.5)
+    assert.equal(attrs.iconStroke?.transform, 'translate(52, 38.5)', 'Star sits squarely on the chest');
+    assert.equal(attrs.iconFill?.display, 'none', 'Hollow star has no solid fill');
+
+    const initiatingHeadliner = createAimNode({
+      id: 'Star_Init',
+      kind: 'per',
+      displayName: 'Carlos do Carmo',
+      stereotype: ['Headliner', 'initiates'],
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    });
+    assert.equal(initiatingHeadliner.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Star stroke with initiates is NetGold');
+    assert.equal(initiatingHeadliner.attrs.torso?.stroke, CascaisPalette.NetGold, 'Headliner torso is NetGold when initiating');
+  });
+
+  test('Test 4d: createAimNode for Person with stereotype="System" replaces head & torso with dual-chassis server rack in WarmGraphite', () => {
+    const nodeMeta = createAimNode({
+      id: 'Backend_System',
+      kind: 'per',
+      displayName: 'Ticketing Backend',
+      qualifier: 'Core Service',
+      stereotype: 'System',
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    });
+
+    const attrs = nodeMeta.attrs;
+    assert.ok(attrs, 'Node metadata must have attrs');
+    // Head & Torso suppressed
+    assert.equal(attrs.head?.display, 'none', 'Actor head circle is hidden for System');
+    assert.equal(attrs.torso?.display, 'none', 'Actor torso arc is hidden for System');
+
+    // Dual-chassis server rack rendered
+    assert.equal(attrs.iconStroke?.display, 'block', 'System stroke must be displayed');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.WarmGraphite, 'System stroke is WarmGraphite anthracite');
+    assert.equal(attrs.iconStroke?.strokeWidth, 2.2, 'Stroke width is 2.2px');
+    assert.equal(attrs.iconFill?.display, 'block', 'System chassis body fill must be displayed');
+    assert.equal(attrs.iconFill?.fill, CascaisPalette.ChalkWhite, 'Chassis interior is ChalkWhite');
+    assert.equal(attrs.iconAccent?.display, 'block', 'LED dots and drive bay slots must be displayed');
+    assert.equal(attrs.iconAccent?.fill, CascaisPalette.WarmGraphite, 'LEDs and drive slots match anthracite stroke');
+    // Centered at cx = 60, icon width 44: translate(60-22, 8) = translate(38, 8)
+    assert.equal(attrs.iconStroke?.transform, 'translate(38, 8)', 'Server stack sits at (38, 8)');
+  });
+
+  test('Test 4e: Duality on Person with stereotype="System" awakens contoured server rack right-half door', () => {
+    const dualityAttrs = computePortalDoorAttrs({
+      id: 'Backend_System',
+      kind: 'per',
+      displayName: 'Ticketing Backend',
+      qualifier: 'Core Service',
+      stereotype: 'System',
+      href: '/systems/backend',
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    }, true);
+
+    assert.equal(dualityAttrs.door.display, 'block', 'Portal door must be displayed');
+    assert.ok(dualityAttrs.door.d.includes('M 60 11'), 'Door path begins at centerline top chassis (60, 11)');
+    assert.ok(dualityAttrs.door.d.includes('H 76 A 4 4 0 0 1 80 15'), 'Door path contours top chassis right half');
+    assert.ok(dualityAttrs.door.d.includes('H 69 V 33'), 'Door path contours right neck connector');
+    assert.ok(dualityAttrs.door.d.includes('80 37 V 45 A 4 4 0 0 1 76 49 H 60 Z'), 'Door path contours bottom chassis right half');
+    assert.equal(dualityAttrs.door.fill, 'rgba(16, 185, 129, 0.25)', 'Door has standard emerald tint');
+
+    // Net Gold centerline seam
+    assert.equal(dualityAttrs.seam.display, 'block');
+    assert.equal(dualityAttrs.seam.x1, 60);
+    assert.equal(dualityAttrs.seam.y1, 11);
+    assert.equal(dualityAttrs.seam.x2, 60);
+    assert.equal(dualityAttrs.seam.y2, 49);
+    assert.equal(dualityAttrs.seam.stroke, CascaisPalette.NetGold);
+
+    // Chevron
+    assert.equal(dualityAttrs.chevron.display, 'block');
+    assert.equal(dualityAttrs.chevron.refDx, 32);
+    assert.equal(dualityAttrs.chevron.refY, 30);
   });
 
   test('Test 5: RaiBridge.renderNodeInnerSvg produces valid vector SVG with aim-stereotype-icon', () => {
@@ -1705,5 +2028,246 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.ok(updatedSvg.includes('aim-stereotype="Stage"'), 'Updated SVG must preserve aim-stereotype attribute');
     assert.ok(updatedSvg.includes('class="aim-stereotype-icon aim-icon-stage"'), 'Updated SVG must render stage icon');
   });
+
+  test('Test 7: Universal Initiator Color Rule and Multi-Stereotype array combinations', () => {
+    // Helper function assertions
+    assert.equal(isInitiatingStereotype('Stage'), false);
+    assert.equal(isInitiatingStereotype(['Bar', 'initiates']), true);
+    assert.equal(isInitiatingStereotype(['initiates', 'Venue']), true);
+    assert.equal(isInitiatingStereotype('«initiates»'), true);
+    assert.equal(isInitiatingStereotype('Customer, initiates'), true);
+
+    // resolveStereotype prioritizes domain stereotype over initiates
+    assert.equal(resolveStereotype(['Bar', 'initiates']), 'bar');
+    assert.equal(resolveStereotype(['initiates', 'Stage']), 'stage');
+    assert.equal(resolveStereotype('Customer, initiates'), 'customer');
+    assert.equal(resolveStereotype('System, initiates'), 'system');
+    assert.equal(resolveStereotype('AI, initiates'), 'ai');
+    assert.equal(resolveStereotype(['initiates']), 'initiates');
+
+    // Person actor without initiates is anthracite
+    const plainPer = createAimNode({
+      id: 'Plain_Actor',
+      kind: 'per',
+      displayName: 'Operator',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(plainPer.attrs.torso?.stroke, CascaisPalette.WarmGraphite);
+
+    // Person actor with initiates is gold
+    const initPer = createAimNode({
+      id: 'Init_Actor',
+      kind: 'per',
+      displayName: 'Operator',
+      stereotype: 'initiates',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(initPer.attrs.torso?.stroke, CascaisPalette.NetGold);
+
+    // Customer Actor: crown is ALWAYS NetGold, torso/head remain WarmGraphite even with initiates
+    const customerDormant = createAimNode({
+      id: 'Customer_Dormant',
+      kind: 'per',
+      displayName: 'Customer',
+      stereotype: 'Customer',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(customerDormant.attrs.iconFill?.fill, CascaisPalette.NetGold);
+    assert.equal(customerDormant.attrs.iconStroke?.stroke, CascaisPalette.NetGold);
+    assert.equal(customerDormant.attrs.torso?.stroke, CascaisPalette.WarmGraphite);
+
+    const customerInit = createAimNode({
+      id: 'Customer_Init',
+      kind: 'per',
+      displayName: 'Customer',
+      stereotype: ['Customer', 'initiates'],
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(customerInit.attrs.iconFill?.fill, CascaisPalette.NetGold);
+    assert.equal(customerInit.attrs.iconStroke?.stroke, CascaisPalette.NetGold);
+    assert.equal(customerInit.attrs.torso?.stroke, CascaisPalette.NetGold, 'Customer torso is NetGold when initiating');
+
+    // Headliner Actor: star is ALWAYS NetGold, torso/head are NetGold with initiates
+    const headlinerDormant = createAimNode({
+      id: 'Headliner_Dormant',
+      kind: 'per',
+      displayName: 'Headliner',
+      stereotype: 'Headliner',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(headlinerDormant.attrs.iconStroke?.stroke, CascaisPalette.NetGold);
+    assert.equal(headlinerDormant.attrs.torso?.stroke, CascaisPalette.WarmGraphite);
+
+    const headlinerInit = createAimNode({
+      id: 'Headliner_Init',
+      kind: 'per',
+      displayName: 'Headliner',
+      stereotype: ['Headliner', 'initiates'],
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(headlinerInit.attrs.iconStroke?.stroke, CascaisPalette.NetGold);
+    assert.equal(headlinerInit.attrs.torso?.stroke, CascaisPalette.NetGold, 'Headliner torso is NetGold when initiating');
+
+    // Venue without initiates is anthracite
+    const plainVenue = createAimNode({
+      id: 'Plain_Venue',
+      kind: 'plc',
+      displayName: 'Cascais Pin',
+      stereotype: 'Venue',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(plainVenue.attrs.iconStroke?.stroke, CascaisPalette.WarmGraphite);
+
+    // Venue with initiates is gold
+    const initVenue = createAimNode({
+      id: 'Init_Venue',
+      kind: 'plc',
+      displayName: 'Cascais Pin',
+      stereotype: ['Venue', 'initiates'],
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(initVenue.attrs.iconStroke?.stroke, CascaisPalette.NetGold);
+  });
+
+  test('Test 8: Activity nodes are framed in CascaisRed (#EF4444) line only with no fill (ChalkWhite)', () => {
+    const actNode = createAimNode({
+      id: 'Act_1',
+      kind: 'act',
+      displayName: 'Pour Martini',
+      bounds: { x: 0, y: 0, width: 150, height: 60 },
+    });
+
+    assert.equal(actNode.attrs.body?.stroke, CascaisPalette.CascaisRed, 'Activity stroke must be CascaisRed');
+    assert.equal(actNode.attrs.body?.fill, CascaisPalette.ChalkWhite, 'Activity fill must be ChalkWhite (line only)');
+    assert.equal(actNode.attrs.body?.strokeWidth, 2, 'Activity strokeWidth is 2');
+  });
+
+  test('Test 9: Bar Duality door shades right half of glass bowl in emerald without tinting olive', () => {
+    const barAwakened = computePortalDoorAttrs({
+      id: 'Bar_1',
+      kind: 'plc',
+      displayName: 'Cascais Bar',
+      stereotype: 'Bar',
+      href: '/places/bar-1',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    }, true);
+
+    assert.equal(barAwakened.door.display, 'block');
+    assert.ok(barAwakened.door.d.includes('M 60 14 H 75 L 60 34 Z'), 'Right half of V-bowl is shaded green');
+    assert.equal(barAwakened.seam.display, 'block');
+    assert.equal(barAwakened.seam.stroke, CascaisPalette.NetGold);
+
+    // Dormant / Awakened node attrs verify olive stays original color
+    const barNodeDormant = createAimNode({
+      id: 'Bar_Dormant',
+      kind: 'plc',
+      displayName: 'Cascais Bar',
+      stereotype: 'Bar',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(barNodeDormant.attrs.iconAccent?.fill, CascaisPalette.WarmGraphite, 'Olive is WarmGraphite without initiates');
+
+    const barNodeInit = createAimNode({
+      id: 'Bar_Initiating',
+      kind: 'plc',
+      displayName: 'Cascais Bar',
+      stereotype: ['Bar', 'initiates'],
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(barNodeInit.attrs.iconAccent?.fill, CascaisPalette.NetGold, 'Olive is NetGold with initiates');
+  });
 });
 
+
+describe('Role definitions, contextual bindings and wrapped descriptions', () => {
+  const bridge = new RaiBridge();
+  const n = (id, kind, displayName, x = 0, extra = {}) => ({ id, kind, displayName, bounds: { x, y: 40, width: ['rol', 'rf'].includes(kind) ? 22 : 180, height: ['rol', 'rf'].includes(kind) ? 22 : 80 }, ...extra });
+  const e = (id, sourceId, targetId, kind = 'association', directed = true) => ({ id, sourceId, targetId, kind, directed, bendPoints: [] });
+  const model = () => ({ diagramId: 'mixed', archetype: 'ClassObjectDiagram', nodes: [n('s', 'cls', 'System'), n('p', 'cls', 'Person', 600), n('r', 'rol', 'Admin', 300), n('a', 'obj', 'AIA'), n('f', 'rf', 'Admin', 300, { properties: { color: '#059669' } }), n('rai', 'obj', 'RAI', 600)], edges: [e('owns', 's', 'r', 'association', false), e('type', 'r', 'p'), e('binding', 'a', 'f', 'association', false), e('filler', 'f', 'rai'), e('role', 'f', 'r', 'dependency'), e('class', 'a', 's', 'dependency'), e('person', 'rai', 'p', 'dependency')] });
+
+  test('circular junctions, arrow suppression and instance underlining survive SVG round trips', () => {
+    const svg = bridge.generateFreshSvg(model(), {});
+    const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    assert.equal(doc.querySelector('[aim-id="r"] circle').getAttribute('fill'), '#FFFFFF');
+    assert.equal(doc.querySelector('[aim-id="f"] circle').getAttribute('fill'), '#059669');
+    assert.equal(doc.querySelector('[aim-id="r"] .aim-name').hasAttribute('text-decoration'), false);
+    for (const id of ['a', 'f', 'rai']) assert.equal(doc.querySelector(`[aim-id="${id}"] .aim-name`).getAttribute('text-decoration'), 'underline');
+    for (const id of ['owns', 'binding']) assert.equal(doc.querySelector(`[aim-id="${id}"] path`).hasAttribute('marker-end'), false);
+    const imported = bridge.extractMetamodel(svg);
+    assert.equal(imported.nodes.find(n => n.id === 'f').bounds.width, 22);
+    assert.equal(imported.nodes.find(n => n.id === 'f').bounds.height, 22);
+    assert.equal(imported.edges.find(e => e.id === 'binding').directed, false);
+    const saved = bridge.updateExistingSvg(svg, imported, {});
+    assert.equal(new DOMParser().parseFromString(saved, 'image/svg+xml').querySelector('[aim-id="binding"] path').hasAttribute('marker-end'), false);
+    assert.equal(createAimEdge(imported.edges.find(e => e.id === 'binding')).attrs.line.targetMarker, null);
+    assert.equal(bridge.extractMetamodel(saved).nodes.find(n => n.id === 'f').properties.color, '#059669');
+  });
+
+  test('role attribute projection follows role name, visibility and type without duplicating persisted attributes', async () => {
+    const { projectRoleAttributes } = await import('../dist/index.js');
+    const m = model();
+    let projected = projectRoleAttributes(m);
+    assert.deepEqual(projected.nodes[0].roleAttributes, ['+ Admin: Person']);
+    m.nodes[2] = { ...m.nodes[2], displayName: 'Owner', visibility: '-' };
+    m.nodes[1] = { ...m.nodes[1], displayName: 'Actor' };
+    projected = projectRoleAttributes(m);
+    assert.deepEqual(projected.nodes[0].roleAttributes, ['- Owner: Actor']);
+    const imported = bridge.extractMetamodel(bridge.generateFreshSvg(projected, {}));
+    assert.equal(imported.nodes[0].attributes, undefined);
+    assert.deepEqual(projectRoleAttributes(imported).nodes[0].roleAttributes, ['- Owner: Actor']);
+    assert.deepEqual(projectRoleAttributes({ ...m, edges: [] }).nodes[0].roleAttributes, []);
+  });
+
+  test('Description preserves paragraphs, caps long tokens, grows and survives export', async () => {
+    const { wrapDescription } = await import('../dist/index.js');
+    const description = 'A festival with music, art and culture in Schwäbisch Hall.\n\n' + 'x'.repeat(105);
+    assert.ok(wrapDescription(description, 32).split('\n').every(line => line.length <= 32));
+    assert.ok(wrapDescription(description).includes('\n\n'));
+    const item = n('show', 'obj', 'AfricaPicnic26', 0, { description, descriptionWidth: 32 });
+    const narrow = createAimNode(item);
+    const wide = createAimNode({ ...item, descriptionWidth: 50 });
+    assert.ok(narrow.height > wide.height);
+    assert.ok(narrow.width < wide.width);
+    const svg = bridge.generateFreshSvg({ diagramId: 'prose', archetype: 'ObjectDiagram', nodes: [item], edges: [] }, {});
+    const restored = bridge.extractMetamodel(svg).nodes[0];
+    assert.equal(restored.description, description);
+    assert.equal(restored.descriptionWidth, 32);
+    assert.equal(restored.bounds.height, narrow.height);
+    assert.equal(restored.bounds.width, narrow.width);
+  });
+
+  test('edges connecting Object to RoleFiller or Class to Role are undirected aim-edge lines without arrowheads', () => {
+    const objToRf = createAimEdge({
+      id: 'owner-binding',
+      kind: 'association',
+      directed: false,
+      sourceId: 'aia',
+      targetId: 'aia-admin',
+      bendPoints: [],
+    });
+    assert.equal(objToRf.shape, 'aim-edge');
+    assert.equal(objToRf.attrs.line.targetMarker, null);
+
+    const rfToFiller = createAimEdge({
+      id: 'filler-arrow',
+      kind: 'association',
+      directed: true,
+      sourceId: 'aia-admin',
+      targetId: 'rai',
+      bendPoints: [],
+    });
+    assert.equal(rfToFiller.shape, 'aim-arrow');
+    assert.notEqual(rfToFiller.attrs.line.targetMarker, null);
+
+    const clsToRol = createAimEdge({
+      id: 'role-def',
+      kind: 'association',
+      directed: false,
+      sourceId: 'system',
+      targetId: 'admin',
+      bendPoints: [],
+    });
+    assert.equal(clsToRol.shape, 'aim-edge');
+    assert.equal(clsToRol.attrs.line.targetMarker, null);
+  });
+});

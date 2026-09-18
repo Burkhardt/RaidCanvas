@@ -23,6 +23,7 @@ import {
 	registerAimShapes,
 	configureAimGraph,
 	createAimNode,
+	createAimEdge,
 	applyEdgeRouting,
 	CascaisPalette,
 	getDefaultNodeBounds,
@@ -32,9 +33,10 @@ import {
 	setNodeDualityActive,
 	computeStereotypeIconAttrs,
 } from './X6Shapes.js';
-import { resolveStereotype } from './StereotypeIcons.js';
+import { resolveStereotype, isInitiatingStereotype } from './StereotypeIcons.js';
 import {
-	validateSemanticConnection,
+	validateDiagramConnection,
+	isNodeAllowedInDiagram,
 	getSemanticEdgeKind,
 	getSemanticEdgeStereotype,
 } from './semanticRules.js';
@@ -123,7 +125,9 @@ export interface RaidCanvasHandle {
 	activateNodeDuality: (nodeId: string) => void;
 	/** Deactivate Duality Mode, putting all nodes back to sleep */
 	deactivateNodeDuality: () => void;
-	/** Get ID of the currently awakened duality node, or null */
+	/** Select a specific node on the canvas */
+	selectNode: (nodeId: string) => void;
+	/** Currently active duality node ID, or null if dormant */
 	getActiveDualityNodeId: () => string | null;
 }
 
@@ -310,6 +314,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				addNode: (kind, x, y, customData) => {
 					const graph = graphRef.current;
 					if (!graph) return '';
+					if (!isNodeAllowedInDiagram({ ...customData, kind }, new DOMParser().parseFromString(svgPropRef.current, 'image/svg+xml').documentElement.getAttribute('aim-archetype') ?? '')) return '';
 
 					const defaultBounds = getDefaultNodeBounds(kind, x ?? 200, y ?? 150);
 					const defaultName = getDefaultNodeName(kind);
@@ -320,8 +325,10 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						kind,
 						displayName: customData?.displayName ?? defaultName,
 						...(customData?.qualifier !== undefined ? { qualifier: customData.qualifier } : {}),
-						...(customData?.instance !== undefined ? { instance: customData.instance } : {}),
-						...(customData?.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
+						instance: kind === 'obj' || kind === 'rf' || customData?.instance === true,
+						...(customData?.description !== undefined ? { description: customData.description } : {}),
+						...(customData?.descriptionWidth !== undefined ? { descriptionWidth: customData.descriptionWidth } : {}),
+						...(customData?.stereotype !== undefined ? { stereotype: customData.stereotype } : (kind === 'plc' ? { stereotype: 'Venue' } : {})),
 						...(customData?.attributes !== undefined ? { attributes: customData.attributes } : {}),
 						...(customData?.methods !== undefined ? { methods: customData.methods } : {}),
 						...(customData?.href !== undefined ? { href: customData.href } : {}),
@@ -379,6 +386,18 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 								? { stereotype: currentData.stereotype }
 								: {}),
 					};
+                    if (!isNodeAllowedInDiagram(nextData, new DOMParser().parseFromString(svgPropRef.current, 'image/svg+xml').documentElement.getAttribute('aim-archetype') ?? '')) return;
+                    if (nextData.kind !== currentData.kind || nextData.kind === 'rol' || nextData.kind === 'rf' || nextData.kind === 'obj' || currentData.description) {
+                        const canonical = createAimNode({ ...nextData, bounds: { ...nextData.bounds, ...node.getPosition() } });
+                        node.setData(canonical.data);
+                        const fresh = graph.createNode(canonical);
+                        node.prop('shape', canonical.shape);
+                        node.setMarkup(fresh.getMarkup());
+                        node.setAttrs(fresh.getAttrs(), { overwrite: true });
+                        node.resize(Number(canonical.width), Number(canonical.height));
+                        triggerDebouncedChange();
+                        return;
+                    }
 					node.setData(nextData);
 
 					const displayName = nextData.displayName;
@@ -389,8 +408,14 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 					const resolvedStereotype = resolveStereotype(nextData.stereotype);
 					const hasStereotypeIcon = Boolean(resolvedStereotype && resolvedStereotype !== 'initiates');
-					const cardTextRefX = hasStereotypeIcon ? 0.62 : 0.5;
-					const availableTextWidth = hasStereotypeIcon && nextData.kind !== 'per' ? Math.max(40, boxWidth - 52) : boxWidth;
+					const isFramelessPlc = nextData.kind === 'plc' && ['venue', 'stage', 'bar'].includes(resolvedStereotype ?? '');
+					const cardTextRefX = hasStereotypeIcon && nextData.kind !== 'plc' ? 0.62 : 0.5;
+					const availableTextWidth =
+						nextData.kind === 'per' || isFramelessPlc
+							? Math.max(boxWidth, 180)
+							: hasStereotypeIcon
+								? Math.max(40, boxWidth - 52)
+								: boxWidth;
 					const maxLineLength = computeMaxLineLength(availableTextWidth, fontSize);
 
 					const wrappedName = wrapAimText(displayName, maxLineLength);
@@ -423,48 +448,91 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							node.setAttrByPath('methods/text', nextData.methods.join('\n'));
 						}
 					} else if (nextData.kind === 'per') {
-						const isInitiating = nextData.stereotype?.toLowerCase().includes('initiates') ?? false;
+						const isInitiating = isInitiatingStereotype(nextData.stereotype);
+						const isSystem = resolvedStereotype === 'system';
 						const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
 						const cx = Math.round(boxWidth / 2);
-						node.setAttrByPath('torso/d', `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`);
+						node.setAttrByPath('torso/d', `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`);
 						node.setAttrByPath('torso/stroke', strokeColor);
+						node.setAttrByPath('torso/display', isSystem ? 'none' : 'block');
 						node.setAttrByPath('head/cx', cx);
+						node.setAttrByPath('head/cy', 20);
+						node.setAttrByPath('head/r', 12);
 						node.setAttrByPath('head/stroke', strokeColor);
+						node.setAttrByPath('head/display', isSystem ? 'none' : 'block');
 						const qualifierLines = wrappedQualifier ? wrappedQualifier.split('\n').length : 0;
-						const labelRefY = qualifierLines > 0 ? 58 + qualifierLines * 16 : 62;
+						const labelRefY = qualifierLines > 0 ? 66 + qualifierLines * 18 : 74;
 						if (qualifier) {
 							node.setAttrByPath('qualifier/text', wrappedQualifier);
-							node.setAttrByPath('qualifier/refY', 58);
+							node.setAttrByPath('qualifier/refY', 66);
 							node.setAttrByPath('label/text', wrappedName);
 							node.setAttrByPath('label/refY', labelRefY);
 						} else {
 							node.setAttrByPath('qualifier/text', '');
 							node.setAttrByPath('label/text', wrappedName);
-							node.setAttrByPath('label/refY', 62);
+							node.setAttrByPath('label/refY', 84);
 						}
 						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');
 					} else if (nextData.kind === 'plc') {
 						node.setAttrByPath('header/display', 'none');
-						if (hasStereotypeIcon) {
+						if (isFramelessPlc) {
+							// Frameless Place glyphs: Venue, Stage, Bar in Net Gold (#F59E0B)
 							node.setAttrByPath('body/fill', 'transparent');
-							node.setAttrByPath('body/stroke', 'transparent');
+							node.setAttrByPath('body/stroke', 'none');
 							node.setAttrByPath('body/strokeWidth', 0);
+							node.setAttrByPath('body/pointerEvents', 'all');
+							node.setAttrByPath('body/style', { fill: 'transparent', stroke: 'none', strokeWidth: 0, pointerEvents: 'all' });
+							node.setAttrByPath('body/class', 'aim-node aim-plc aim-frameless');
+							if (node.getSize().width > 120 || node.getSize().width < 120) {
+								node.resize(120, 110);
+							}
+							const qualifierLines = wrappedQualifier ? wrappedQualifier.split('\n').length : 0;
+							const labelRefY = qualifierLines > 0 ? 66 + qualifierLines * 18 : 74;
+							if (qualifier) {
+								node.setAttrByPath('qualifier/text', wrappedQualifier);
+								node.setAttrByPath('qualifier/refX', 0.5);
+								node.setAttrByPath('qualifier/refY', 66);
+								node.setAttrByPath('label/text', wrappedName);
+								node.setAttrByPath('label/refX', 0.5);
+								node.setAttrByPath('label/refY', labelRefY);
+							} else {
+								node.setAttrByPath('qualifier/text', '');
+								node.setAttrByPath('label/text', wrappedName);
+								node.setAttrByPath('label/refX', 0.5);
+								node.setAttrByPath('label/refY', 84);
+							}
+						} else if (hasStereotypeIcon) {
+							// Framed Place with Stereotype (e.g. Stage, Bar)
+							node.setAttrByPath('body/fill', CascaisPalette.ChalkWhite);
+							node.setAttrByPath('body/stroke', CascaisPalette.SilverLineDark);
+							node.setAttrByPath('body/strokeWidth', 1.5);
+							node.setAttrByPath('body/style', { fill: CascaisPalette.ChalkWhite, stroke: CascaisPalette.SilverLineDark, strokeWidth: 1.5 });
+							node.setAttrByPath('body/class', 'aim-node aim-plc aim-plc-framed');
+							if (node.getSize().width <= 120) {
+								node.resize(160, 75);
+							}
 							node.setAttrByPath('qualifier/text', wrappedQualifier);
 							node.setAttrByPath('qualifier/refX', 0.5);
-							node.setAttrByPath('qualifier/refY', 48);
+							node.setAttrByPath('qualifier/refY', 42);
 							node.setAttrByPath('label/text', wrappedName);
 							node.setAttrByPath('label/refX', 0.5);
-							node.setAttrByPath('label/refY', 66);
+							node.setAttrByPath('label/refY', 58);
 						} else {
+							// Unstereotyped Place card
 							node.setAttrByPath('body/fill', CascaisPalette.ChalkWhite);
-							node.setAttrByPath('body/stroke', CascaisPalette.CascaisRed);
+							node.setAttrByPath('body/stroke', CascaisPalette.SilverLineDark);
 							node.setAttrByPath('body/strokeWidth', 1.5);
+							node.setAttrByPath('body/style', { fill: CascaisPalette.ChalkWhite, stroke: CascaisPalette.SilverLineDark, strokeWidth: 1.5 });
+							node.setAttrByPath('body/class', 'aim-node aim-plc aim-plc-framed');
+							if (node.getSize().width <= 120) {
+								node.resize(160, 70);
+							}
 							node.setAttrByPath('qualifier/text', wrappedQualifier);
 							node.setAttrByPath('qualifier/refX', 0.5);
 							node.setAttrByPath('qualifier/refY', 0.38);
 							node.setAttrByPath('label/text', wrappedName);
 							node.setAttrByPath('label/refX', 0.5);
-							node.setAttrByPath('label/refY', 0.62);
+							node.setAttrByPath('label/refY', qualifier ? 0.65 : 0.5);
 						}
 						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');
 					} else {
@@ -484,13 +552,11 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');
 					}
 
-					if (updates.href !== undefined) {
-						if (!updates.href || !updates.href.trim()) {
-							if (activeDualityNodeIdRef.current === id) {
-								setNodeDualityActive(node, false);
-								activeDualityNodeIdRef.current = null;
-							}
-						} else if (activeDualityNodeIdRef.current === id) {
+					if (activeDualityNodeIdRef.current === id) {
+						if (!nextData.href || !nextData.href.trim()) {
+							setNodeDualityActive(node, false);
+							activeDualityNodeIdRef.current = null;
+						} else {
 							setNodeDualityActive(node, true);
 						}
 					}
@@ -510,6 +576,11 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 					const currentData = (edge.getData() ?? {}) as RaidEdgeData;
 					const mutableData: Record<string, unknown> = { ...currentData, ...updates };
+
+					if (updates.bendPoints !== undefined) {
+						edge.setVertices(updates.bendPoints.map((p) => ({ x: p.x, y: p.y })));
+						mutableData.bendPoints = updates.bendPoints;
+					}
 
 					if (updates.routing !== undefined) {
 						applyEdgeRouting(edge, updates.routing);
@@ -542,6 +613,26 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					}
 
 					edge.setData(mutableData as unknown as RaidEdgeData);
+
+					if (updates.kind !== undefined || updates.directed !== undefined) {
+						const nextEdgeData = mutableData as unknown as RaidEdgeData;
+						const isDirected = nextEdgeData.directed !== false;
+						const edgeMeta = createAimEdge(nextEdgeData);
+						edge.prop('shape', edgeMeta.shape);
+						edge.setAttrs(edgeMeta.attrs ?? {});
+						if (!isDirected) {
+							edge.removeProp('attrs/line/targetMarker');
+							edge.removeProp('attrs/line/sourceMarker');
+							const view = graph.findViewByCell(edge);
+							const path = view?.container?.querySelector('path[marker-end]');
+							path?.removeAttribute('marker-end');
+						} else {
+							const targetMarker = (edgeMeta.attrs?.['line'] as Record<string, unknown> | undefined)?.['targetMarker'];
+							if (targetMarker) {
+								edge.setAttrByPath('line/targetMarker', targetMarker as any);
+							}
+						}
+					}
 
 					if (updates.label !== undefined || updates.stereotype !== undefined) {
 						const text = updates.label ?? updates.stereotype ?? '';
@@ -658,6 +749,29 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				deactivateNodeDuality: () => {
 					deactivateDuality();
 				},
+				selectNode: (nodeId: string) => {
+					selectedCellIdRef.current = nodeId;
+					const graph = graphRef.current;
+					if (graph) {
+						const cell = graph.getCellById(nodeId);
+						if (cell) {
+							(graph as any).cleanSelection?.();
+							(graph as any).select?.(cell);
+							if (cell.isNode()) {
+								clearEdgeToolsRef.current?.();
+								const data = (cell.getData() ?? {}) as Partial<RaidNodeData>;
+								const kind = (data.kind ?? 'act') as AimOntologyKind;
+								const label =
+									data.displayName ??
+									(cell.getAttrByPath('label/text') as string) ??
+									(cell.getAttrByPath('title/text') as string) ??
+									nodeId;
+								onSelectRef.current?.({ id: nodeId, kind, label });
+							}
+						}
+					}
+					onSelectionChangeRef.current?.([nodeId]);
+				},
 				getActiveDualityNodeId: () => activeDualityNodeIdRef.current,
 			}),
 			[
@@ -761,7 +875,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							(targetCell.getData() as Partial<RaidNodeData>)?.kind ?? 'act'
 						) as AimOntologyKind;
 
-						return validateSemanticConnection(sourceKind, targetKind);
+						return validateDiagramConnection({ ...sourceCell.getData(), kind: sourceKind }, { ...targetCell.getData(), kind: targetKind }, new DOMParser().parseFromString(svgPropRef.current, 'image/svg+xml').documentElement.getAttribute('aim-archetype') ?? '');
 					},
 					createEdge() {
 						const edge = new Shape.Edge({
@@ -822,12 +936,17 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				clearEdgeTools();
 				if (readOnly) return;
 				activeToolEdge = edge;
+				const edgeData = edge.getData() as Partial<RaidEdgeData> | undefined;
+				const isDirected = edgeData?.directed !== false;
+				const circleHandleD = 'M -5 0 A 5 5 0 1 0 5 0 A 5 5 0 1 0 -5 0';
+
 				try {
 					edge.addTools([
 						{
 							name: 'source-arrowhead',
 							args: {
 								attrs: {
+									d: isDirected ? 'M 10 -8 -10 0 10 8 Z' : circleHandleD,
 									fill: CascaisPalette.NetGold,
 									stroke: '#FFFFFF',
 									strokeWidth: 2,
@@ -839,6 +958,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							name: 'target-arrowhead',
 							args: {
 								attrs: {
+									d: isDirected ? 'M -10 -8 10 0 -10 8 Z' : circleHandleD,
 									fill: CascaisPalette.NetGold,
 									stroke: '#FFFFFF',
 									strokeWidth: 2,
@@ -853,6 +973,15 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 									fill: CascaisPalette.WarmGraphite,
 									stroke: '#FFFFFF',
 									strokeWidth: 1.5,
+								},
+								processHandle: (handle: any) => {
+									if (handle?.container) {
+										handle.container.addEventListener('contextmenu', (e: MouseEvent) => {
+											e.preventDefault();
+											e.stopPropagation();
+											handle.emit('remove', { e, handle });
+										});
+									}
 								},
 							},
 						},
@@ -878,20 +1007,47 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					const currentData = (edge.getData() ?? {}) as Partial<RaidEdgeData>;
 					const stereotype = currentData.stereotype ?? getSemanticEdgeStereotype(sourceKind, targetKind);
 
-					edge.setData({
+					const isOwnerBinding =
+						(targetKind === 'rf' && ['obj', 'per', 'plc', 'act'].includes(sourceKind)) ||
+						(targetKind === 'rol' && ['cls', 'uc'].includes(sourceKind));
+
+					const isDirected = currentData.directed !== undefined ? currentData.directed : !isOwnerBinding;
+
+					const sourcePort = edge.getSourcePortId();
+					const targetPort = edge.getTargetPortId();
+
+					const edgeData: RaidEdgeData = {
 						...currentData,
 						id: edge.id,
 						kind: edgeKind,
+						directed: isDirected,
 						sourceId: sourceCell.id,
 						targetId: targetCell.id,
-						sourcePort: edge.getSourcePortId(),
-						targetPort: edge.getTargetPortId(),
+						...(sourcePort ? { sourcePort } : {}),
+						...(targetPort ? { targetPort } : {}),
 						label: currentData.label ?? stereotype,
 						stereotype,
 						routing: currentData.routing ?? routingModeRef.current,
 						bendPoints: currentData.bendPoints ?? [],
-					});
+					};
 
+					edge.setData(edgeData);
+
+					const edgeMeta = createAimEdge(edgeData);
+					edge.prop('shape', edgeMeta.shape);
+					edge.setAttrs(edgeMeta.attrs ?? {});
+					if (!isDirected) {
+						edge.removeProp('attrs/line/targetMarker');
+						edge.removeProp('attrs/line/sourceMarker');
+						const view = graph.findViewByCell(edge);
+						const path = view?.container?.querySelector('path[marker-end]');
+						path?.removeAttribute('marker-end');
+						} else {
+							const targetMarker = (edgeMeta.attrs?.['line'] as Record<string, unknown> | undefined)?.['targetMarker'];
+							if (targetMarker) {
+								edge.setAttrByPath('line/targetMarker', targetMarker as any);
+							}
+						}
 					if (isNew) {
 						applyEdgeRouting(edge, routingModeRef.current);
 						if (stereotype) {
@@ -1149,7 +1305,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						(graph as unknown as { _aimRoutingMode?: AimRoutingMode })._aimRoutingMode = metamodel.routing;
 						onRoutingModeChangeRef.current?.(metamodel.routing);
 					}
-					graph.centerContent();
+					graph.zoomToFit({ padding: 40, maxScale: 1 });
 				} catch (err) {
 					console.error('RaidCanvas hydration error:', err);
 				} finally {
@@ -1193,7 +1349,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					(graph as unknown as { _aimRoutingMode?: AimRoutingMode })._aimRoutingMode = metamodel.routing;
 					onRoutingModeChangeRef.current?.(metamodel.routing);
 				}
-				graph.centerContent();
+				graph.zoomToFit({ padding: 40, maxScale: 1 });
 			} catch (err) {
 				console.error('RaidCanvas re-hydration error:', err);
 			} finally {
@@ -1233,6 +1389,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				e.dataTransfer.getData('text/plain')) as AimOntologyKind;
 
 			if (!kind || !graphRef.current || !containerRef.current) return;
+			if (!isNodeAllowedInDiagram({ kind }, new DOMParser().parseFromString(svgPropRef.current, 'image/svg+xml').documentElement.getAttribute('aim-archetype') ?? '')) return;
 
 			const rect = containerRef.current.getBoundingClientRect();
 			const clientX = e.clientX - rect.left;

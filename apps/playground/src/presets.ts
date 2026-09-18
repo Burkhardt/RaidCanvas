@@ -1,3 +1,4 @@
+import { ROLE_PRESETS } from './rolePresets';
 export interface DiagramPreset {
   id: string;
   name: string;
@@ -7,12 +8,13 @@ export interface DiagramPreset {
 }
 
 export const PRESETS: DiagramPreset[] = [
+  ...ROLE_PRESETS,
   {
     id: 'heraldic-duality',
     name: 'The Duality of the Object (Heraldic Mode)',
     archetype: 'DualityOfTheObject',
     description: 'Flagship demonstration of the Portuguese Bicolor Seam & Portal Door across 6 archetypes. Tap 1 awakens duality; Tap 2 on Door navigates; Tap 2 on Anchor inspects.',
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 460" id="DualityPantheon_UCD" aim-archetype="DualityOfTheObject" aim-routing="manhattan">
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" id="DualityPantheon_UCD" aim-archetype="DualityOfTheObject" aim-routing="manhattan">
   <defs>
     <marker id="arrow-classic" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#1F2937" />
@@ -26,9 +28,9 @@ export const PRESETS: DiagramPreset[] = [
 
   <!-- Edges -->
   <g class="aim-edges-layer">
-    <g aim-edge="true" aim-id="edge-initiate" aim-edge-kind="association" aim-source="Customer_Actor" aim-target="SignContract_UC" aim-bends="180,135; 270,135">
-      <path d="M 180 135 L 270 135" class="aim-edge" marker-end="url(#arrow-classic)" />
-      <text x="225" y="125" font-size="11" fill="#4B5563" text-anchor="middle">«initiates»</text>
+    <g aim-edge="true" aim-id="edge-initiate" aim-edge-kind="association" aim-source="Customer_Actor" aim-target="SignContract_UC" aim-bends="170,135; 270,135">
+      <path d="M 170 135 L 270 135" class="aim-edge" marker-end="url(#arrow-classic)" />
+      <text x="220" y="125" font-size="11" fill="#4B5563" text-anchor="middle">«initiates»</text>
     </g>
     <g aim-edge="true" aim-id="edge-include" aim-edge-kind="dependency" aim-source="SignContract_UC" aim-target="VerifyIdentity_Act" aim-bends="430,135; 510,135">
       <path d="M 430 135 L 510 135" class="aim-edge" stroke-dasharray="5,5" marker-end="url(#arrow-classic)" />
@@ -46,53 +48,80 @@ export const PRESETS: DiagramPreset[] = [
       <path d="M 430 305 L 510 305" class="aim-edge" marker-end="url(#arrow-classic)" />
       <text x="470" y="295" font-size="11" fill="#4B5563" text-anchor="middle">«binds»</text>
     </g>
+    <g aim-edge="true" aim-id="edge-perform" aim-edge-kind="association" aim-source="Headliner_Actor" aim-target="SunsetStage_Plc" aim-bends="170,455; 750,455">
+      <path d="M 170 455 L 750 455" class="aim-edge" marker-end="url(#arrow-classic)" />
+      <text x="450" y="445" font-size="11" fill="#4B5563" text-anchor="middle">«performsAt»</text>
+    </g>
   </g>
 
   <!-- Nodes -->
   <g class="aim-nodes-layer">
-    <!-- 1. Person: Dr. Rainer Burkhardt -->
-    <g aim-node="true" aim-id="Customer_Actor" aim-kind="per" aim-display-name="Dr. Rainer Burkhardt" aim-qualifier="Project Director" aim-href="/actors?select=7010" aim-stereotype="initiates" transform="translate(50, 90)">
-      <rect width="140" height="90" fill="none" stroke="none" />
-      <path d="M 86 50 v -4 a 8 8 0 0 0 -8 -8 H 62 a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-      <circle cx="70" cy="22" r="8" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" />
-      <text x="70" y="62" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Project Director</text>
-      <text x="70" y="78" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Dr. Rainer Burkhardt</text>
+    <!-- 1. Person: Dr. Rainer Burkhardt with Customer Crown on Head -->
+    <g aim-node="true" aim-id="Customer_Actor" aim-kind="per" aim-display-name="Dr. Rainer Burkhardt" aim-qualifier="Project Director" aim-href="/actors?select=7010" aim-stereotype="Customer, initiates" transform="translate(50, 80)">
+      <rect width="120" height="110" fill="none" stroke="none" />
+      <path d="M 81 54 v -6 a 10 10 0 0 0 -10 -10 H 49 a 10 10 0 0 0 -10 10 v 6" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="60" cy="20" r="12" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2.2" />
+      <g class="aim-stereotype-icon aim-icon-customer" transform="translate(48, -7)">
+        <path d="M 4 17.5 L 4 9.5 L 8.5 13 L 12 7 L 15.5 13 L 20 9.5 L 20 17.5 Z M 4 17.5 H 20 V 20 H 4 Z" fill="#F59E0B" />
+        <path d="M 4 17.5 L 4 9.5 L 8.5 13 L 12 7 L 15.5 13 L 20 9.5 L 20 17.5 Z M 4 17.5 H 20 V 20 H 4 Z" fill="none" stroke="#F59E0B" stroke-width="1.2" />
+        <path d="M 4 9.5 A 1 1 0 1 1 3.9 9.5 Z M 12 7 A 1 1 0 1 1 11.9 7 Z M 20 9.5 A 1 1 0 1 1 19.9 9.5 Z" fill="#FFFFFF" />
+      </g>
+      <text x="60" y="66" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Project Director</text>
+      <text x="60" y="84" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Dr. Rainer Burkhardt</text>
     </g>
 
-    <!-- 2. UseCase: Sign Contract -->
+    <!-- 2. Person: Amália with Headliner Star on Chest -->
+    <g aim-node="true" aim-id="Headliner_Actor" aim-kind="per" aim-display-name="Amália" aim-qualifier="Fado Diva" aim-href="/actors?select=amalia" aim-stereotype="Headliner" transform="translate(50, 400)">
+      <rect width="120" height="110" fill="none" stroke="none" />
+      <path d="M 81 54 v -6 a 10 10 0 0 0 -10 -10 H 49 a 10 10 0 0 0 -10 10 v 6" fill="none" stroke="#1F2937" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="60" cy="20" r="12" fill="#FFFFFF" stroke="#1F2937" stroke-width="2.2" />
+      <g class="aim-stereotype-icon aim-icon-headliner" transform="translate(52, 38.5)">
+        <path d="M 8 0.5 L 10.1 5.1 L 15.6 5.5 L 11.4 9.1 L 12.7 14.5 L 8 11.6 L 3.3 14.5 L 4.6 9.1 L 0.4 5.5 L 5.9 5.1 Z" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <text x="60" y="66" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Fado Diva</text>
+      <text x="60" y="84" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Amália</text>
+    </g>
+
+    <!-- 3. UseCase: Sign Contract -->
     <g aim-node="true" aim-id="SignContract_UC" aim-kind="uc" aim-display-name="Sign Contract" aim-qualifier="Commercial Workflow" aim-href="/usecases?select=uc-sign-contract" transform="translate(270, 95)">
       <ellipse cx="80" cy="40" rx="80" ry="40" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" />
       <text x="80" y="32" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Commercial Workflow</text>
       <text x="80" y="48" font-size="13" font-weight="bold" fill="#111827" text-anchor="middle">Sign Contract</text>
     </g>
 
-    <!-- 3. Activity: Verify Identity -->
+    <!-- 4. Activity: Verify Identity -->
     <g aim-node="true" aim-id="VerifyIdentity_Act" aim-kind="act" aim-display-name="Verify Identity" aim-qualifier="Security Verification" aim-href="/activities?activity=act-verify-id" transform="translate(510, 105)">
-      <rect width="170" height="60" rx="12" ry="12" fill="#F8FAFC" stroke="#10B981" stroke-width="2" />
+      <rect width="170" height="60" rx="12" ry="12" fill="#FFFFFF" stroke="#EF4444" stroke-width="2" />
       <text x="85" y="24" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Security Verification</text>
       <text x="85" y="40" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" text-decoration="underline">Verify Identity</text>
     </g>
 
-    <!-- 4. Place: Lisbon Stage -->
-    <g aim-node="true" aim-id="LisbonStage_Plc" aim-kind="plc" aim-display-name="Lisbon Stage" aim-qualifier="Physical Site" aim-stereotype="Stage" aim-href="/places?select=plc-lisbon" transform="translate(750, 95)">
-      <rect width="160" height="75" fill="none" stroke="none" />
-      <g class="aim-stereotype-icon aim-icon-stage" transform="translate(66, 8)">
-        <path d="M 2 5.5 L 5.5 1.5 H 22.5 L 26 5.5 Z M 2 20.5 H 9 V 23 H 2 Z M 19 20.5 H 26 V 23 H 19 Z M 8.5 13 H 12 V 19.5 H 8.5 Z M 16 13 H 19.5 V 19.5 H 16 Z M 8.5 20.5 H 19.5 V 21.8 H 8.5 Z M 9.5 22.2 H 18.5 V 23.5 H 9.5 Z" fill="#F59E0B" />
-        <path d="M 7.5 6.5 H 20.5 M 3.5 5.5 V 20.5 M 7.5 5.5 V 20.5 M 3.5 5.5 L 7.5 10.5 M 7.5 5.5 L 3.5 10.5 M 3.5 10.5 L 7.5 15.5 M 7.5 10.5 L 3.5 15.5 M 3.5 15.5 L 7.5 20.5 M 7.5 15.5 L 3.5 20.5 M 20.5 5.5 V 20.5 M 24.5 5.5 V 20.5 M 20.5 5.5 L 24.5 10.5 M 24.5 5.5 L 20.5 10.5 M 20.5 10.5 L 24.5 15.5 M 24.5 10.5 L 20.5 15.5 M 20.5 15.5 L 24.5 20.5 M 24.5 15.5 L 20.5 20.5 M 9.5 6.5 L 8.5 9 M 11.8 6.5 V 9 M 14 6.5 V 9 M 16.2 6.5 V 9 M 18.5 6.5 L 19.5 9 M 7.5 19.5 H 20.5" fill="none" stroke="#F59E0B" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M 8 2.2 L 8.4 3.2 L 9.5 3.3 L 8.7 4.1 L 8.9 5.2 L 8 4.6 L 7.1 5.2 L 7.3 4.1 L 6.5 3.3 L 7.6 3.2 Z M 12 2.2 L 12.4 3.2 L 13.5 3.3 L 12.7 4.1 L 12.9 5.2 L 12 4.6 L 11.1 5.2 L 11.3 4.1 L 10.5 3.3 L 11.6 3.2 Z M 16 2.2 L 16.4 3.2 L 17.5 3.3 L 16.7 4.1 L 16.9 5.2 L 16 4.6 L 15.1 5.2 L 15.3 4.1 L 14.5 3.3 L 15.6 3.2 Z M 20 2.2 L 20.4 3.2 L 21.5 3.3 L 20.7 4.1 L 20.9 5.2 L 20 4.6 L 19.1 5.2 L 19.3 4.1 L 18.5 3.3 L 19.6 3.2 Z" fill="#F59E0B" />
+    <!-- 5. Place: Lisbon Stage (Venue Stereotype: Frameless Location Pin) -->
+    <g aim-node="true" aim-id="LisbonStage_Plc" aim-kind="plc" aim-display-name="Lisbon Arena" aim-qualifier="Physical Site" aim-stereotype="Venue" aim-href="/places?select=plc-lisbon" transform="translate(750, 80)">
+      <rect width="120" height="110" fill="none" stroke="none" />
+      <g class="aim-stereotype-icon aim-icon-venue" transform="translate(37.5, 6)">
+        <path d="M 22.5 43.5 C 15 33.75 9 26.25 9 16.5 A 13.5 13.5 0 1 1 36 16.5 C 36 26.25 30 33.75 22.5 43.5 Z M 22.5 11.25 A 5.25 5.25 0 1 0 22.5 21.75 A 5.25 5.25 0 1 0 22.5 11.25 Z" fill="#FFFFFF" fill-rule="evenodd" />
+        <path d="M 22.5 43.5 C 15 33.75 9 26.25 9 16.5 A 13.5 13.5 0 1 1 36 16.5 C 36 26.25 30 33.75 22.5 43.5 Z M 22.5 11.25 A 5.25 5.25 0 1 0 22.5 21.75 A 5.25 5.25 0 1 0 22.5 11.25 Z M 7.5 49.5 C 7.5 47.25 14.25 45.75 22.5 45.75 C 30.75 45.75 37.5 47.25 37.5 49.5 C 37.5 51.75 30.75 53.25 22.5 53.25 C 14.25 53.25 7.5 51.75 7.5 49.5 Z" fill="none" stroke="#1F2937" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
       </g>
-      <text x="80" y="48" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Physical Site</text>
-      <text x="80" y="66" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Lisbon Stage</text>
+      <text x="60" y="66" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Physical Site</text>
+      <text x="60" y="84" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Lisbon Arena</text>
     </g>
 
-    <!-- 5. Object: Signed Contract Document -->
+    <!-- 6. Place: Sunset Stage (Stage Stereotype: Frameless Festival Truss) -->
+    <g aim-node="true" aim-id="SunsetStage_Plc" aim-kind="plc" aim-display-name="Sunset Stage" aim-qualifier="Main Concert Rig" aim-stereotype="Stage" aim-href="/places?select=plc-sunset" transform="translate(750, 400)">
+      <rect width="120" height="110" fill="none" stroke="none" />
+      <text x="60" y="66" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Main Concert Rig</text>
+      <text x="60" y="84" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Sunset Stage</text>
+    </g>
+
+    <!-- 7. Object: Signed Contract Document -->
     <g aim-node="true" aim-id="ContractDoc_Obj" aim-kind="obj" aim-display-name="Signed Contract" aim-qualifier="Legal Artifact" aim-instance="true" aim-href="/objects?select=obj-contract-doc" transform="translate(270, 270)">
       <rect width="160" height="70" fill="#FFFFFF" stroke="#F59E0B" stroke-width="1.5" />
       <text x="80" y="28" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Legal Artifact</text>
       <text x="80" y="46" font-size="12" font-weight="600" fill="#111827" text-anchor="middle" text-decoration="underline">Signed Contract</text>
     </g>
 
-    <!-- 6. Role: Signer Role -->
+    <!-- 8. Role: Signer Role -->
     <g aim-node="true" aim-id="SignerRole_Rol" aim-kind="rol" aim-display-name="Signer Role" aim-qualifier="Authorised Agent" aim-href="/roles?select=rol-signer" transform="translate(510, 280)">
       <rect width="170" height="50" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.5" />
       <text x="85" y="22" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Authorised Agent</text>
@@ -105,7 +134,7 @@ export const PRESETS: DiagramPreset[] = [
     id: 'one-use-case',
     name: 'OneUseCase Diagram',
     archetype: 'OneUseCaseDiagram',
-    description: 'Initiating role, core UseCase ellipse, and downflow activity verification with ontological deep links.',
+    description: 'Initiating role, core UseCase ellipse, and included verification UseCase with ontological deep links.',
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" id="SignContract_UCD" aim-archetype="OneUseCaseDiagram" aim-routing="manhattan">
   <defs>
     <marker id="arrow-classic" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -147,9 +176,9 @@ export const PRESETS: DiagramPreset[] = [
       <text x="70" y="35" font-size="13" font-weight="bold" fill="#111827" text-anchor="middle" dominant-baseline="central">Sign Contract</text>
     </g>
 
-    <g aim-node="true" aim-id="VerifyIdentity_Act" aim-kind="act" aim-display-name="Verify Identity" aim-href="/activities?activity=act-verify-id" transform="translate(500, 100)">
-      <rect width="150" height="60" rx="12" ry="12" fill="#F8FAFC" stroke="#10B981" stroke-width="2" />
-      <text x="75" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Verify Identity</text>
+    <g aim-node="true" aim-id="VerifyIdentity_Act" aim-kind="uc" aim-display-name="Verify Identity" aim-href="/activities?activity=act-verify-id" transform="translate(500, 100)">
+      <rect width="150" height="60" rx="12" ry="12" fill="#FFFFFF" stroke="#EF4444" stroke-width="2" />
+      <text x="75" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" >Verify Identity</text>
     </g>
   </g>
 </svg>`,

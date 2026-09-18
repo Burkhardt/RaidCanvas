@@ -1,3 +1,4 @@
+import { classAttributeLines } from './RoleModel.js';
 /**
  * @file X6Shapes.ts
  * @description Custom AntV X6 shape registrations for the AOAIM ontological contract.
@@ -21,6 +22,7 @@ import type {
 } from './types.js';
 import {
   resolveStereotype,
+  isInitiatingStereotype,
   getStereotypePaths,
 } from './StereotypeIcons.js';
 
@@ -30,7 +32,7 @@ import {
 export const CascaisPalette = {
   NetGold: '#F59E0B',
   HeraldicGreen: '#10B981',
-  CascaisRed: '#D22B2B',
+  CascaisRed: '#EF4444',
   WarmGraphite: '#1F2937',
   GraphiteMuted: '#4B5563',
   SilverLine: '#E5E7EB',
@@ -370,8 +372,8 @@ export function registerAimShapes(): void {
     ],
     attrs: {
       body: {
-        fill: CascaisPalette.CanvasCream,
-        stroke: CascaisPalette.HeraldicGreen,
+        fill: CascaisPalette.ChalkWhite,
+        stroke: CascaisPalette.CascaisRed,
         strokeWidth: 2,
         rx: 12,
         ry: 12,
@@ -755,12 +757,16 @@ export function registerAimShapes(): void {
   Shape.Rect.define({
     shape: 'aim-per',
     overwrite: true,
-    width: 90,
-    height: 90,
+    width: 120,
+    height: 110,
     markup: [
       {
         tagName: 'rect',
         selector: 'body',
+      },
+      {
+        tagName: 'path',
+        selector: 'iconFill',
       },
       {
         tagName: 'path',
@@ -777,10 +783,6 @@ export function registerAimShapes(): void {
       {
         tagName: 'line',
         selector: 'seam',
-      },
-      {
-        tagName: 'path',
-        selector: 'iconFill',
       },
       {
         tagName: 'path',
@@ -808,23 +810,25 @@ export function registerAimShapes(): void {
         fill: 'transparent',
         stroke: 'transparent',
         strokeWidth: 0,
+        pointerEvents: 'all',
+        style: { pointerEvents: 'all' },
         class: 'aim-node aim-per',
       },
       torso: {
-        d: 'M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4',
+        d: 'M 81 54 v -6 a 10 10 0 0 0 -10 -10 H 49 a 10 10 0 0 0 -10 10 v 6',
         fill: 'none',
         stroke: CascaisPalette.WarmGraphite,
-        strokeWidth: 2,
+        strokeWidth: 2.2,
         strokeLinecap: 'round',
         strokeLinejoin: 'round',
       },
       head: {
-        cx: 45,
-        cy: 22,
-        r: 8,
+        cx: 60,
+        cy: 20,
+        r: 12,
         fill: CascaisPalette.ChalkWhite,
         stroke: CascaisPalette.WarmGraphite,
-        strokeWidth: 2,
+        strokeWidth: 2.2,
       },
       door: {
         fill: 'rgba(16, 185, 129, 0.25)',
@@ -885,7 +889,7 @@ export function registerAimShapes(): void {
         textVerticalAnchor: 'top',
         textDecoration: 'none',
         refX: 0.5,
-        refY: 60,
+        refY: 66,
       },
       label: {
         text: 'Actor',
@@ -897,7 +901,7 @@ export function registerAimShapes(): void {
         textVerticalAnchor: 'top',
         textDecoration: 'none',
         refX: 0.5,
-        refY: 62,
+        refY: 84,
       },
     },
     ports: createOrthogonalPorts(),
@@ -920,15 +924,15 @@ export function registerAimShapes(): void {
       },
       {
         tagName: 'path',
+        selector: 'iconFill',
+      },
+      {
+        tagName: 'path',
         selector: 'door',
       },
       {
         tagName: 'line',
         selector: 'seam',
-      },
-      {
-        tagName: 'path',
-        selector: 'iconFill',
       },
       {
         tagName: 'path',
@@ -954,9 +958,9 @@ export function registerAimShapes(): void {
     attrs: {
       body: {
         fill: CascaisPalette.ChalkWhite,
-        stroke: CascaisPalette.CascaisRed,
+        stroke: CascaisPalette.SilverLineDark,
         strokeWidth: 1.5,
-        class: 'aim-node aim-plc',
+        class: 'aim-node aim-plc aim-plc-framed',
       },
       header: {
         display: 'none',
@@ -964,6 +968,7 @@ export function registerAimShapes(): void {
       },
       door: {
         fill: 'rgba(16, 185, 129, 0.10)',
+        fillRule: 'evenodd',
         display: 'none',
         class: 'aim-portal-door',
       },
@@ -1037,136 +1042,50 @@ export function registerAimShapes(): void {
     ports: createOrthogonalPorts(),
   });
 
-  // 7. AimRoleNode ('rol') — Structural Role / KL-ONE constraint card
-  Shape.Rect.define({
-    shape: 'aim-rol',
-    overwrite: true,
-    width: 140,
-    height: 50,
-    markup: [
-      {
-        tagName: 'rect',
-        selector: 'body',
+  // Roles are selectable relationship junctions, not domain persistence kinds.
+  for (const kind of ['rol', 'rf']) {
+    Shape.Circle.define({
+      shape: `aim-${kind}`, overwrite: true, width: 22, height: 22,
+      markup: [{ tagName: 'circle', selector: 'body' }, { tagName: 'text', selector: 'label' }],
+      attrs: {
+        body: { refCx: '50%', refCy: '50%', refR: '50%', stroke: '#334155', strokeWidth: 2, fill: kind === 'rf' ? '#2563EB' : '#FFFFFF' },
+        label: { refX: 0.5, refY: -14, textAnchor: 'middle', textVerticalAnchor: 'middle', fontSize: 13, fontFamily: 'Inter, system-ui, sans-serif', fill: '#1F2937' },
       },
-      {
-        tagName: 'path',
-        selector: 'door',
-      },
-      {
-        tagName: 'line',
-        selector: 'seam',
-      },
-      {
-        tagName: 'path',
-        selector: 'iconFill',
-      },
-      {
-        tagName: 'path',
-        selector: 'iconStroke',
-      },
-      {
-        tagName: 'path',
-        selector: 'iconAccent',
-      },
-      {
-        tagName: 'text',
-        selector: 'qualifier',
-      },
-      {
-        tagName: 'text',
-        selector: 'label',
-      },
-      {
-        tagName: 'text',
-        selector: 'chevron',
-      },
-    ],
-    attrs: {
-      body: {
-        fill: CascaisPalette.ChalkWhite,
-        stroke: CascaisPalette.WarmGraphite,
-        strokeWidth: 1.5,
-        strokeDasharray: '4,3',
-        class: 'aim-node aim-rol',
-      },
-      door: {
-        fill: 'rgba(16, 185, 129, 0.10)',
-        display: 'none',
-        class: 'aim-portal-door',
-      },
-      seam: {
-        stroke: CascaisPalette.NetGold,
-        strokeWidth: 1.5,
-        display: 'none',
-        class: 'aim-portal-seam',
-      },
-      iconFill: {
-        d: '',
-        fill: CascaisPalette.WarmGraphite,
-        stroke: 'none',
-        display: 'none',
-        class: 'aim-stereotype-icon-fill',
-      },
-      iconStroke: {
-        d: '',
-        fill: 'none',
-        stroke: CascaisPalette.WarmGraphite,
-        strokeWidth: 1.3,
-        strokeLinecap: 'round',
-        strokeLinejoin: 'round',
-        display: 'none',
-        class: 'aim-stereotype-icon-stroke',
-      },
-      iconAccent: {
-        d: '',
-        fill: CascaisPalette.NetGold,
-        stroke: 'none',
-        display: 'none',
-        class: 'aim-stereotype-icon-accent',
-      },
-      chevron: {
-        text: '›',
-        fill: 'rgba(16, 185, 129, 0.70)',
-        fontSize: 14,
-        fontWeight: 'bold',
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        textAnchor: 'middle',
-        textVerticalAnchor: 'middle',
-        refX: 1,
-        refDx: -12,
-        refY: 0.5,
-        display: 'none',
-        class: 'aim-portal-chevron',
-      },
-      qualifier: {
-        text: '',
-        fill: CascaisPalette.TextSecondary,
-        fontSize: 11,
-        fontStyle: 'italic',
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        textAnchor: 'middle',
-        textVerticalAnchor: 'middle',
-        refX: 0.5,
-        refY: 0.35,
-      },
-      label: {
-        text: 'Role',
-        fill: CascaisPalette.TextPrimary,
-        fontSize: 12,
-        fontWeight: '600',
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        textAnchor: 'middle',
-        textVerticalAnchor: 'middle',
-        refX: 0.5,
-        refY: 0.65,
-      },
-    },
-    ports: createOrthogonalPorts(),
-  });
+      ports: createOrthogonalPorts(),
+    });
+  }
 
-  // 8. AimEdge — Orthogonal Manhattan edge with rounded corners
+  // 8. AimEdge — Orthogonal Manhattan edge (undirected line segment without arrow)
   Shape.Edge.define({
     shape: 'aim-edge',
+    overwrite: true,
+    router: {
+      name: 'manhattan',
+      args: {
+        padding: 20,
+        startDirections: ['top', 'right', 'bottom', 'left'],
+        endDirections: ['top', 'right', 'bottom', 'left'],
+      },
+    },
+    connector: {
+      name: 'rounded',
+      args: {
+        radius: 8,
+      },
+    },
+    attrs: {
+      line: {
+        stroke: CascaisPalette.WarmGraphite,
+        strokeWidth: 1.5,
+        targetMarker: null,
+        class: 'aim-edge',
+      },
+    },
+  });
+
+  // 9. AimArrow — Orthogonal Manhattan edge with classic arrowhead (directed)
+  Shape.Edge.define({
+    shape: 'aim-arrow',
     overwrite: true,
     router: {
       name: 'manhattan',
@@ -1190,7 +1109,7 @@ export function registerAimShapes(): void {
           name: 'classic',
           size: 7,
         },
-        class: 'aim-edge',
+        class: 'aim-edge aim-arrow',
       },
     },
   });
@@ -1228,10 +1147,48 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
   const h = data.bounds.height;
   const midX = Math.round(w / 2);
 
+  const resolvedStereotype = resolveStereotype(data.stereotype);
+
   if (data.kind === 'per') {
     const cx = Math.round(w / 2);
-    const headRight = `M ${cx} 14 A 8 8 0 0 1 ${cx} 30 Z`;
-    const torsoRight = `M ${cx} 42 H ${cx + 8} a 8 8 0 0 1 8 8 v 4 H ${cx} Z`;
+    if (resolvedStereotype === 'system') {
+      // Dual-chassis server rack right half: top chassis, connecting neck, bottom chassis
+      const systemRightHalf = `M ${cx} 11 H ${cx + 16} A 4 4 0 0 1 ${cx + 20} 15 V 23 A 4 4 0 0 1 ${cx + 16} 27 H ${cx + 9} V 33 H ${cx + 16} A 4 4 0 0 1 ${cx + 20} 37 V 45 A 4 4 0 0 1 ${cx + 16} 49 H ${cx} Z`;
+      return {
+        door: {
+          d: systemRightHalf,
+          display: 'block',
+          fill: 'rgba(16, 185, 129, 0.25)',
+          class: 'aim-portal-door',
+        },
+        seam: {
+          x1: cx,
+          y1: 11,
+          x2: cx,
+          y2: 49,
+          stroke: CascaisPalette.NetGold,
+          strokeWidth: 1.5,
+          display: 'block',
+          class: 'aim-portal-seam',
+        },
+        chevron: {
+          text: '›',
+          refX: 0.5,
+          refDx: 32,
+          refY: 30,
+          fill: 'rgba(16, 185, 129, 0.75)',
+          fontSize: 14,
+          fontWeight: 'bold',
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          textAnchor: 'middle',
+          textVerticalAnchor: 'middle',
+          display: 'block',
+          class: 'aim-portal-chevron',
+        },
+      };
+    }
+    const headRight = `M ${cx} 8 A 12 12 0 0 1 ${cx} 32 Z`;
+    const torsoRight = `M ${cx} 38 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 H ${cx} Z`;
     return {
       door: {
         d: `${headRight} ${torsoRight}`,
@@ -1241,7 +1198,7 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
       },
       seam: {
         x1: cx,
-        y1: 14,
+        y1: 8,
         x2: cx,
         y2: 54,
         stroke: CascaisPalette.NetGold,
@@ -1254,6 +1211,128 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
         refX: 1,
         refDx: -12,
         refY: 0.5,
+        fill: 'rgba(16, 185, 129, 0.75)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'block',
+        class: 'aim-portal-chevron',
+      },
+    };
+  }
+
+  if (data.kind === 'plc' && resolvedStereotype === 'venue') {
+    const effectiveW = w > 140 ? 120 : (w < 120 ? 120 : w);
+    const cx = Math.round(effectiveW / 2);
+    const iconY = 6;
+    // Right half of teardrop pin with inner aperture cutout (fill-rule evenodd) scaled to 45x54
+    const pinRightHalf = `M ${cx} 9 A 13.5 13.5 0 0 1 ${cx + 13.5} 22.5 C ${cx + 13.5} 32.25 ${cx + 7.5} 39.75 ${cx} 49.5 Z M ${cx} 27.75 A 5.25 5.25 0 0 0 ${cx} 17.25 Z`;
+    return {
+      door: {
+        d: pinRightHalf,
+        display: 'block',
+        fill: 'rgba(16, 185, 129, 0.25)',
+        fillRule: 'evenodd',
+        'fill-rule': 'evenodd',
+        class: 'aim-portal-door',
+      },
+      seam: {
+        x1: cx,
+        y1: iconY,
+        x2: cx,
+        y2: iconY + 54,
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'block',
+        class: 'aim-portal-seam',
+      },
+      chevron: {
+        text: '›',
+        refX: 0.5,
+        refDx: 34,
+        refY: 26,
+        fill: 'rgba(16, 185, 129, 0.75)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'block',
+        class: 'aim-portal-chevron',
+      },
+    };
+  }
+
+  if (data.kind === 'plc' && resolvedStereotype === 'stage') {
+    const effectiveW = w > 140 ? 120 : (w < 120 ? 120 : w);
+    const cx = Math.round(effectiveW / 2);
+    const iconY = 6;
+    // Outer bounds right half: canopy roof slope + right truss tower + stage pad + centerline seam
+    const stageRightHalf = `M ${cx} ${iconY + 2.6} H ${cx + 14.4} L ${cx + 20.5} ${iconY + 9.6} V ${iconY + 40.2} H ${cx} Z`;
+    return {
+      door: {
+        d: stageRightHalf,
+        display: 'block',
+        fill: 'rgba(16, 185, 129, 0.25)',
+        class: 'aim-portal-door',
+      },
+      seam: {
+        x1: cx,
+        y1: iconY + 2.6,
+        x2: cx,
+        y2: iconY + 40.2,
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'block',
+        class: 'aim-portal-seam',
+      },
+      chevron: {
+        text: '›',
+        refX: 0.5,
+        refDx: 34,
+        refY: 26,
+        fill: 'rgba(16, 185, 129, 0.75)',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'block',
+        class: 'aim-portal-chevron',
+      },
+    };
+  }
+
+  if (data.kind === 'plc' && resolvedStereotype === 'bar') {
+    const effectiveW = w > 140 ? 120 : (w < 120 ? 120 : w);
+    const cx = Math.round(effectiveW / 2);
+    const iconY = 6;
+    // Right half of the glass: V-bowl right half from rim to stem vertex
+    const barRightHalf = `M ${cx} ${iconY + 8} H ${cx + 15} L ${cx} ${iconY + 28} Z`;
+    return {
+      door: {
+        d: barRightHalf,
+        display: 'block',
+        fill: 'rgba(16, 185, 129, 0.40)',
+        class: 'aim-portal-door',
+      },
+      seam: {
+        x1: cx,
+        y1: iconY + 8,
+        x2: cx,
+        y2: iconY + 44,
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'block',
+        class: 'aim-portal-seam',
+      },
+      chevron: {
+        text: '›',
+        refX: 0.5,
+        refDx: 32,
+        refY: 26,
         fill: 'rgba(16, 185, 129, 0.75)',
         fontSize: 14,
         fontWeight: 'bold',
@@ -1321,6 +1400,13 @@ export function setNodeDualityActive(node: Node, active: boolean): void {
   const attrs = computePortalDoorAttrs(data, active);
   node.setAttrByPath('door/d', attrs.door.d);
   node.setAttrByPath('door/display', attrs.door.display);
+  if ((attrs.door as any).fill) {
+    node.setAttrByPath('door/fill', (attrs.door as any).fill);
+  }
+  if ((attrs.door as any).fillRule) {
+    node.setAttrByPath('door/fillRule', (attrs.door as any).fillRule);
+    node.setAttrByPath('door/fill-rule', (attrs.door as any).fillRule);
+  }
   if (attrs.seam.display === 'block') {
     node.setAttrByPath('seam/x1', (attrs.seam as any).x1);
     node.setAttrByPath('seam/y1', (attrs.seam as any).y1);
@@ -1328,6 +1414,12 @@ export function setNodeDualityActive(node: Node, active: boolean): void {
     node.setAttrByPath('seam/y2', (attrs.seam as any).y2);
   }
   node.setAttrByPath('seam/display', attrs.seam.display);
+  if (attrs.chevron.display === 'block') {
+    if ((attrs.chevron as any).refX !== undefined) node.setAttrByPath('chevron/refX', (attrs.chevron as any).refX);
+    if ((attrs.chevron as any).refDx !== undefined) node.setAttrByPath('chevron/refDx', (attrs.chevron as any).refDx);
+    if ((attrs.chevron as any).refY !== undefined) node.setAttrByPath('chevron/refY', (attrs.chevron as any).refY);
+    if ((attrs.chevron as any).fill) node.setAttrByPath('chevron/fill', (attrs.chevron as any).fill);
+  }
   node.setAttrByPath('chevron/display', attrs.chevron.display);
 }
 
@@ -1351,14 +1443,16 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
   const paths = getStereotypePaths(resolved);
   const w = data.bounds.width;
   const h = data.bounds.height;
+  const isInitiating = isInitiatingStereotype(data.stereotype);
+  const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
 
   if (data.kind === 'per') {
     const cx = Math.round(w / 2);
-    if (resolved === 'headliner') {
+    if (resolved === 'customer') {
       return {
         iconFill: {
           d: paths.fillD,
-          transform: `translate(${cx - 12}, 2)`,
+          transform: `translate(${cx - 12}, -7)`,
           fill: CascaisPalette.NetGold,
           stroke: 'none',
           display: 'block',
@@ -1366,8 +1460,8 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
         iconStroke: {
           d: paths.strokeD,
-          transform: `translate(${cx - 12}, 2)`,
-          stroke: CascaisPalette.WarmGraphite,
+          transform: `translate(${cx - 12}, -7)`,
+          stroke: CascaisPalette.NetGold,
           strokeWidth: 1.2,
           fill: 'none',
           display: 'block',
@@ -1375,7 +1469,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
         iconAccent: {
           d: paths.accentFillD ?? '',
-          transform: `translate(${cx - 12}, 2)`,
+          transform: `translate(${cx - 12}, -7)`,
           fill: CascaisPalette.ChalkWhite,
           stroke: 'none',
           display: paths.accentFillD ? 'block' : 'none',
@@ -1383,12 +1477,37 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
       };
     }
+    if (resolved === 'headliner') {
+      // 5-Point hollow Star on the chest (media_1789693770549.png)
+      // Hollow so that the torso line and Duality emerald door fill are visible
+      return {
+        iconFill: {
+          d: '',
+          display: 'none',
+        },
+        iconStroke: {
+          d: paths.strokeD,
+          transform: `translate(${cx - 8}, 38.5)`,
+          stroke: CascaisPalette.NetGold,
+          strokeWidth: 1.5,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          fill: 'none',
+          display: 'block',
+          class: 'aim-stereotype-icon-stroke',
+        },
+        iconAccent: {
+          d: '',
+          display: 'none',
+        },
+      };
+    }
     if (resolved === 'ai') {
       return {
         iconFill: {
           d: paths.fillD,
-          transform: `translate(${cx + 10}, 10)`,
-          fill: CascaisPalette.WarmGraphite,
+          transform: `translate(${cx - 12}, 8)`,
+          fill: strokeColor,
           opacity: 0.15,
           stroke: 'none',
           display: 'block',
@@ -1396,8 +1515,8 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
         iconStroke: {
           d: paths.strokeD,
-          transform: `translate(${cx + 10}, 10)`,
-          stroke: CascaisPalette.WarmGraphite,
+          transform: `translate(${cx - 12}, 8)`,
+          stroke: strokeColor,
           strokeWidth: 1.3,
           strokeLinecap: 'round',
           fill: 'none',
@@ -1406,8 +1525,39 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
         iconAccent: {
           d: paths.accentFillD ?? '',
-          transform: `translate(${cx + 10}, 10)`,
-          fill: CascaisPalette.NetGold,
+          transform: `translate(${cx - 12}, 8)`,
+          fill: strokeColor,
+          stroke: 'none',
+          display: paths.accentFillD ? 'block' : 'none',
+          class: 'aim-stereotype-icon-accent',
+        },
+      };
+    }
+    if (resolved === 'system') {
+      return {
+        iconFill: {
+          d: paths.fillD,
+          transform: `translate(${cx - 22}, 8)`,
+          fill: CascaisPalette.ChalkWhite,
+          stroke: 'none',
+          display: 'block',
+          class: 'aim-stereotype-icon-fill',
+        },
+        iconStroke: {
+          d: paths.strokeD,
+          transform: `translate(${cx - 22}, 8)`,
+          stroke: strokeColor,
+          strokeWidth: 2.2,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          fill: 'none',
+          display: 'block',
+          class: 'aim-stereotype-icon-stroke',
+        },
+        iconAccent: {
+          d: paths.accentFillD ?? '',
+          transform: `translate(${cx - 22}, 8)`,
+          fill: strokeColor,
           stroke: 'none',
           display: paths.accentFillD ? 'block' : 'none',
           class: 'aim-stereotype-icon-accent',
@@ -1422,85 +1572,105 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
   }
 
   if (data.kind === 'plc') {
-    const cx = Math.round(w / 2);
-    const iconX = cx - Math.round(paths.width / 2);
-    const iconY = 8;
+    const isFrameless = ['venue', 'stage', 'bar'].includes(resolved ?? '');
+    if (isFrameless) {
+      const effectiveW = (w > 140) ? 120 : (w < 120 ? 120 : w);
+      const cx = Math.round(effectiveW / 2);
+      const iconX = cx - Math.round(paths.width / 2);
+      const iconY = 6;
 
-    // Location glyph stroke/fill in Net Gold (matching Person stroke and UseCase stroke)
-    const strokeColor = CascaisPalette.NetGold;
-    const fillColor = CascaisPalette.NetGold;
-    const accentColor = CascaisPalette.NetGold;
+      // Universal Initiator rule: With «initiates», Net Gold (#F59E0B); Without «initiates», WarmGraphite (#1F2937)
+      let fillColor: string = CascaisPalette.ChalkWhite;
+      let accentColor: string = strokeColor;
 
-    return {
-      iconFill: {
-        d: paths.fillD,
-        transform: `translate(${iconX}, ${iconY})`,
-        fill: fillColor,
-        stroke: 'none',
-        display: paths.fillD ? 'block' : 'none',
-        class: 'aim-stereotype-icon-fill',
-      },
-      iconStroke: {
-        d: paths.strokeD,
-        transform: `translate(${iconX}, ${iconY})`,
-        stroke: strokeColor,
-        strokeWidth: 1.4,
-        strokeLinecap: 'round',
-        strokeLinejoin: 'round',
-        fill: 'none',
-        display: paths.strokeD ? 'block' : 'none',
-        class: 'aim-stereotype-icon-stroke',
-      },
-      iconAccent: {
-        d: paths.starsD ?? paths.accentFillD ?? '',
-        transform: `translate(${iconX}, ${iconY})`,
-        fill: accentColor,
-        stroke: 'none',
-        display: (paths.starsD || paths.accentFillD) ? 'block' : 'none',
-        class: 'aim-stereotype-icon-accent',
-      },
-    };
+      if (resolved === 'bar') {
+        fillColor = CascaisPalette.ChalkWhite;
+        accentColor = strokeColor; // olive dot in pristine original stroke color
+      } else if (resolved === 'stage') {
+        fillColor = CascaisPalette.ChalkWhite;
+        accentColor = strokeColor; // stars on canopy
+      } else if (resolved === 'venue') {
+        fillColor = CascaisPalette.ChalkWhite;
+        accentColor = strokeColor;
+      }
+
+      return {
+        iconFill: {
+          d: paths.fillD,
+          transform: `translate(${iconX}, ${iconY})`,
+          fill: fillColor,
+          fillRule: 'evenodd',
+          'fill-rule': 'evenodd',
+          stroke: 'none',
+          display: paths.fillD ? 'block' : 'none',
+          class: 'aim-stereotype-icon-fill',
+        },
+        iconStroke: {
+          d: paths.strokeD,
+          transform: `translate(${iconX}, ${iconY})`,
+          stroke: strokeColor,
+          strokeWidth: resolved === 'venue' ? 1.8 : 1.4,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          fill: 'none',
+          display: paths.strokeD ? 'block' : 'none',
+          class: 'aim-stereotype-icon-stroke',
+        },
+        iconAccent: {
+          d: paths.starsD ?? paths.accentFillD ?? '',
+          transform: `translate(${iconX}, ${iconY})`,
+          fill: accentColor,
+          stroke: 'none',
+          display: (paths.starsD || paths.accentFillD) ? 'block' : 'none',
+          class: 'aim-stereotype-icon-accent',
+        },
+      };
+    }
   }
 
   // Structured cards: act, obj, uc, cls, rol
   const iconX = 12;
   const iconY = Math.max(6, Math.round((h - paths.height) / 2));
 
-  let strokeColor: string = CascaisPalette.WarmGraphite;
-  let fillColor: string = CascaisPalette.WarmGraphite;
-  let accentColor: string = CascaisPalette.NetGold;
+  let cardStrokeColor: string = CascaisPalette.WarmGraphite;
+  let cardFillColor: string = CascaisPalette.WarmGraphite;
+  let cardAccentColor: string = CascaisPalette.NetGold;
 
   if (resolved === 'stage') {
-    strokeColor = CascaisPalette.WarmGraphite;
-    fillColor = CascaisPalette.WarmGraphite;
-    accentColor = CascaisPalette.NetGold;
+    cardStrokeColor = CascaisPalette.WarmGraphite;
+    cardFillColor = CascaisPalette.WarmGraphite;
+    cardAccentColor = CascaisPalette.NetGold;
   } else if (resolved === 'venue') {
-    strokeColor = CascaisPalette.WarmGraphite;
-    fillColor = CascaisPalette.WarmGraphite;
-    accentColor = CascaisPalette.NetGold;
+    cardStrokeColor = CascaisPalette.WarmGraphite;
+    cardFillColor = CascaisPalette.WarmGraphite;
+    cardAccentColor = CascaisPalette.NetGold;
   } else if (resolved === 'bar') {
-    strokeColor = CascaisPalette.WarmGraphite;
-    fillColor = CascaisPalette.NetGold;
-    accentColor = CascaisPalette.NetGold;
+    cardStrokeColor = CascaisPalette.WarmGraphite;
+    cardFillColor = CascaisPalette.NetGold;
+    cardAccentColor = CascaisPalette.NetGold;
+  } else if (resolved === 'customer') {
+    cardStrokeColor = CascaisPalette.WarmGraphite;
+    cardFillColor = CascaisPalette.NetGold;
+    cardAccentColor = CascaisPalette.ChalkWhite;
   } else if (resolved === 'headliner') {
-    strokeColor = CascaisPalette.WarmGraphite;
-    fillColor = CascaisPalette.NetGold;
-    accentColor = CascaisPalette.ChalkWhite;
+    cardStrokeColor = CascaisPalette.NetGold;
+    cardFillColor = 'none';
+    cardAccentColor = CascaisPalette.NetGold;
   } else if (resolved === 'ai') {
-    strokeColor = CascaisPalette.WarmGraphite;
-    fillColor = CascaisPalette.WarmGraphite;
-    accentColor = CascaisPalette.NetGold;
+    cardStrokeColor = CascaisPalette.WarmGraphite;
+    cardFillColor = CascaisPalette.WarmGraphite;
+    cardAccentColor = CascaisPalette.NetGold;
   } else if (resolved === 'initiates') {
-    strokeColor = CascaisPalette.NetGold;
-    fillColor = 'none';
-    accentColor = CascaisPalette.NetGold;
+    cardStrokeColor = CascaisPalette.NetGold;
+    cardFillColor = 'none';
+    cardAccentColor = CascaisPalette.NetGold;
   }
 
   return {
     iconFill: {
       d: paths.fillD,
       transform: `translate(${iconX}, ${iconY})`,
-      fill: fillColor,
+      fill: cardFillColor,
       stroke: 'none',
       display: paths.fillD ? 'block' : 'none',
       class: 'aim-stereotype-icon-fill',
@@ -1508,7 +1678,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
     iconStroke: {
       d: paths.strokeD,
       transform: `translate(${iconX}, ${iconY})`,
-      stroke: strokeColor,
+      stroke: cardStrokeColor,
       strokeWidth: 1.3,
       strokeLinecap: 'round',
       strokeLinejoin: 'round',
@@ -1519,7 +1689,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
     iconAccent: {
       d: paths.starsD ?? paths.accentFillD ?? '',
       transform: `translate(${iconX}, ${iconY})`,
-      fill: accentColor,
+      fill: cardAccentColor,
       stroke: 'none',
       display: paths.starsD || paths.accentFillD ? 'block' : 'none',
       class: 'aim-stereotype-icon-accent',
@@ -1557,7 +1727,7 @@ export function configureAimGraph(graph: Graph): void {
   graph.on('node:change:size', ({ node, current }) => {
     if (node.shape === 'aim-per' && current?.width) {
       const cx = Math.round(current.width / 2);
-      node.setAttrByPath('torso/d', `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`);
+      node.setAttrByPath('torso/d', `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`);
       node.setAttrByPath('head/cx', cx);
     }
     const nodeData = node.getData<RaidNodeData>();
@@ -1590,8 +1760,40 @@ export function configureAimGraph(graph: Graph): void {
 /**
  * Factory creating an AntV X6 Node model from a RaidNodeData specification.
  */
+export function wrapDescription(text: string, columns: number = 40): string {
+  const limit = Number.isFinite(columns) ? Math.max(32, Math.min(50, Math.round(columns))) : 40;
+  return wrapAimText(text, limit).split('\n').flatMap(line => {
+    const characters = Array.from(line);
+    if (!characters.length) return [''];
+    const chunks: string[] = [];
+    for (let i = 0; i < characters.length; i += limit) chunks.push(characters.slice(i, i + limit).join(''));
+    return chunks;
+  }).join('\n');
+}
+
+export function layoutDescription(data: RaidNodeData): RaidNodeData {
+  if (data.kind !== 'obj' || !data.description) return data;
+  const columns = Math.max(32, Math.min(50, data.descriptionWidth ?? 40));
+  const lines = wrapDescription(data.description, columns).split('\n').length;
+  return { ...data, bounds: { ...data.bounds, width: columns * 7.5 + 28, height: 68 + lines * 18 } };
+}
+
 export function createAimNode(data: RaidNodeData): Node.Metadata {
   registerAimShapes();
+  data = layoutDescription(data);
+
+  const resolvedStereotype = resolveStereotype(data.stereotype);
+  const hasStereotypeIcon = Boolean(resolvedStereotype && resolvedStereotype !== 'initiates');
+  const stereoAttrs = computeStereotypeIconAttrs(data);
+
+  // Frameless Place glyphs (Venue, Stage, Bar) match the stature of the Actor glyph (~120x110)
+  const isFramelessPlc = data.kind === 'plc' && ['venue', 'stage', 'bar'].includes(resolvedStereotype ?? '');
+  const effectiveWidth = isFramelessPlc
+    ? (data.bounds.width > 140 ? 120 : data.bounds.width)
+    : data.bounds.width;
+  const effectiveHeight = isFramelessPlc
+    ? (data.bounds.height < 110 ? 110 : data.bounds.height)
+    : data.bounds.height;
 
   const shapeName = `aim-${data.kind}`;
   const baseMetadata: Node.Metadata = {
@@ -1599,21 +1801,17 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
     shape: shapeName,
     x: data.bounds.x,
     y: data.bounds.y,
-    width: data.bounds.width,
-    height: data.bounds.height,
+    width: effectiveWidth,
+    height: effectiveHeight,
     data,
   };
 
-  const resolvedStereotype = resolveStereotype(data.stereotype);
-  const hasStereotypeIcon = Boolean(resolvedStereotype && resolvedStereotype !== 'initiates');
-  const stereoAttrs = computeStereotypeIconAttrs(data);
-
-  const isInstance = data.instance === true;
-  const boxWidth = data.bounds.width;
+  const isInstance = data.instance === true || data.kind === 'obj' || data.kind === 'rf';
+  const boxWidth = effectiveWidth;
   const fontSize = data.kind === 'uc' || data.kind === 'act' ? 13 : 12;
   const availableTextWidth = (hasStereotypeIcon && data.kind !== 'per' && data.kind !== 'plc')
     ? Math.max(40, boxWidth - 52)
-    : (data.kind === 'per' ? Math.max(boxWidth, 140) : boxWidth);
+    : (data.kind === 'per' || isFramelessPlc ? Math.max(boxWidth, 180) : boxWidth);
   const maxLineLength = computeMaxLineLength(availableTextWidth, fontSize);
 
   const hasQualifier = Boolean(data.qualifier && data.qualifier.trim().length > 0);
@@ -1623,9 +1821,9 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
 
   const cardTextRefX = hasStereotypeIcon && data.kind !== 'plc' ? 0.62 : 0.5;
 
-  const qualifierText = hasQualifier
+  const qualifierText: string = hasQualifier
     ? wrappedQualifier
-    : (!hasStereotypeIcon && data.stereotype ? data.stereotype : '');
+    : (!hasStereotypeIcon && data.stereotype ? (Array.isArray(data.stereotype) ? data.stereotype.join(', ') : String(data.stereotype)) : '');
   const labelText = wrappedName;
 
   // Archetype-specific customization
@@ -1659,6 +1857,14 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
         attrs: {
           ...portalAttrs,
           ...stereoAttrs,
+          body: {
+            fill: CascaisPalette.ChalkWhite,
+            stroke: CascaisPalette.CascaisRed,
+            strokeWidth: 2,
+            rx: 12,
+            ry: 12,
+            class: 'aim-node aim-act',
+          },
           qualifier: {
             text: qualifierText,
             fontStyle: 'italic',
@@ -1687,7 +1893,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
             textDecoration: isInstance ? 'underline' : 'none',
           },
           attributes: {
-            text: data.attributes && data.attributes.length > 0 ? data.attributes.join('\n') : '',
+            text: classAttributeLines(data).join('\n'),
           },
           methods: {
             text: data.methods && data.methods.length > 0 ? data.methods.join('\n') : '',
@@ -1696,6 +1902,10 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
       };
 
     case 'obj': {
+      if (data.description) {
+        const prose = wrapDescription(data.description, data.descriptionWidth);
+        return { ...baseMetadata, markup: [{ tagName: 'rect', selector: 'body' }, { tagName: 'text', selector: 'label' }, { tagName: 'text', selector: 'description' }], attrs: { body: { fill: '#FFFFFF', stroke: '#CBD5E1', strokeWidth: 1.5, refWidth: '100%', refHeight: '100%' }, label: { text: data.displayName, refX: 0.5, refY: 22, textAnchor: 'middle', textDecoration: 'underline', fontSize: 13 }, description: { text: prose, refX: 14, refY: 50, textAnchor: 'start', textVerticalAnchor: 'top', fontSize: 12, lineHeight: 18, fill: '#475569' } } };
+      }
       return {
         ...baseMetadata,
         attrs: {
@@ -1719,31 +1929,37 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
     }
 
     case 'per': {
-      const isInitiating = data.stereotype?.toLowerCase().includes('initiates') ?? false;
+      const isInitiating = isInitiatingStereotype(data.stereotype);
+      const isSystem = resolvedStereotype === 'system';
       const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
       const cx = Math.round(boxWidth / 2);
       const qualifierLines = qualifierText ? qualifierText.split('\n').length : 0;
-      const labelRefY = qualifierLines > 0 ? 58 + qualifierLines * 16 : 62;
+      const labelRefY = qualifierLines > 0 ? 66 + qualifierLines * 18 : 74;
       return {
         ...baseMetadata,
         attrs: {
           ...portalAttrs,
           ...stereoAttrs,
           torso: {
-            d: `M ${cx + 16} 50 v -4 a 8 8 0 0 0 -8 -8 H ${cx - 8} a 8 8 0 0 0 -8 8 v 4`,
+            d: `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`,
             stroke: strokeColor,
+            strokeWidth: 2.2,
+            display: isSystem ? 'none' : 'block',
           },
           head: {
             cx,
-            cy: 22,
+            cy: 20,
+            r: 12,
             stroke: strokeColor,
+            strokeWidth: 2.2,
+            display: isSystem ? 'none' : 'block',
           },
           qualifier: {
             text: qualifierText,
             fontStyle: 'italic',
             textDecoration: 'none',
             refX: 0.5,
-            refY: 58,
+            refY: 66,
           },
           label: {
             text: labelText,
@@ -1756,7 +1972,10 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
     }
 
     case 'plc': {
-      if (hasStereotypeIcon) {
+      if (isFramelessPlc) {
+        // Venue, Stage, Bar: strictly frameless with glyph in Net Gold (#F59E0B)
+        const qualifierLines = qualifierText ? qualifierText.split('\n').length : 0;
+        const labelRefY = qualifierLines > 0 ? 66 + qualifierLines * 18 : 74;
         return {
           ...baseMetadata,
           attrs: {
@@ -1764,8 +1983,11 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
             ...stereoAttrs,
             body: {
               fill: 'transparent',
-              stroke: 'transparent',
+              stroke: 'none',
               strokeWidth: 0,
+              pointerEvents: 'all',
+              style: { fill: 'transparent', stroke: 'none', strokeWidth: 0, pointerEvents: 'all' },
+              class: 'aim-node aim-plc aim-frameless',
             },
             header: {
               display: 'none',
@@ -1776,17 +1998,53 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
               fontStyle: 'italic',
               textDecoration: 'none',
               refX: 0.5,
-              refY: 48,
+              refY: 66,
             },
             label: {
               text: labelText,
               textDecoration: isInstance ? 'underline' : 'none',
               refX: 0.5,
-              refY: 66,
+              refY: qualifierLines > 0 ? labelRefY : 84,
             },
           },
         };
       }
+
+      if (hasStereotypeIcon) {
+        // Other framed Place with Stereotype
+        return {
+          ...baseMetadata,
+          attrs: {
+            ...portalAttrs,
+            ...stereoAttrs,
+            body: {
+              fill: CascaisPalette.ChalkWhite,
+              stroke: CascaisPalette.SilverLineDark,
+              strokeWidth: 1.5,
+              class: 'aim-node aim-plc aim-plc-framed',
+            },
+            header: {
+              display: 'none',
+              height: 0,
+            },
+            qualifier: {
+              text: qualifierText,
+              fontStyle: 'italic',
+              textDecoration: 'none',
+              refX: 0.5,
+              refY: 42,
+            },
+            label: {
+              text: labelText,
+              textDecoration: isInstance ? 'underline' : 'none',
+              refX: 0.5,
+              refY: 58,
+            },
+          },
+        };
+      }
+
+      // Unstereotyped Place card
       return {
         ...baseMetadata,
         attrs: {
@@ -1794,8 +2052,9 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
           ...stereoAttrs,
           body: {
             fill: CascaisPalette.ChalkWhite,
-            stroke: CascaisPalette.CascaisRed,
+            stroke: CascaisPalette.SilverLineDark,
             strokeWidth: 1.5,
+            class: 'aim-node aim-plc aim-plc-framed',
           },
           header: {
             display: 'none',
@@ -1812,31 +2071,19 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
             text: labelText,
             textDecoration: isInstance ? 'underline' : 'none',
             refX: 0.5,
-            refY: 0.62,
+            refY: hasQualifier ? 0.65 : 0.5,
           },
         },
       };
     }
 
-    case 'rol': {
+    case 'rol':
+    case 'rf': {
       return {
         ...baseMetadata,
         attrs: {
-          ...portalAttrs,
-          ...stereoAttrs,
-          qualifier: {
-            text: qualifierText,
-            fontStyle: 'italic',
-            textDecoration: 'none',
-            refX: cardTextRefX,
-            refY: 0.35,
-          },
-          label: {
-            text: labelText,
-            textDecoration: isInstance ? 'underline' : 'none',
-            refX: cardTextRefX,
-            refY: 0.65,
-          },
+          body: { fill: data.kind === 'rf' ? String(data.properties?.color ?? '#2563EB') : '#FFFFFF' },
+          label: { text: data.displayName, textDecoration: isInstance ? 'underline' : 'none', refX: 0.5, refY: -14 },
         },
       };
     }
@@ -1886,7 +2133,8 @@ export function applyEdgeRouting(edge: Edge, routing: AimRoutingMode = 'manhatta
 export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
   registerAimShapes();
 
-  const edgeAttrs = getEdgeStyling(data.kind);
+  const isDirected = data.directed !== false;
+  const edgeAttrs = { ...getEdgeStyling(data.kind), ...(isDirected ? {} : { targetMarker: null }) };
   const routing = data.routing ?? 'manhattan';
 
   let routerConfig: Edge.Metadata['router'] = {
@@ -1912,7 +2160,7 @@ export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
 
   return {
     id: data.id,
-    shape: 'aim-edge',
+    shape: isDirected ? 'aim-arrow' : 'aim-edge',
     router: routerConfig,
     connector: connectorConfig,
     source: {
@@ -1923,7 +2171,7 @@ export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
       cell: data.targetId,
       ...(data.targetPort !== undefined ? { port: data.targetPort } : {}),
     },
-    vertices: data.bendPoints.map((pt) => ({ x: pt.x, y: pt.y })),
+    vertices: (data.bendPoints ?? []).map((pt) => ({ x: pt.x, y: pt.y })),
     labels: data.label
       ? [
           {
@@ -2042,11 +2290,12 @@ export function getDefaultNodeBounds(
     case 'obj':
       return { x, y, width: 160, height: 80 };
     case 'per':
-      return { x, y, width: 90, height: 90 };
+      return { x, y, width: 120, height: 110 };
     case 'plc':
-      return { x, y, width: 160, height: 70 };
+      return { x, y, width: 120, height: 110 };
     case 'rol':
-      return { x, y, width: 140, height: 50 };
+    case 'rf':
+      return { x, y, width: 22, height: 22 };
     default:
       return { x, y, width: 140, height: 60 };
   }
@@ -2071,6 +2320,8 @@ export function getDefaultNodeName(kind: AimOntologyKind | string): string {
       return 'Place';
     case 'rol':
       return 'Role';
+    case 'rf':
+      return 'RoleFiller';
     default:
       return 'Entity';
   }

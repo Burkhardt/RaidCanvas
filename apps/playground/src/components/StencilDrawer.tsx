@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { AimOntologyKind } from '@dr2rai/raid-canvas';
+import { isNodeAllowedInDiagram, type AimOntologyKind } from '@dr2rai/raid-canvas';
 
 export interface StencilItem {
   kind: AimOntologyKind;
@@ -28,10 +28,10 @@ export const AOAIM_STENCILS: StencilItem[] = [
     kind: 'uc',
     name: 'UseCase',
     badge: 'USECASE',
-    badgeColor: '#2563EB',
+    badgeColor: '#F59E0B',
     description: 'High-level functional boundary service or user goal',
     iconSvg: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2">
         <ellipse cx="12" cy="12" rx="10" ry="6" />
       </svg>
     ),
@@ -40,10 +40,10 @@ export const AOAIM_STENCILS: StencilItem[] = [
     kind: 'act',
     name: 'Activity',
     badge: 'PROCESS',
-    badgeColor: '#10B981',
+    badgeColor: '#EF4444',
     description: 'Discrete executable action step in an orchestrated workflow',
     iconSvg: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round">
         <rect x="3" y="5" width="18" height="14" rx="4" />
       </svg>
     ),
@@ -79,11 +79,13 @@ export const AOAIM_STENCILS: StencilItem[] = [
     kind: 'plc',
     name: 'Place / Venue',
     badge: 'WHERE',
-    badgeColor: '#D22B2B',
+    badgeColor: '#1F2937',
     description: 'Spatial venue or architectural stage anchoring the activity',
     iconSvg: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D22B2B" strokeWidth="2">
-        <rect x="3" y="4" width="18" height="16" rx="2" />
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F2937" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M 12 18 C 8 13.8 5 10.6 5 7.5 A 7 7 0 1 1 19 7.5 C 19 10.6 16 13.8 12 18 Z" />
+        <circle cx="12" cy="7.5" r="2.5" />
+        <ellipse cx="12" cy="20.5" rx="6.5" ry="1.8" />
       </svg>
     ),
   },
@@ -92,16 +94,18 @@ export const AOAIM_STENCILS: StencilItem[] = [
     name: 'Role',
     badge: 'KL-ONE',
     badgeColor: '#8B5CF6',
-    description: 'Structural constraint or role qualification contract',
+    description: 'Hollow circle: a typed role defined by its owner',
     iconSvg: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeDasharray="3 2">
-        <rect x="3" y="6" width="18" height="12" rx="2" />
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
+        <circle cx="12" cy="12" r="7" />
       </svg>
     ),
   },
+  { kind: 'rf', name: 'RoleFiller', badge: 'BINDING', badgeColor: '#2563EB', description: 'Filled circle: an object’s binding of a role to a filler', iconSvg: <svg width="24" height="24"><circle cx="12" cy="12" r="7" fill="#2563EB" /></svg> },
 ];
 
 interface StencilDrawerProps {
+  archetype?: string;
   onAddNode: (kind: AimOntologyKind) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -109,6 +113,7 @@ interface StencilDrawerProps {
 
 export const StencilDrawer: React.FC<StencilDrawerProps> = ({
   onAddNode,
+  archetype = '',
   collapsed,
   onToggleCollapse,
 }) => {
@@ -144,7 +149,7 @@ export const StencilDrawer: React.FC<StencilDrawerProps> = ({
           ▶
         </button>
         <div style={{ width: 24, height: 1, background: '#E2E8F0' }} />
-        {AOAIM_STENCILS.map((s) => (
+        {AOAIM_STENCILS.filter(s => isNodeAllowedInDiagram(s, archetype)).map((s) => (
           <div
             key={s.kind}
             draggable
@@ -231,7 +236,7 @@ export const StencilDrawer: React.FC<StencilDrawerProps> = ({
           gap: 10,
         }}
       >
-        {AOAIM_STENCILS.map((s) => {
+        {AOAIM_STENCILS.filter(s => isNodeAllowedInDiagram(s, archetype)).map((s) => {
           const isHovered = hoveredKind === s.kind;
           return (
             <div

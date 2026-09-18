@@ -50,6 +50,7 @@ export {
 export {
   KNOWN_STEREOTYPES,
   resolveStereotype,
+  isInitiatingStereotype,
   getStereotypePaths,
   renderStereotypeIconSvg,
   type StereotypeId,
@@ -78,3 +79,9 @@ export {
   type RaidCanvasProps,
   type RaidCanvasHandle,
 } from './RaidCanvas.js';
+
+export { isNodeAllowedInDiagram, validateDiagramConnection } from './semanticRules.js';
+
+export { projectRoleAttributes, classAttributeLines } from './RoleModel.js';
+
+export { wrapDescription, layoutDescription } from './X6Shapes.js';

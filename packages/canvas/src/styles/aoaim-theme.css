@@ -76,8 +76,8 @@
 .aim-node[aim-act],
 .aim-node[aim-kind="act"],
 .aim-act {
-  fill: var(--aim-canvas-cream);
-  stroke: var(--aim-heraldic-green);
+  fill: var(--aim-chalk-white);
+  stroke: var(--aim-danger-crimson);
   stroke-width: 2px;
   rx: var(--aim-radius-act);
   ry: var(--aim-radius-act);
@@ -92,7 +92,7 @@
 
 .aim-node[aim-act]:hover,
 .aim-node[aim-kind="act"]:hover {
-  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.4));
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.4));
 }
 
 /* 3. Class Specification Nodes ('cls') */
@@ -138,12 +138,29 @@
 }
 
 /* 6. Place / Spatial Venue Nodes ('plc') */
-.aim-node[aim-plc],
-.aim-node[aim-kind="plc"],
 .aim-plc {
+  fill: transparent;
+  stroke: none;
+}
+
+.aim-plc-framed {
   fill: var(--aim-chalk-white);
   stroke: var(--aim-silver-line-dark);
   stroke-width: 1.5px;
+}
+
+/* Frameless Venue Place Nodes & Silhouettes: strictly zero border */
+.aim-node[aim-kind="plc"][aim-stereotype="Venue"] rect,
+.aim-node[aim-kind="plc"][aim-stereotype="venue"] rect,
+.aim-node[aim-plc][aim-stereotype="Venue"] rect,
+.aim-node[aim-plc][aim-stereotype="venue"] rect,
+.aim-node.aim-frameless rect,
+.aim-frameless rect,
+rect.aim-frameless,
+.aim-frameless {
+  fill: transparent !important;
+  stroke: none !important;
+  stroke-width: 0 !important;
 }
 
 /* 7. Role / Structural Constraint Nodes ('rol') */

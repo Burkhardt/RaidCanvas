@@ -18,7 +18,7 @@
  * - 'plc' : Place / Where (architectural venue or spatial stage card)
  * - 'rol' : Role (structural relationship / KL-ONE constraint)
  */
-export type AimOntologyKind = 'act' | 'uc' | 'cls' | 'obj' | 'per' | 'plc' | 'rol';
+export type AimOntologyKind = 'act' | 'uc' | 'cls' | 'obj' | 'per' | 'plc' | 'rol' | 'rf';
 
 /**
  * Routing strategy for diagram edges.
@@ -89,17 +89,28 @@ export interface RaidNodeData {
 	/** Whether the entity represents a concrete instance (underlining the displayName line). */
 	readonly instance?: boolean;
 
+	/** Wrapped prose shown in a growing object compartment. */
+	readonly description?: string;
+	readonly descriptionWidth?: number;
+	/** Role attribute visibility; the graph edges carry owner, type and binding references. */
+	readonly visibility?: '+' | '-';
+
 	/** Canonical deep link URI or web link associated with this entity. */
 	readonly href?: string;
 
-	/** Optional ontological stereotype (e.g., '«initiates»', '«executes»'). */
-	readonly stereotype?: string;
+	/** Optional ontological stereotype (e.g., '«initiates»', '«executes»', or array of stereotypes per Ontology v1.3). */
+	readonly stereotype?: string | readonly string[];
+
+	/** Optional plural alias for multiple stereotypes per Ontology v1.3. */
+	readonly stereotypes?: readonly string[];
 
 	/** Subtitle, frame, or namespace tag. */
 	readonly namespace?: string;
 
 	/** For 'cls' / 'obj': list of attribute or field declarations. */
 	readonly attributes?: readonly string[];
+	/** Derived from Role edges; edit the Role to change this projection. */
+	readonly roleAttributes?: readonly string[];
 
 	/** For 'cls': list of method or operation declarations. */
 	readonly methods?: readonly string[];
@@ -132,6 +143,9 @@ export interface RaidEdgeData {
 
 	/** Optional docking port on target node. */
 	readonly targetPort?: OrthogonalPortId | string;
+
+	/** Suppress the arrow for the owner-to-role segment. */
+	readonly directed?: boolean;
 
 	/** Optional edge label text. */
 	readonly label?: string;

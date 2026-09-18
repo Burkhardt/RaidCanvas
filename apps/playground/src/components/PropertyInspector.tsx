@@ -46,7 +46,7 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
       {/* Title & Type Badge */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#F8FAFC' }}>
-          {isNode ? 'Node Properties' : 'Edge Properties'}
+          {isNode ? (node?.kind === 'rf' ? 'RoleFiller' : node?.kind === 'rol' ? 'Role' : 'Node Properties') : 'Edge Properties'}
         </span>
         <span
           style={{
@@ -58,7 +58,7 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
             color: isNode ? '#38BDF8' : '#34D399',
           }}
         >
-          {isNode ? node?.kind?.toUpperCase() ?? 'NODE' : edge?.kind?.toUpperCase() ?? 'EDGE'}
+          {isNode ? node?.kind?.toUpperCase() ?? 'NODE' : edge?.directed === false ? 'AIM-EDGE' : 'AIM-ARROW'}
         </span>
       </div>
 
@@ -101,10 +101,12 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
               <option value="cls">Class (aim-cls)</option>
               <option value="obj">Object / Instance (aim-obj)</option>
               <option value="plc">Place / Stage (aim-plc)</option>
-              <option value="rol">Role (aim-rol)</option>
+              <option value="rol">Role (hollow circle)</option>
+              <option value="rf">RoleFiller (filled circle)</option>
             </select>
           </div>
 
+          {node.kind !== 'rol' && node.kind !== 'rf' && <>
           {/* Ontological Deep Link & Portuguese Bicolor Heraldic Duality (CR033) */}
           <div style={{ padding: '10px 12px', background: node.href ? '#064E3B20' : '#1E293B60', border: `1px solid ${node.href ? '#10B98150' : '#334155'}`, borderRadius: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -190,6 +192,7 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                       uc: `/usecases?select=${selection.id}`,
                       plc: `/places?select=${selection.id}`,
                       rol: `/roles?select=${selection.id}`,
+                      rf: `/rolefillers?select=${selection.id}`,
                       cls: `/classes?select=${selection.id}`,
                       obj: `/objects?select=${selection.id}`,
                     };
@@ -225,55 +228,117 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
             </div>
             <input
               type="text"
-              value={node.stereotype ?? ''}
+              value={Array.isArray(node.stereotype) ? node.stereotype.join(', ') : (node.stereotype ?? '')}
               onChange={(e) => onUpdateNode(selection.id, { stereotype: e.target.value })}
               style={inputStyle}
               placeholder="e.g. Stage, Venue, Bar, Headliner, AI, «initiates»"
             />
             {/* Quick-toggle preset badges */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-              {[
-                { id: 'Stage', label: '🎪 Stage', desc: 'Live Performance Stage' },
-                { id: 'Venue', label: '📍 Venue', desc: 'Cascais Location Pin' },
-                { id: 'Bar', label: '🍸 Bar', desc: 'Hospitality / Bar' },
-                { id: 'Headliner', label: '⭐ Headliner', desc: 'Artist Performer' },
-                { id: 'AI', label: '🤖 AI', desc: 'Autonomous Machine Actor' },
-                { id: 'initiates', label: '⚡ Initiates', desc: 'Initiating Actor' },
-              ].map((st) => {
-                const isActive = (node.stereotype ?? '').toLowerCase().includes(st.id.toLowerCase());
-                return (
-                  <button
-                    key={st.id}
-                    type="button"
-                    title={st.desc}
-                    onClick={() => {
-                      const nextStereotype = isActive ? '' : st.id;
-                      onUpdateNode(selection.id, { stereotype: nextStereotype });
-                    }}
-                    style={{
-                      padding: '3px 8px',
-                      fontSize: 10,
-                      fontWeight: 600,
-                      borderRadius: 4,
-                      border: `1px solid ${isActive ? '#F59E0B' : '#334155'}`,
-                      background: isActive ? '#F59E0B25' : '#1E293B',
-                      color: isActive ? '#FBBF24' : '#94A3B8',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {st.label}
-                  </button>
+              {(() => {
+                const rawStereo = node.stereotype;
+                const stereoTokens: string[] = [];
+                if (Array.isArray(rawStereo)) {
+                  for (const s of rawStereo) {
+                    if (typeof s === 'string') {
+                      stereoTokens.push(...s.replace(/[«»"]/g, '').split(/[\s,]+/).filter(Boolean));
+                    }
+                  }
+                } else if (typeof rawStereo === 'string') {
+                  stereoTokens.push(...rawStereo.replace(/[«»"]/g, '').split(/[\s,]+/).filter(Boolean));
+                }
+
+                const hasInitiates = stereoTokens.some(
+                  (t) => t.toLowerCase() === 'initiates' || t.toLowerCase() === 'initiator',
                 );
-              })}
+                const DOMAIN_IDS = ['customer', 'headliner', 'ai', 'system', 'stage', 'venue', 'bar'];
+                const currentDomainToken = stereoTokens.find((t) => DOMAIN_IDS.includes(t.toLowerCase()));
+                const currentDomain = currentDomainToken?.toLowerCase();
+
+                const badges = [
+                  { id: 'Customer', label: '👑 Customer', desc: 'Customer with Crown on Head' },
+                  { id: 'Headliner', label: '⭐ Headliner', desc: 'Artist Performer with Star on Chest' },
+                  { id: 'AI', label: '🤖 AI', desc: 'Autonomous Machine Actor' },
+                  { id: 'System', label: '🖥️ System', desc: 'System / Server Stack Actor' },
+                  { id: 'Stage', label: '🎪 Stage', desc: 'Live Performance Stage' },
+                  { id: 'Venue', label: '📍 Venue', desc: 'Cascais Location Pin' },
+                  { id: 'Bar', label: '🍸 Bar', desc: 'Hospitality / Bar' },
+                  { id: 'initiates', label: '⚡ Initiates', desc: 'Initiating Actor' },
+                ];
+
+                return badges.map((st) => {
+                  const isInitiatesBadge = st.id.toLowerCase() === 'initiates';
+                  const isActive = isInitiatesBadge
+                    ? hasInitiates
+                    : currentDomain === st.id.toLowerCase();
+
+                  const handleBadgeClick = () => {
+                    if (isInitiatesBadge) {
+                      if (hasInitiates) {
+                        const next = currentDomainToken ? currentDomainToken : '';
+                        onUpdateNode(selection.id, { stereotype: next });
+                      } else {
+                        const next = currentDomainToken ? [currentDomainToken, 'initiates'] : 'initiates';
+                        onUpdateNode(selection.id, { stereotype: next });
+                      }
+                    } else {
+                      if (isActive) {
+                        const next = hasInitiates ? 'initiates' : '';
+                        onUpdateNode(selection.id, { stereotype: next });
+                      } else {
+                        const next = hasInitiates ? [st.id, 'initiates'] : st.id;
+                        onUpdateNode(selection.id, { stereotype: next });
+                      }
+                    }
+                  };
+
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      title={st.desc}
+                      onClick={handleBadgeClick}
+                      style={{
+                        padding: '3px 8px',
+                        fontSize: 10,
+                        fontWeight: 600,
+                        borderRadius: 4,
+                        border: `1px solid ${isActive ? '#F59E0B' : '#334155'}`,
+                        background: isActive ? '#F59E0B25' : '#1E293B',
+                        color: isActive ? '#FBBF24' : '#94A3B8',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {st.label}
+                    </button>
+                  );
+                });
+              })()}
             </div>
           </div>
 
+          </>}
+          {(node.kind === 'rol' || node.kind === 'rf') && <div style={{ color: '#CBD5E1', fontSize: 12, lineHeight: 1.8 }}>
+            <strong>{node.kind === 'rol' ? 'Role definition' : 'Contextual role binding'}</strong>
+            {(node.properties?.connections as string[] | undefined)?.map((line, i) => <div key={i}>{line}</div>)}
+            {node.kind === 'rol' && <label>Visibility <select value={node.visibility ?? '+'} onChange={e => onUpdateNode(selection.id, { visibility: e.target.value as '+' | '-' })} style={inputStyle}><option value="+">+ public</option><option value="-">- private</option></select></label>}
+          </div>}
+          {node.kind === 'obj' && <div>
+            <label style={labelStyle}>Description</label>
+            <textarea rows={5} value={node.description ?? ''} onChange={e => onUpdateNode(selection.id, { description: e.target.value })} style={textareaStyle} />
+            <label style={labelStyle}>Description width (32–50 characters)</label>
+            <input type="number" min={32} max={50} value={node.descriptionWidth ?? 40} onChange={e => onUpdateNode(selection.id, { descriptionWidth: Math.max(32, Math.min(50, Number(e.target.value) || 40)) })} style={inputStyle} />
+          </div>}
+          {node.kind !== 'cls' && node.kind !== 'uc' && node.kind !== 'rol' && <label style={labelStyle}>
+            <input type="checkbox" checked={node.instance === true || node.kind === 'obj' || node.kind === 'rf'} disabled={node.kind === 'obj' || node.kind === 'rf'} onChange={e => onUpdateNode(selection.id, { instance: e.target.checked })} /> Instance (underlined name)
+          </label>}
           {/* Class Attributes & Methods */}
           {node.kind === 'cls' && (
             <>
+              {node.roleAttributes?.length ? <div style={{ color: '#CBD5E1', fontSize: 12 }}><label style={labelStyle}>Roles (edit their hollow circles)</label>{node.roleAttributes.map(line => <div key={line}>{line}</div>)}</div> : null}
               <div>
-                <label style={labelStyle}>Attributes (1 per line)</label>
+                <label style={labelStyle}>Additional attributes (1 per line)</label>
                 <textarea
                   rows={3}
                   value={node.attributes?.join('\n') ?? ''}
@@ -347,12 +412,51 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
               onChange={(e) => onUpdateEdge(selection.id, { kind: e.target.value as AimEdgeKind })}
               style={selectStyle}
             >
-              <option value="association">Association (aim-edge)</option>
+              <option value="association">Association (aim-edge / aim-arrow)</option>
               <option value="dependency">Dependency (dashed)</option>
               <option value="generalization">Generalization (inheritance)</option>
               <option value="composition">Composition (filled diamond)</option>
               <option value="aggregation">Aggregation (hollow diamond)</option>
             </select>
+          </div>
+
+          {/* Edge Directionality Switch (aim-edge without arrow vs aim-arrow with classic arrowhead) */}
+          <div>
+            <label style={labelStyle}>Edge Directionality</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 4 }}>
+              <button
+                type="button"
+                onClick={() => onUpdateEdge(selection.id, { directed: false })}
+                style={{
+                  ...chipStyle,
+                  justifyContent: 'center',
+                  padding: '6px 10px',
+                  fontWeight: edge.directed === false ? 700 : 400,
+                  background: edge.directed === false ? '#2563EB25' : '#1E293B',
+                  borderColor: edge.directed === false ? '#3B82F6' : '#334155',
+                  color: edge.directed === false ? '#60A5FA' : '#94A3B8',
+                }}
+                title="Undirected line segment (aim-edge, no arrowhead) - used for Role owner bindings"
+              >
+                — Undirected (aim-edge)
+              </button>
+              <button
+                type="button"
+                onClick={() => onUpdateEdge(selection.id, { directed: true })}
+                style={{
+                  ...chipStyle,
+                  justifyContent: 'center',
+                  padding: '6px 10px',
+                  fontWeight: edge.directed !== false ? 700 : 400,
+                  background: edge.directed !== false ? '#10B98125' : '#1E293B',
+                  borderColor: edge.directed !== false ? '#10B981' : '#334155',
+                  color: edge.directed !== false ? '#34D399' : '#94A3B8',
+                }}
+                title="Directed arrow (aim-arrow, classic arrowhead) - used for flow and dependencies"
+              >
+                ➔ Directed (aim-arrow)
+              </button>
+            </div>
           </div>
 
           {/* Edge Label / Stereotype */}
@@ -525,6 +629,75 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Bend Points (Vertices) Management */}
+          {edge.bendPoints && edge.bendPoints.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>
+                  Bend Points ({edge.bendPoints.length})
+                </label>
+                <button
+                  type="button"
+                  onClick={() => onUpdateEdge(selection.id, { bendPoints: [] })}
+                  style={{
+                    ...chipStyle,
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    color: '#F59E0B',
+                    borderColor: '#F59E0B50',
+                    background: '#F59E0B15',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                  title="Remove all bend points and straighten the edge curve"
+                >
+                  ⟲ Reset All Points
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {edge.bendPoints.map((pt, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: '#1E293B',
+                      padding: '4px 8px',
+                      borderRadius: 4,
+                      fontSize: 11,
+                      color: '#94A3B8',
+                    }}
+                  >
+                    <span>
+                      Point #{idx + 1}: <code style={{ color: '#38BDF8' }}>({pt.x}, {pt.y})</code>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextPoints = edge.bendPoints?.filter((_, i) => i !== idx) ?? [];
+                        onUpdateEdge(selection.id, { bendPoints: nextPoints });
+                      }}
+                      style={{
+                        background: '#EF444420',
+                        border: '1px solid #EF444450',
+                        color: '#F87171',
+                        borderRadius: 3,
+                        cursor: 'pointer',
+                        fontSize: 11,
+                        padding: '1px 6px',
+                        fontWeight: 700,
+                      }}
+                      title={`Remove bend point #${idx + 1}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Connection Ports (Origin & Destination) */}
           <div>

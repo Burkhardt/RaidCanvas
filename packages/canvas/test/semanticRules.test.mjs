@@ -40,10 +40,10 @@ describe('AOAIM Semantic Connection Rules (Anti-Entropy Wiring)', () => {
     assert.equal(validateSemanticConnection('cls', 'cls'), true);
     assert.equal(getSemanticEdgeKind('cls', 'cls'), 'association');
 
-    // Class -> Object («instantiates»)
-    assert.equal(validateSemanticConnection('cls', 'obj'), true);
-    assert.equal(getSemanticEdgeKind('cls', 'obj'), 'dependency');
-    assert.equal(getSemanticEdgeStereotype('cls', 'obj'), '«instantiates»');
+    // Object -> Class («instantiates»)
+    assert.equal(validateSemanticConnection('obj', 'cls'), true);
+    assert.equal(getSemanticEdgeKind('obj', 'cls'), 'dependency');
+    assert.equal(getSemanticEdgeStereotype('obj', 'cls'), '«instantiates»');
 
     // Object -> Object («link»)
     assert.equal(validateSemanticConnection('obj', 'obj'), true);
@@ -104,7 +104,7 @@ describe('AOAIM Stencil Sizing & Defaults', () => {
     assert.deepEqual(objBounds, { x: 100, y: 100, width: 160, height: 80 });
 
     const perBounds = getDefaultNodeBounds('per', 200, 200);
-    assert.deepEqual(perBounds, { x: 200, y: 200, width: 90, height: 90 });
+    assert.deepEqual(perBounds, { x: 200, y: 200, width: 120, height: 110 });
   });
 
   test('returns standard default display names per archetype', () => {
@@ -113,5 +113,27 @@ describe('AOAIM Stencil Sizing & Defaults', () => {
     assert.equal(getDefaultNodeName('cls'), 'NewClass');
     assert.equal(getDefaultNodeName('obj'), 'new Object');
     assert.equal(getDefaultNodeName('per'), 'Actor');
+  });
+});
+
+describe('Diagram-specific role semantics', () => {
+  test('mixed diagrams admit the complete role pattern and instance-to-class direction', async () => {
+    const { validateDiagramConnection } = await import('../dist/index.js');
+    for (const [source, target] of [['cls', 'rol'], ['rol', 'cls'], ['obj', 'rf'], ['rf', 'obj'], ['rf', 'rol'], ['obj', 'cls'], ['per', 'cls']]) {
+      assert.equal(validateDiagramConnection({ kind: source }, { kind: target }, 'ClassObjectDiagram'), true);
+    }
+    assert.equal(validateDiagramConnection({ kind: 'cls' }, { kind: 'obj' }, 'ClassObjectDiagram'), false);
+    assert.equal(validateDiagramConnection({ kind: 'obj' }, { kind: 'rol' }, 'ClassObjectDiagram'), false);
+  });
+  test('UseCase views exclude instances and prohibit actor-to-actor and actor-to-class wiring', async () => {
+    const { isNodeAllowedInDiagram, validateDiagramConnection } = await import('../dist/index.js');
+    const allowed = (a, b) => validateDiagramConnection(a, b, 'UseCaseDiagram');
+    assert.equal(allowed({ kind: 'per' }, { kind: 'uc' }), true);
+    assert.equal(allowed({ kind: 'uc' }, { kind: 'cls' }), true);
+    assert.equal(allowed({ kind: 'uc' }, { kind: 'uc' }), true);
+    assert.equal(allowed({ kind: 'per', instance: true }, { kind: 'uc' }), false);
+    assert.equal(allowed({ kind: 'per' }, { kind: 'per' }), false);
+    assert.equal(allowed({ kind: 'per' }, { kind: 'cls' }), false);
+    for (const kind of ['obj', 'rf', 'act', 'plc']) assert.equal(isNodeAllowedInDiagram({ kind }, 'OneUseCaseDiagram'), false);
   });
 });

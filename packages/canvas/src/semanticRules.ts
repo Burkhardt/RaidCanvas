@@ -36,6 +36,25 @@ export interface SemanticRule {
  * Key: `${sourceKind}->${targetKind}`
  */
 export const SEMANTIC_RULES_MATRIX: Readonly<Record<string, SemanticRule>> = {
+  'cls->rol': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Class owns role', availableStereotypes: [] },
+  'rol->cls': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Role restricts filler type', availableStereotypes: [] },
+  'obj->rf': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Object owns role binding', availableStereotypes: [] },
+  'per->rf': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Person owns role binding', availableStereotypes: [] },
+  'plc->rf': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Place owns role binding', availableStereotypes: [] },
+  'act->rf': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Activity owns role binding', availableStereotypes: [] },
+  'rf->obj': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Binding points to filler object', availableStereotypes: [] },
+  'rf->per': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Binding points to filler person', availableStereotypes: [] },
+  'rf->plc': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Binding points to filler place', availableStereotypes: [] },
+  'rf->act': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Binding points to filler activity', availableStereotypes: [] },
+  'rf->rol': { valid: true, defaultEdgeKind: 'dependency', defaultStereotype: '', description: 'Binding instantiates role', availableStereotypes: [] },
+  'per->cls': { valid: true, defaultEdgeKind: 'dependency', defaultStereotype: '«instantiates»', description: 'Person instantiates Class', availableStereotypes: [] },
+  'plc->cls': { valid: true, defaultEdgeKind: 'dependency', defaultStereotype: '«instantiates»', description: 'Place instantiates Class', availableStereotypes: [] },
+  'act->uc': { valid: true, defaultEdgeKind: 'dependency', defaultStereotype: '«instantiates»', description: 'Activity instantiates UseCase', availableStereotypes: [] },
+  'uc->rol': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'UseCase declares participant role', availableStereotypes: [] },
+  'rol->uc': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '«participates»', description: 'Role participates in UseCase', availableStereotypes: [] },
+  'uc->per': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '«participates»', description: 'UseCase has participant role', availableStereotypes: [] },
+  'uc->cls': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '«participates»', description: 'UseCase has external system role', availableStereotypes: [] },
+  'cls->uc': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '«participates»', description: 'External system role participates in UseCase', availableStereotypes: [] },
   'per->uc': {
     valid: true,
     defaultEdgeKind: 'association',
@@ -154,15 +173,15 @@ export const SEMANTIC_RULES_MATRIX: Readonly<Record<string, SemanticRule>> = {
       },
     ],
   },
-  'cls->obj': {
+  'obj->cls': {
     valid: true,
     defaultEdgeKind: 'dependency',
     defaultStereotype: '«instantiates»',
-    description: 'Class specifies runtime Object instance',
+    description: 'Object instantiates Class',
     availableStereotypes: [
       {
         stereotype: '«instantiates»',
-        description: 'Class defines schema for runtime instance',
+        description: 'Object points to its defining Class',
       },
     ],
   },
@@ -234,4 +253,21 @@ export function getSemanticRuleDescription(
 ): string {
   const key = `${sourceKind}->${targetKind}`;
   return SEMANTIC_RULES_MATRIX[key]?.description ?? 'Invalid ontological connection';
+}
+
+/** Diagram profiles constrain projections without adding persistence Kind values. */
+export function isNodeAllowedInDiagram(node: { kind?: string; instance?: boolean }, archetype: string): boolean {
+  if (!/usecase/i.test(archetype)) return true;
+  return !node.instance && ['uc', 'per', 'rol', 'cls'].includes(node.kind ?? '');
+}
+
+export function validateDiagramConnection(source: { kind?: string; instance?: boolean }, target: { kind?: string; instance?: boolean }, archetype: string): boolean {
+  if (!isNodeAllowedInDiagram(source, archetype) || !isNodeAllowedInDiagram(target, archetype)) return false;
+  if (/usecase/i.test(archetype)) {
+    return source.kind === 'uc' || target.kind === 'uc';
+  }
+  if (/classobject|rolefiller/i.test(archetype)) {
+    return ['cls->cls', 'cls->rol', 'rol->cls', 'obj->rf', 'per->rf', 'plc->rf', 'act->rf', 'rf->obj', 'rf->per', 'rf->plc', 'rf->act', 'rf->rol', 'obj->cls', 'per->cls', 'plc->cls', 'act->uc'].includes(`${source.kind}->${target.kind}`);
+  }
+  return validateSemanticConnection(source.kind ?? '', target.kind ?? '');
 }
