@@ -44,7 +44,7 @@ In WWWA Ontology v1.3, Vasco defined `Stereotype` across the core entities:
 }
 ```
 
-RaidCanvas v0.6.3 maps this field directly to the ontological SVG attribute `aim-stereotype` and the runtime TypeScript interface `AimNodeData.stereotype`.
+RaidCanvas maps this field directly to the ontological SVG attribute `aim-stereotype` and the runtime TypeScript interface `RaidNodeData.stereotype`.
 
 ### Symmetrical Instantiation & KL-ONE Bridge
 * **Type Level:** A generic archetype (`plc` for Place, `per` for Person, `rol` for Role).
@@ -81,8 +81,8 @@ In RaidCanvas nodes, the Stereotype Icon is strictly positioned within the **Lef
 ```
           FRAMELESS STEREOTYPED PLACE (plc)                  HERALDIC PERSON (per)
     ┌───────────────────────────────────────────────┐     ┌─────────────────────────┐
-    │              🎪 STAGE (y: 8, Net Gold)        │     │      O  (Head, Green)   │
-    │                                               │     │    /───\ (Torso, Green) │
+    │              🎪 STAGE (y: 8, Net Gold)        │     │  O  (Head, Anthracite)  │
+    │                                               │     │ /───\(Torso,Anthracite) │
     │                   «Place»                     │     │                         │
     │               LisbonStage_Plc                 │     │      «initiates»        │
     │                                               │     │    Project Director     │
@@ -97,13 +97,14 @@ In RaidCanvas nodes, the Stereotype Icon is strictly positioned within the **Lef
    - When an icon is detected on standard cards, `createAimNode` dynamically shifts `cardTextRefX` from `0.5` to `0.62` and tightens wrapping bounds to `boxWidth - 52`.
    - On **Person / Actor (`per`)** nodes, `label.refY` dynamically calculates from qualifier lines (`refY: 58 + qualifierLines * 16`), with wrapping width expanded to `Math.max(boxWidth, 140)`. Titles such as `Dr. Rainer Burkhardt` and qualifiers such as `Project Director` never split awkwardly or collide.
 3. **Frameless Stereotyped Place / Venue (`plc`):**
-   - When a Stereotype (e.g., `Stage`, `Venue`, `Bar`) is assigned to a Location/Place, the bounding rectangle becomes **frameless** (`fill: 'transparent', stroke: 'transparent', strokeWidth: 0`), and the location glyph is centered at the top ($y=8$) in **Net Gold** (`#F59E0B`), mirroring the Person head-and-shoulders heraldic representation.
+   - When a Stereotype (e.g., `Stage`, `Venue`, `Bar`) is assigned to a Location/Place, the bounding rectangle becomes **frameless** (`fill: 'transparent', stroke: 'transparent', strokeWidth: 0`), and the location glyph is centered at the top ($y=8$) in **Warm Graphite** (`#1F2937`) when dormant or **Net Gold** (`#F59E0B`) when `initiates` is active, mirroring the Person head-and-shoulders heraldic representation.
    - The qualifier (`«Place»`) and display name (`LisbonStage_Plc`) are centered directly underneath the glyph.
 4. **Theme Red Frame for Unstereotyped Place (`plc`):**
-   - Unstereotyped Place nodes render a crisp rectangle in theme color red (**Cascais Red** `#D22B2B`).
+   - Unstereotyped Place nodes render a crisp rectangle in theme color red (**Cascais Red** `#D22B2B` / `#EF4444`).
    - The legacy blue window header (`#3B82F6`) has been completely excised, leaving a clean, dignified frame.
 5. **Heraldic Person Silhouette (`per`):**
-   - Head circle and shoulder arc render directly in Cascais Heraldic Green (`#10B981`) without surrounding rectangular bounding boxes.
+   - Head circle and shoulder arc render in Warm Graphite anthracite (`#1F2937`) when dormant, and awaken in Net Gold (`#F59E0B`) when `initiates` is active.
+   - Translucent Heraldic Green (`#10B981` / `rgba(16, 185, 129, 0.25)`) is reserved strictly for the awakened Duality door and portal navigation chevron.
 
 ---
 
@@ -139,13 +140,13 @@ Run:
 pnpm install
 ```
 
-### Step 2: Transform Backend AIA Metadata to `AimNodeData`
+### Step 2: Transform Backend AIA Metadata to `RaidNodeData`
 When mapping entities from `AfricaStage.Api` or `AIA` ontology instances:
 
 ```typescript
-import type { AimNodeData, AimOntologyKind } from '@dr2rai/raid-canvas';
+import type { RaidNodeData, AimOntologyKind } from '@dr2rai/raid-canvas';
 
-export function mapAiaObjectToAimNode(entity: any, x: number, y: number): AimNodeData {
+export function mapAiaObjectToAimNode(entity: any, x: number, y: number): RaidNodeData {
   // 1. Resolve Ontological Kind
   const kind: AimOntologyKind = 
     entity.kind === 'Place' ? 'plc' :
@@ -158,19 +159,21 @@ export function mapAiaObjectToAimNode(entity: any, x: number, y: number): AimNod
   // 2. Resolve Stereotype (e.g. from entity.What?.Stereotype or entity.Stereotype)
   const rawStereotype = entity.What?.Stereotype || entity.Stereotype || undefined;
 
-  // 3. Construct AimNodeData
+  // 3. Construct RaidNodeData
   return {
     id: entity.Id || entity.id,
     kind,
-    label: entity.Title || entity.Name || entity.name,
+    displayName: entity.Title || entity.Name || entity.name,
     qualifier: entity.Qualifier || `«${kind}»`,
     stereotype: rawStereotype, // e.g. "Stage", "Venue", "Bar", "Headliner", "AI"
     href: entity.Href || (entity.HasSubModel ? `/workbench/${entity.Id}` : undefined),
-    isInstance: Boolean(entity.IsInstance ?? true),
-    x,
-    y,
-    width: kind === 'per' ? 80 : 160,
-    height: kind === 'per' ? 90 : 70,
+    instance: Boolean(entity.IsInstance ?? true),
+    bounds: {
+      x,
+      y,
+      width: kind === 'per' ? 120 : 160,
+      height: kind === 'per' ? 110 : 70,
+    },
   };
 }
 ```
@@ -183,25 +186,25 @@ In your Next.js page or workbench component:
 
 import React, { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { RaidCanvas, type AimNodeData, type RaidCanvasRef } from '@dr2rai/raid-canvas';
+import { RaidCanvas, type RaidNodeData, type RaidCanvasHandle } from '@dr2rai/raid-canvas';
 import '@dr2rai/raid-canvas/styles';
 
-export function AiaDiagramWorkbench({ initialSvg }: { initialSvg: string }) {
+export function AiaDiagramWorkbench({ svgContent }: { svgContent: string }) {
   const router = useRouter();
-  const canvasRef = useRef<RaidCanvasRef>(null);
+  const canvasRef = useRef<RaidCanvasHandle>(null);
 
   // Inspector Drawer State (Left Hemisphere Tap)
-  const [selectedNode, setSelectedNode] = useState<AimNodeData | null>(null);
+  const [selectedNode, setSelectedNode] = useState<RaidNodeData | null>(null);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
 
   // Handle Tap 2 (Left Hemisphere) -> Open In-Situ Smalltalk Inspector Drawer
-  const handleNodeClick = useCallback((node: AimNodeData) => {
+  const handleNodeClick = useCallback((node: RaidNodeData) => {
     setSelectedNode(node);
     setIsInspectorOpen(true);
   }, []);
 
   // Handle Tap 2 (Right Hemisphere) -> Plunge through Portal into deep world
-  const handleNodePortalClick = useCallback((node: AimNodeData) => {
+  const handleNodePortalClick = useCallback((node: RaidNodeData) => {
     if (node.href) {
       // Flush canvas state to SVG before navigating
       const currentSvg = canvasRef.current?.getSvg();
@@ -211,6 +214,14 @@ export function AiaDiagramWorkbench({ initialSvg }: { initialSvg: string }) {
       router.push(node.href);
     }
   }, [router]);
+
+  // Handle selection cleared on blank canvas tap
+  const handleSelectionChange = useCallback((selectedIds: string[]) => {
+    if (selectedIds.length === 0) {
+      setSelectedNode(null);
+      setIsInspectorOpen(false);
+    }
+  }, []);
 
   return (
     <div className="drawer drawer-end w-full h-full">
@@ -225,14 +236,10 @@ export function AiaDiagramWorkbench({ initialSvg }: { initialSvg: string }) {
       <div className="drawer-content flex flex-col w-full h-full relative">
         <RaidCanvas
           ref={canvasRef}
-          initialSvg={initialSvg}
+          svgContent={svgContent}
           onNodeClick={handleNodeClick}
           onNodePortalClick={handleNodePortalClick}
-          onCanvasClick={() => {
-            // Deselect on canvas background tap
-            setSelectedNode(null);
-            setIsInspectorOpen(false);
-          }}
+          onSelectionChange={handleSelectionChange}
           className="w-full h-full bg-[#0F172A]"
         />
       </div>

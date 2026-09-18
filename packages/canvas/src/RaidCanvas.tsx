@@ -158,6 +158,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 		ref,
 	) {
 		const containerRef = useRef<HTMLDivElement | null>(null);
+		const wrapperRef = useRef<HTMLDivElement | null>(null);
 		const graphRef = useRef<Graph | null>(null);
 		const bridgeRef = useRef<RaiBridge>(new RaiBridge());
 		const lastSerializedSvgRef = useRef<string>('');
@@ -210,27 +211,41 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				activeDualityNodeIdRef.current = null;
 				return;
 			}
-			const prevNode = graphRef.current.getCellById(activeDualityNodeIdRef.current);
+			const graph = graphRef.current;
+			const prevNode = graph.getCellById(activeDualityNodeIdRef.current);
 			if (prevNode && prevNode.isNode()) {
-				setNodeDualityActive(prevNode, false);
+				const wasEnabled = (graph as unknown as { isHistoryEnabled?: () => boolean }).isHistoryEnabled?.();
+				if (wasEnabled) (graph as unknown as { disableHistory?: () => void }).disableHistory?.();
+				try {
+					setNodeDualityActive(prevNode, false);
+				} finally {
+					if (wasEnabled) (graph as unknown as { enableHistory?: () => void }).enableHistory?.();
+				}
 			}
 			activeDualityNodeIdRef.current = null;
 		}, []);
 
 		const activateDuality = useCallback((nodeOrId: X6Node | string) => {
 			if (!graphRef.current) return;
-			const node = typeof nodeOrId === 'string' ? graphRef.current.getCellById(nodeOrId) : nodeOrId;
+			const graph = graphRef.current;
+			const node = typeof nodeOrId === 'string' ? graph.getCellById(nodeOrId) : nodeOrId;
 			if (node && node.isNode()) {
 				const nodeData = (node.getData() ?? {}) as Partial<RaidNodeData>;
 				if (nodeData.href && nodeData.href.trim().length > 0) {
-					if (activeDualityNodeIdRef.current && activeDualityNodeIdRef.current !== String(node.id)) {
-						const prevNode = graphRef.current.getCellById(activeDualityNodeIdRef.current);
-						if (prevNode && prevNode.isNode()) {
-							setNodeDualityActive(prevNode, false);
+					const wasEnabled = (graph as unknown as { isHistoryEnabled?: () => boolean }).isHistoryEnabled?.();
+					if (wasEnabled) (graph as unknown as { disableHistory?: () => void }).disableHistory?.();
+					try {
+						if (activeDualityNodeIdRef.current && activeDualityNodeIdRef.current !== String(node.id)) {
+							const prevNode = graph.getCellById(activeDualityNodeIdRef.current);
+							if (prevNode && prevNode.isNode()) {
+								setNodeDualityActive(prevNode, false);
+							}
 						}
+						setNodeDualityActive(node, true);
+						activeDualityNodeIdRef.current = String(node.id);
+					} finally {
+						if (wasEnabled) (graph as unknown as { enableHistory?: () => void }).enableHistory?.();
 					}
-					setNodeDualityActive(node, true);
-					activeDualityNodeIdRef.current = String(node.id);
 				}
 			}
 		}, []);
@@ -796,8 +811,9 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			registerAimShapes();
 
 			const container = containerRef.current;
-			const initialWidth = container.clientWidth || 800;
-			const initialHeight = container.clientHeight || 600;
+			const wrapper = wrapperRef.current;
+			const initialWidth = wrapper?.clientWidth || container.clientWidth || 800;
+			const initialHeight = wrapper?.clientHeight || container.clientHeight || 600;
 
 			const graph = new Graph({
 				container,
@@ -898,16 +914,25 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							if (isHydratingRef.current) {
 								return false;
 							}
-							// Discard transient port hover noise or internal selection/hover mutations
+							// Discard transient port hover noise, internal selection/hover mutations, and Duality view-state awakening (CR035)
 							if (
 								args?.key === 'ports' ||
 								args?.path?.startsWith('ports') ||
 								args?.path?.includes('/ports/') ||
-								args?.key === 'tools'
+								args?.key === 'tools' ||
+								args?.key === 'door' ||
+								args?.key === 'seam' ||
+								args?.key === 'chevron' ||
+								args?.path?.startsWith('attrs/door') ||
+								args?.path?.startsWith('attrs/seam') ||
+								args?.path?.startsWith('attrs/chevron') ||
+								args?.path?.includes('/door/') ||
+								args?.path?.includes('/seam/') ||
+								args?.path?.includes('/chevron/')
 							) {
 								return false;
 							}
-							if (args?.options?.ignoreHistory === true) {
+							if (args?.options?.ignoreHistory === true || args?.options?.silent === true) {
 								return false;
 							}
 							return true;
@@ -1282,7 +1307,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 			window.addEventListener('keydown', handleKeyDown);
 
-			// Auto-resize observer for fluid layouts
+			// Auto-resize observer for fluid layouts (CR035: observe host wrapper, not X6-pinned container)
 			const resizeObserver = new ResizeObserver((entries) => {
 				for (const entry of entries) {
 					const { width, height } = entry.contentRect;
@@ -1292,7 +1317,11 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				}
 			});
 
-			resizeObserver.observe(container);
+			if (wrapperRef.current) {
+				resizeObserver.observe(wrapperRef.current);
+			} else {
+				resizeObserver.observe(container);
+			}
 
 			// Initial Hydration
 			if (svgPropRef.current) {
@@ -1427,6 +1456,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 		return (
 			<div
+				ref={wrapperRef}
 				className={`raid-canvas-wrapper ${className ?? ''}`.trim()}
 				onDragOver={handleDragOver}
 				onDragLeave={handleDragLeave}

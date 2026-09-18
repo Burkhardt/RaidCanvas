@@ -14,6 +14,7 @@ import {
   escapeXmlAttr,
   computePortalDoorAttrs,
   computeStereotypeIconAttrs,
+  setNodeDualityActive,
   resolveStereotype,
   isInitiatingStereotype,
   getStereotypePaths,
@@ -2269,5 +2270,27 @@ describe('Role definitions, contextual bindings and wrapped descriptions', () =>
     });
     assert.equal(clsToRol.shape, 'aim-edge');
     assert.equal(clsToRol.attrs.line.targetMarker, null);
+  });
+
+  test('CR035: setNodeDualityActive passes ignoreHistory: true and silent: true to setAttrByPath', () => {
+    const recordedCalls = [];
+    const mockNode = {
+      getData: () => ({
+        id: 'node-cr035',
+        kind: 'act',
+        displayName: 'Activity',
+        href: 'https://example.com/cr035',
+        bounds: { x: 0, y: 0, width: 160, height: 60 },
+      }),
+      setAttrByPath: (path, value, options) => {
+        recordedCalls.push({ path, value, options });
+      },
+    };
+
+    setNodeDualityActive(mockNode, true);
+    assert.ok(recordedCalls.length > 0, 'Must make attribute calls');
+    for (const call of recordedCalls) {
+      assert.deepEqual(call.options, { ignoreHistory: true, silent: true }, `Call to ${call.path} must have ignoreHistory and silent`);
+    }
   });
 });

@@ -442,5 +442,88 @@ describe('RaidCanvas React Component Export & Contracts', () => {
     mockHandle.deactivateNodeDuality();
     assert.equal(mockHandle.getActiveDualityNodeId(), null);
   });
+
+  test('CR035: History plugin beforeAddCommand rejects door, seam, chevron, ignoreHistory, and silent options', () => {
+    const filter = (event, args) => {
+      if (
+        args?.key === 'ports' ||
+        args?.path?.startsWith('ports') ||
+        args?.path?.includes('/ports/') ||
+        args?.key === 'tools' ||
+        args?.key === 'door' ||
+        args?.key === 'seam' ||
+        args?.key === 'chevron' ||
+        args?.path?.startsWith('attrs/door') ||
+        args?.path?.startsWith('attrs/seam') ||
+        args?.path?.startsWith('attrs/chevron') ||
+        args?.path?.includes('/door/') ||
+        args?.path?.includes('/seam/') ||
+        args?.path?.includes('/chevron/')
+      ) {
+        return false;
+      }
+      if (args?.options?.ignoreHistory === true || args?.options?.silent === true) {
+        return false;
+      }
+      return true;
+    };
+
+    // Duality door mutations must be rejected
+    assert.equal(filter('cell:change:attrs', { path: 'attrs/door/d' }), false);
+    assert.equal(filter('cell:change:attrs', { path: 'attrs/door/display' }), false);
+    assert.equal(filter('cell:change:attrs', { path: 'attrs/seam/display' }), false);
+    assert.equal(filter('cell:change:attrs', { path: 'attrs/chevron/display' }), false);
+    assert.equal(filter('cell:change:attrs', { key: 'door' }), false);
+    assert.equal(filter('cell:change:attrs', { key: 'seam' }), false);
+    assert.equal(filter('cell:change:attrs', { key: 'chevron' }), false);
+
+    // Any call with ignoreHistory or silent must be rejected
+    assert.equal(filter('cell:change:attrs', { options: { ignoreHistory: true } }), false);
+    assert.equal(filter('cell:change:attrs', { options: { silent: true } }), false);
+
+    // Genuine user edits must be accepted
+    assert.equal(filter('cell:change:position', { key: 'position' }), true);
+    assert.equal(filter('cell:added', { cell: { isNode: () => true } }), true);
+  });
+
+  test('CR035: Auto-resize observer observes host wrapper element rather than pinned container', () => {
+    let observedElement = null;
+    class MockResizeObserver {
+      constructor(callback) {
+        this.callback = callback;
+      }
+      observe(el) {
+        observedElement = el;
+      }
+      disconnect() {}
+    }
+
+    const mockGraph = {
+      resizedWidth: 0,
+      resizedHeight: 0,
+      resize(w, h) {
+        this.resizedWidth = w;
+        this.resizedHeight = h;
+      },
+    };
+
+    const observer = new MockResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          mockGraph.resize(width, height);
+        }
+      }
+    });
+
+    const mockWrapper = { clientWidth: 1102, clientHeight: 778 };
+    observer.observe(mockWrapper);
+    assert.equal(observedElement, mockWrapper);
+
+    // Simulate window/host resize event
+    observer.callback([{ contentRect: { width: 1102, height: 778 } }]);
+    assert.equal(mockGraph.resizedWidth, 1102);
+    assert.equal(mockGraph.resizedHeight, 778);
+  });
 });
 

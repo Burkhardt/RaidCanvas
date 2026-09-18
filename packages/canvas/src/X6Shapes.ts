@@ -1397,30 +1397,31 @@ export function setNodeDualityActive(node: Node, active: boolean): void {
   if (!data?.href) {
     return;
   }
+  const opt = { ignoreHistory: true, silent: true };
   const attrs = computePortalDoorAttrs(data, active);
-  node.setAttrByPath('door/d', attrs.door.d);
-  node.setAttrByPath('door/display', attrs.door.display);
+  node.setAttrByPath('door/d', attrs.door.d, opt);
+  node.setAttrByPath('door/display', attrs.door.display, opt);
   if ((attrs.door as any).fill) {
-    node.setAttrByPath('door/fill', (attrs.door as any).fill);
+    node.setAttrByPath('door/fill', (attrs.door as any).fill, opt);
   }
   if ((attrs.door as any).fillRule) {
-    node.setAttrByPath('door/fillRule', (attrs.door as any).fillRule);
-    node.setAttrByPath('door/fill-rule', (attrs.door as any).fillRule);
+    node.setAttrByPath('door/fillRule', (attrs.door as any).fillRule, opt);
+    node.setAttrByPath('door/fill-rule', (attrs.door as any).fillRule, opt);
   }
   if (attrs.seam.display === 'block') {
-    node.setAttrByPath('seam/x1', (attrs.seam as any).x1);
-    node.setAttrByPath('seam/y1', (attrs.seam as any).y1);
-    node.setAttrByPath('seam/x2', (attrs.seam as any).x2);
-    node.setAttrByPath('seam/y2', (attrs.seam as any).y2);
+    node.setAttrByPath('seam/x1', (attrs.seam as any).x1, opt);
+    node.setAttrByPath('seam/y1', (attrs.seam as any).y1, opt);
+    node.setAttrByPath('seam/x2', (attrs.seam as any).x2, opt);
+    node.setAttrByPath('seam/y2', (attrs.seam as any).y2, opt);
   }
-  node.setAttrByPath('seam/display', attrs.seam.display);
+  node.setAttrByPath('seam/display', attrs.seam.display, opt);
   if (attrs.chevron.display === 'block') {
-    if ((attrs.chevron as any).refX !== undefined) node.setAttrByPath('chevron/refX', (attrs.chevron as any).refX);
-    if ((attrs.chevron as any).refDx !== undefined) node.setAttrByPath('chevron/refDx', (attrs.chevron as any).refDx);
-    if ((attrs.chevron as any).refY !== undefined) node.setAttrByPath('chevron/refY', (attrs.chevron as any).refY);
-    if ((attrs.chevron as any).fill) node.setAttrByPath('chevron/fill', (attrs.chevron as any).fill);
+    if ((attrs.chevron as any).refX !== undefined) node.setAttrByPath('chevron/refX', (attrs.chevron as any).refX, opt);
+    if ((attrs.chevron as any).refDx !== undefined) node.setAttrByPath('chevron/refDx', (attrs.chevron as any).refDx, opt);
+    if ((attrs.chevron as any).refY !== undefined) node.setAttrByPath('chevron/refY', (attrs.chevron as any).refY, opt);
+    if ((attrs.chevron as any).fill) node.setAttrByPath('chevron/fill', (attrs.chevron as any).fill, opt);
   }
-  node.setAttrByPath('chevron/display', attrs.chevron.display);
+  node.setAttrByPath('chevron/display', attrs.chevron.display, opt);
 }
 
 /**
