@@ -15,7 +15,9 @@ import type {
 	RaidNodeData,
 	RaidEdgeData,
 	RaidBoundaryData,
+	SpeechActStatement,
 } from './types.js';
+import { STATEMENT_KEY_PATTERN } from './types.js';
 import { computeExpressionPillColors } from './X6Shapes.js';
 
 export interface RaidInspectorSelection {
@@ -52,6 +54,169 @@ export interface RaidInspectorProps {
 	/** Optional inline styles */
 	style?: React.CSSProperties;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ProvenancePanel — Speech-Act Statement Cards (AIA v1.9.1, ExternalAcceptance.cs)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Channel-specific pill styling */
+const CHANNEL_STYLES: Record<string, { bg: string; color: string; border: string }> = {
+	AppleCalendar: { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0' },
+	WhatsApp:      { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0' },
+	Email:         { bg: '#F1F5F9', color: '#334155', border: '#CBD5E1' },
+	Chat:          { bg: '#FFFBEB', color: '#92400E', border: '#FDE68A' },
+};
+
+/** Ingestor-specific pill styling */
+const INGESTOR_STYLES: Record<string, { bg: string; color: string; border: string }> = {
+	Umshadisi: { bg: '#F5F3FF', color: '#5B21B6', border: '#C4B5FD' },
+	Cize:      { bg: '#FFF7ED', color: '#9A3412', border: '#FDBA74' },
+	System:    { bg: '#F1F5F9', color: '#334155', border: '#CBD5E1' },
+};
+
+function formatStatementTimestamp(atUtc: string): string {
+	try {
+		const d = new Date(atUtc);
+		if (isNaN(d.getTime())) return atUtc;
+		return d.toLocaleString('en-US', {
+			month: 'short', day: 'numeric',
+			hour: '2-digit', minute: '2-digit',
+			timeZone: 'UTC', timeZoneName: 'short',
+		});
+	} catch {
+		return atUtc;
+	}
+}
+
+const ProvenancePanel: React.FC<{
+	properties?: Readonly<Record<string, unknown>>;
+}> = ({ properties }) => {
+	// Collect all s<timestamp> keys from properties
+	const statements: Array<{ key: string; stamp: number; record: SpeechActStatement }> = [];
+	if (properties) {
+		for (const [key, value] of Object.entries(properties)) {
+			if (STATEMENT_KEY_PATTERN.test(key) && value && typeof value === 'object') {
+				const rec = value as SpeechActStatement;
+				if (rec.AtUtc && rec.Actor && rec.RawMessage) {
+					const stamp = parseInt(key.slice(1), 10) || Date.parse(rec.AtUtc) || 0;
+					statements.push({ key, stamp, record: rec });
+				}
+			}
+		}
+	}
+
+	// Sort descending by timestamp (newest first)
+	statements.sort((a, b) => b.stamp - a.stamp);
+
+	if (statements.length === 0) {
+		return (
+			<div style={{
+				textAlign: 'center',
+				padding: '32px 16px',
+				color: '#9CA3AF',
+				fontSize: 12,
+				lineHeight: 1.5,
+			}}>
+				<div style={{ fontSize: 28, marginBottom: 8 }}>📜</div>
+				<div style={{ fontWeight: 600, color: '#6B7280', marginBottom: 4 }}>
+					No Provenance Records
+				</div>
+				<div>
+					No external speech-act statements recorded for this entity.
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+			<div style={{ fontSize: 10, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+				{statements.length} Statement{statements.length !== 1 ? 's' : ''} (newest first)
+			</div>
+			{statements.map(({ key, record }) => {
+				const defaultPill = { bg: '#F1F5F9', color: '#334155', border: '#CBD5E1' };
+				const channelStyle = CHANNEL_STYLES[record.Channel] ?? defaultPill;
+				const ingestorStyle = INGESTOR_STYLES[record.IngestedBy] ?? defaultPill;
+
+				return (
+					<div
+						key={key}
+						style={{
+							background: '#FFFFFF',
+							border: '1px solid #E5E7EB',
+							borderRadius: 8,
+							padding: '10px 12px',
+							fontSize: 11,
+						}}
+					>
+						{/* Header: Timestamp + Actor */}
+						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+							<span style={{ fontSize: 10, color: '#6B7280', fontFamily: 'ui-monospace, monospace' }}>
+								{formatStatementTimestamp(record.AtUtc)}
+							</span>
+							<span style={{
+								fontSize: 10,
+								fontWeight: 700,
+								padding: '1px 6px',
+								borderRadius: 4,
+								background: '#3B82F615',
+								color: '#1D4ED8',
+								border: '1px solid #93C5FD',
+							}}>
+								Actor: {record.Actor}
+							</span>
+						</div>
+
+						{/* Metadata Badges: Channel + Ingestor */}
+						<div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+							<span style={{
+								fontSize: 9,
+								fontWeight: 700,
+								padding: '2px 6px',
+								borderRadius: 4,
+								background: channelStyle.bg,
+								color: channelStyle.color,
+								border: `1px solid ${channelStyle.border}`,
+							}}>
+								{record.Channel}
+							</span>
+							<span style={{
+								fontSize: 9,
+								fontWeight: 700,
+								padding: '2px 6px',
+								borderRadius: 4,
+								background: ingestorStyle.bg,
+								color: ingestorStyle.color,
+								border: `1px solid ${ingestorStyle.border}`,
+							}}>
+								via {record.IngestedBy}
+							</span>
+						</div>
+
+						{/* Body Quote: RawMessage */}
+						<div style={{
+							background: '#F9FAFB',
+							borderLeft: '3px solid #D1D5DB',
+							padding: '6px 10px',
+							borderRadius: '0 4px 4px 0',
+							fontSize: 11,
+							color: '#374151',
+							fontStyle: 'italic',
+							lineHeight: 1.4,
+						}}>
+							{record.RawMessage}
+						</div>
+
+						{/* Statement ID footer */}
+						<div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 4, fontFamily: 'ui-monospace, monospace' }}>
+							{key}
+						</div>
+					</div>
+				);
+			})}
+		</div>
+	);
+};
 
 export const RaidInspector: React.FC<RaidInspectorProps> = ({
 	archetype = '',
@@ -222,25 +387,25 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 				)}
 			</div>
 
-			{/* Tabs for Edge (Properties vs AST) */}
-			{isEdge && (
-				<div style={{ display: 'flex', borderBottom: '1px solid #E5E5DF', paddingBottom: 4, gap: 8 }}>
-					<button
-						type="button"
-						onClick={() => setActiveTab('properties')}
-						style={{
-							background: 'none',
-							border: 'none',
-							padding: '4px 8px',
-							fontSize: 11,
-							fontWeight: activeTab === 'properties' ? 700 : 500,
-							color: activeTab === 'properties' ? '#2563EB' : '#6B7280',
-							borderBottom: activeTab === 'properties' ? '2px solid #2563EB' : 'none',
-							cursor: 'pointer',
-						}}
-					>
-						Properties
-					</button>
+			{/* Tab Bar — shown for all entity types */}
+			<div style={{ display: 'flex', borderBottom: '1px solid #E5E5DF', paddingBottom: 4, gap: 8 }}>
+				<button
+					type="button"
+					onClick={() => setActiveTab('properties')}
+					style={{
+						background: 'none',
+						border: 'none',
+						padding: '4px 8px',
+						fontSize: 11,
+						fontWeight: activeTab === 'properties' ? 700 : 500,
+						color: activeTab === 'properties' ? '#2563EB' : '#6B7280',
+						borderBottom: activeTab === 'properties' ? '2px solid #2563EB' : 'none',
+						cursor: 'pointer',
+					}}
+				>
+					Properties
+				</button>
+				{isEdge && (
 					<button
 						type="button"
 						onClick={() => setActiveTab('ast')}
@@ -257,9 +422,40 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					>
 						AST Expression
 					</button>
-				</div>
+				)}
+				<button
+					type="button"
+					onClick={() => setActiveTab('provenance')}
+					style={{
+						background: 'none',
+						border: 'none',
+						padding: '4px 8px',
+						fontSize: 11,
+						fontWeight: activeTab === 'provenance' ? 700 : 500,
+						color: activeTab === 'provenance' ? '#7C3AED' : '#6B7280',
+						borderBottom: activeTab === 'provenance' ? '2px solid #7C3AED' : 'none',
+						cursor: 'pointer',
+					}}
+				>
+					Provenance
+				</button>
+			</div>
+
+			{/* ═══ PROVENANCE TAB ═══ */}
+			{activeTab === 'provenance' && (
+				<ProvenancePanel
+					properties={
+						isNode ? node?.properties :
+						isEdge ? (edge as any)?.properties :
+						isBoundary ? boundary?.properties :
+						undefined
+					}
+				/>
 			)}
 
+			{/* ═══ PROPERTIES / AST TABS ═══ */}
+			{activeTab !== 'provenance' && (
+			<>
 			{/* Identifier */}
 			<div>
 				<label style={labelStyle}>Identifier (id)</label>
@@ -955,6 +1151,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						</div>
 					)}
 				</>
+			)}
+
+			</>
 			)}
 
 			{/* Delete Cell Button */}

@@ -14,10 +14,12 @@
 // Core Metamodel & SVG Contract Types
 export {
   AimSvgContract,
+  STATEMENT_KEY_PATTERN,
   type AimOntologyKind,
   type AimRoutingMode,
   type AimEdgeKind,
   type AimExpressionColor,
+  type SpeechActStatement,
   type Point,
   type SvgBendPoint,
   type Bounds,

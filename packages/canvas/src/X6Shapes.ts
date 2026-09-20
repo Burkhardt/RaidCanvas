@@ -2673,6 +2673,11 @@ export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
           data.satisfied,
         );
 
+        // Compose tooltip: "Label: expression" or just expression
+        const tooltipText = data.label
+          ? `${data.label}: ${data.expression}`
+          : data.expression!;
+
         edgeLabels.push({
           markup: [
             {
@@ -2682,6 +2687,10 @@ export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
             {
               tagName: 'text',
               selector: 'pillText',
+            },
+            {
+              tagName: 'title',
+              selector: 'pillTitle',
             },
           ],
           attrs: {
@@ -2708,6 +2717,9 @@ export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
               textAnchor: 'middle',
               textVerticalAnchor: 'middle',
               class: 'aim-expression-text',
+            },
+            pillTitle: {
+              text: tooltipText,
             },
           },
           position: 0.5,

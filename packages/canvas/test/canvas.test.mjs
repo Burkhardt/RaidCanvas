@@ -30,6 +30,7 @@ import {
   KNOWN_STEREOTYPES,
   getDefaultNodeName,
   getDefaultNodeBounds,
+  STATEMENT_KEY_PATTERN,
 } from '../dist/index.js';
 
 const jsdom = new JSDOM();
@@ -2631,6 +2632,96 @@ describe('Increment 2 — The Glass (@dr2rai/raid-canvas@0.7.0)', () => {
     const metamodel = bridge.extractMetamodel(rawSvg);
     assert.equal(metamodel.edges[0].expressionColor, 'green');
     assert.equal(metamodel.edges[0].expression, 'Customer != null');
+  });
+});
+
+describe('v0.7.1 Patch — Expression Tooltip, Provenance Contract, Boundary Round-Trip', () => {
+  test('Expression pill includes <title> tooltip with label and expression', () => {
+    const edgeMeta = createAimEdge({
+      id: 'e-tooltip',
+      kind: 'association',
+      sourceId: 'n1',
+      targetId: 'n2',
+      directed: true,
+      label: 'CallerIsAdmin',
+      expression: 'Caller.Role == "Admin"',
+      expressionColor: 'green',
+      bendPoints: [],
+    });
+
+    // The labels array should contain the expression pill label with a title element
+    const labels = edgeMeta.labels;
+    assert.ok(Array.isArray(labels) && labels.length >= 2, 'Should have at least 2 labels (text label + pill)');
+
+    // Find the pill label (the one with markup containing pillTitle)
+    const pillLabel = labels.find(l => l.markup?.some(m => m.selector === 'pillTitle'));
+    assert.ok(pillLabel, 'Expression pill should include a <title> element via pillTitle selector');
+    assert.equal(pillLabel.attrs.pillTitle.text, 'CallerIsAdmin: Caller.Role == "Admin"',
+      'Tooltip text should be "Label: expression"');
+  });
+
+  test('Expression pill tooltip shows just expression when no label', () => {
+    const edgeMeta = createAimEdge({
+      id: 'e-tooltip-nolabel',
+      kind: 'association',
+      sourceId: 'n1',
+      targetId: 'n2',
+      directed: true,
+      expression: 'Host != null',
+      bendPoints: [],
+    });
+
+    const labels = edgeMeta.labels;
+    const pillLabel = labels.find(l => l.markup?.some(m => m.selector === 'pillTitle'));
+    assert.ok(pillLabel, 'Pill should have title even without label');
+    assert.equal(pillLabel.attrs.pillTitle.text, 'Host != null',
+      'Tooltip text should be just the expression when label is absent');
+  });
+
+  test('STATEMENT_KEY_PATTERN matches s<timestamp> keys per AIA v1.9.1 contract', () => {
+    // Valid keys
+    assert.ok(STATEMENT_KEY_PATTERN.test('s1789873200000'), 's1789873200000 should match');
+    assert.ok(STATEMENT_KEY_PATTERN.test('s0'), 's0 should match');
+    assert.ok(STATEMENT_KEY_PATTERN.test('s999'), 's999 should match');
+
+    // Invalid keys — reset lastIndex since the regex has no /g flag
+    assert.ok(!STATEMENT_KEY_PATTERN.test('statement1'), 'statement1 should not match');
+    assert.ok(!STATEMENT_KEY_PATTERN.test('S1789873200000'), 'Uppercase S should not match');
+    assert.ok(!STATEMENT_KEY_PATTERN.test('s'), 's alone should not match');
+    assert.ok(!STATEMENT_KEY_PATTERN.test('preconditions'), 'preconditions should not match');
+    assert.ok(!STATEMENT_KEY_PATTERN.test(''), 'empty string should not match');
+  });
+
+  test('RaiBridge round-trips boundary elements from SVG with aim-boundary groups', () => {
+    const bridge = new RaiBridge();
+    const svgWithBoundaries = `<svg xmlns="http://www.w3.org/2000/svg" aim-archetype="OneUseCaseDiagram">
+      <g aim-boundary="Class" aim-id="b1" aim-name="Meeting" aim-package="AIA.Foundation"
+         x="50" y="50" width="320" height="220" aim-elements="uc1,uc2">
+        <rect class="aim-boundary-body" x="50" y="50" width="320" height="220" />
+        <text class="aim-boundary-header-text">Class: Meeting</text>
+      </g>
+      <g aim-boundary="Package" aim-id="b2" aim-name="AIA.Foundation"
+         x="10" y="10" width="500" height="400">
+        <rect class="aim-boundary-body" x="10" y="10" width="500" height="400" />
+        <text class="aim-boundary-header-text">Package: AIA.Foundation</text>
+      </g>
+    </svg>`;
+
+    const metamodel = bridge.extractMetamodel(svgWithBoundaries);
+    assert.ok(metamodel.boundaries, 'Metamodel should have boundaries array');
+    assert.equal(metamodel.boundaries.length, 2, 'Should extract 2 boundaries');
+
+    const classBoundary = metamodel.boundaries.find(b => b.id === 'b1');
+    assert.ok(classBoundary, 'Class boundary b1 should exist');
+    assert.equal(classBoundary.kind, 'Class');
+    assert.equal(classBoundary.name, 'Meeting');
+    assert.equal(classBoundary.package, 'AIA.Foundation');
+    assert.deepEqual(classBoundary.elementIds, ['uc1', 'uc2']);
+
+    const pkgBoundary = metamodel.boundaries.find(b => b.id === 'b2');
+    assert.ok(pkgBoundary, 'Package boundary b2 should exist');
+    assert.equal(pkgBoundary.kind, 'Package');
+    assert.equal(pkgBoundary.name, 'AIA.Foundation');
   });
 });
 

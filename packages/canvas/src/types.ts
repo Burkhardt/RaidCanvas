@@ -226,6 +226,31 @@ export interface RaidEdgeData {
 export type AimExpressionColor = 'green' | 'red' | 'anthracite' | string;
 
 /**
+ * Immutable speech-act provenance record as emitted by AIA v1.9.1 (ExternalAcceptance.cs).
+ * Stored in entity `properties` under keys matching `/^s\d+$/` (e.g., `s1789873200000`),
+ * where the numeric portion is the Unix epoch timestamp in milliseconds.
+ */
+export interface SpeechActStatement {
+	/** Ingestion channel through which the speech act was received. */
+	readonly Channel: 'AppleCalendar' | 'Email' | 'Chat' | 'WhatsApp' | string;
+
+	/** PersonId of the actor who made the statement (e.g. "7000"). */
+	readonly Actor: string;
+
+	/** Verbatim speech act text (e.g. "Accepted invitation via CalDAV"). */
+	readonly RawMessage: string;
+
+	/** The AIA ingestion agent that processed this statement. */
+	readonly IngestedBy: 'Umshadisi' | 'Cize' | 'System' | string;
+
+	/** ISO 8601 UTC timestamp of the speech act (e.g. "2026-09-20T10:00:00.0000000Z"). */
+	readonly AtUtc: string;
+}
+
+/** Regex pattern matching statement property keys (e.g. s1789873200000). */
+export const STATEMENT_KEY_PATTERN = /^s\d+$/;
+
+/**
  * Full in-memory metamodel representation corresponding to a `.raid` manifest.
  */
 export interface RaidMetamodel {
