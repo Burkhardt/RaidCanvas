@@ -120,6 +120,42 @@ export interface RaidNodeData {
 
 	/** Custom extension properties passed from or serialized to .raid manifests. */
 	readonly properties?: Readonly<Record<string, unknown>>;
+
+	/** Whether this slot is an unbound shadow node awaiting binding (aim-unbound="true"). */
+	readonly unbound?: boolean;
+
+	/** Identifier of enclosing boundary box (if enclosed). */
+	readonly boundaryId?: string;
+}
+
+/**
+ * Metadata carried by an outer namespace or class context boundary box.
+ * Maps to `<g aim-boundary="Class|Package" aim-name="..." aim-package="...">`.
+ */
+export interface RaidBoundaryData {
+	/** Unique boundary identifier. */
+	readonly id: string;
+
+	/** Scope kind: 'Class' | 'Package' | string. */
+	readonly kind: 'Class' | 'Package' | string;
+
+	/** Scope name (e.g. 'Meeting'). */
+	readonly name: string;
+
+	/** Optional enclosing package name (e.g. 'AIA Foundation'). */
+	readonly package?: string;
+
+	/** Identifiers of child nodes enclosed within this boundary box. */
+	readonly elementIds: readonly string[];
+
+	/** Spatial bounds of the boundary box. */
+	readonly bounds: Bounds;
+
+	/** Ontological deep link or class browser portal target (e.g. '/classes?select=Contract'). */
+	readonly href?: string | undefined;
+
+	/** Custom extension properties. */
+	readonly properties?: Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -167,7 +203,27 @@ export interface RaidEdgeData {
 
 	/** Precomputed or live SVG path data ('M ... L ...') for standalone vector rendering. */
 	readonly pathData?: string;
+
+	/** Optional OPM AST expression associated with this edge (e.g., 'Host != null'). */
+	readonly expression?: string;
+
+	/** Optional color styling for the AST expression pill ('green' | 'red' | 'anthracite' | string). */
+	readonly expressionColor?: AimExpressionColor | undefined;
+
+	/** Live semantic evaluation state: true = satisfied (green), false = unsatisfied (amber/coral), null/undefined = indeterminate. */
+	readonly satisfied?: boolean | null;
+
+	/** Full parsed AST tree details for inspection/tooltip. */
+	readonly ast?: unknown;
 }
+
+/**
+ * Supported color accents for edge AST expression pills.
+ * - 'green': Cascais Heraldic Green (#10B981)
+ * - 'red': Cascais Red (#EF4444)
+ * - 'anthracite': Cascais Warm Graphite / Anthracite (#1F2937)
+ */
+export type AimExpressionColor = 'green' | 'red' | 'anthracite' | string;
 
 /**
  * Full in-memory metamodel representation corresponding to a `.raid` manifest.
@@ -187,6 +243,9 @@ export interface RaidMetamodel {
 
 	/** Relationships connecting projected nodes. */
 	readonly edges: readonly RaidEdgeData[];
+
+	/** Outer context boundary boxes (e.g. Class or Package scopes). */
+	readonly boundaries?: readonly RaidBoundaryData[];
 
 	/** Diagram-level edge routing mode ('manhattan', 'normal', 'smooth'). */
 	readonly routing?: AimRoutingMode;
@@ -209,6 +268,13 @@ export const AimSvgContract = {
 	ATTR_HREF: 'aim-href',
 	ATTR_STEREOTYPE: 'aim-stereotype',
 	ATTR_NAMESPACE: 'aim-namespace',
+	ATTR_UNBOUND: 'aim-unbound',
+
+	// Boundary marking & attributes
+	ATTR_BOUNDARY: 'aim-boundary',
+	ATTR_BOUNDARY_NAME: 'aim-name',
+	ATTR_BOUNDARY_PACKAGE: 'aim-package',
+	ATTR_BOUNDARY_ELEMENTS: 'aim-elements',
 
 	// Edge marking & attributes
 	ATTR_EDGE: 'aim-edge',
@@ -219,10 +285,14 @@ export const AimSvgContract = {
 	ATTR_TARGET_PORT: 'aim-target-port',
 	ATTR_ROUTING: 'aim-routing',
 	ATTR_BENDS: 'aim-bends',
+	ATTR_EXPRESSION: 'aim-expression',
+	ATTR_EXPRESSION_COLOR: 'aim-expression-color',
+	ATTR_SATISFIED: 'aim-satisfied',
 
 	// Selectors for DOM queries
 	SELECTOR_NODE: '[aim-node], [data-node], g[aim-kind]',
 	SELECTOR_EDGE: '[aim-edge], path[aim-edge-kind]',
+	SELECTOR_BOUNDARY: '[aim-boundary], g[aim-boundary]',
 } as const;
 
 /**

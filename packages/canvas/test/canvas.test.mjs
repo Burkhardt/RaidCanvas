@@ -6,6 +6,14 @@ import {
   createOrthogonalPorts,
   createAimNode,
   createAimEdge,
+  createAimBoundary,
+  RaidInspector,
+  RaidPalette,
+  CANONICAL_PALETTE_ITEMS,
+  getPaletteItemsForArchetype,
+  computeExpressionPillColors,
+  isNodeAllowedInDiagram,
+  validateDiagramConnection,
   RaiBridge,
   AimSvgContract,
   wrapAimText,
@@ -2315,3 +2323,314 @@ describe('Role definitions, contextual bindings and wrapped descriptions', () =>
     assert.equal(chevronSleepCall?.value, 'none', 'Sleeping chevron must have display: none');
   });
 });
+
+describe('Increment 2 — The Glass (@dr2rai/raid-canvas@0.7.0)', () => {
+  test('Class Boundary creates aim-boundary-class with Cascais Gold dashed border, Anthracite text, and Portuguese Duality', () => {
+    const boundary = createAimBoundary({
+      id: 'boundary_meeting',
+      kind: 'Class',
+      name: 'Meeting',
+      package: 'AIA Foundation',
+      elementIds: ['ScheduleMeeting', 'CloseMeeting'],
+      bounds: { x: 100, y: 80, width: 420, height: 260 },
+    });
+
+    assert.equal(boundary.id, 'boundary_meeting');
+    assert.equal(boundary.shape, 'aim-boundary-class');
+    assert.equal(boundary.zIndex, 0);
+    assert.equal(boundary.attrs.body.stroke, '#C59B27');
+    assert.equal(boundary.attrs.body.strokeDasharray, '6,4');
+    assert.equal(boundary.attrs.headerBg.fill, 'none', 'Gold badge is removed/none');
+    assert.equal(boundary.attrs.headerText.fill, '#1F2937', 'Font color is Cascais Anthracite');
+    assert.equal(boundary.attrs.headerText.text, 'Class: Meeting');
+    assert.equal(boundary.data.isBoundary, true);
+    assert.equal(boundary.data.href, '/classes?select=Meeting', 'Class boundary receives portal link');
+    assert.deepEqual(boundary.data.elementIds, ['ScheduleMeeting', 'CloseMeeting']);
+
+    // Portuguese Bicolor Duality on Class Boundary
+    const dormant = computePortalDoorAttrs(boundary.data, false);
+    assert.equal(dormant.door.display, 'none');
+    assert.equal(dormant.seam.display, 'none');
+    assert.equal(dormant.chevron.display, 'none');
+
+    const awakened = computePortalDoorAttrs(boundary.data, true);
+    assert.equal(awakened.door.display, 'block');
+    assert.ok(awakened.door.d.includes('M 210 0'), 'Seam starts at center meridian (x=210)');
+    assert.equal(awakened.seam.display, 'block');
+    assert.equal(awakened.seam.x1, 210);
+    assert.equal(awakened.seam.x2, 210);
+    assert.equal(awakened.seam.stroke, '#F59E0B');
+    assert.equal(awakened.chevron.display, 'block');
+    assert.equal(awakened.chevron.text, '›');
+  });
+
+  test('Package Boundary creates aim-boundary-package with canonical folder tab geometry matching media_1789883224444.png', () => {
+    const boundary = createAimBoundary({
+      id: 'boundary_pkg',
+      kind: 'Package',
+      name: 'AIA Foundation',
+      elementIds: [],
+      bounds: { x: 50, y: 50, width: 500, height: 350 },
+    });
+
+    assert.equal(boundary.id, 'boundary_pkg');
+    assert.equal(boundary.shape, 'aim-boundary-package');
+    assert.equal(boundary.zIndex, 0);
+    assert.equal(boundary.attrs.body.stroke, '#1E293B');
+    assert.equal(boundary.attrs.folderTab.fill, '#FFFFFF');
+    assert.equal(boundary.attrs.folderTab.stroke, '#1E293B');
+    assert.ok(boundary.attrs.folderTab.d.startsWith('M 0 26 L 0 6 A 6 6 0 0 1 6 0'), 'Tab has rounded top-left corner and sloped chamfer');
+    assert.equal(boundary.attrs.headerText.fill, '#1E293B');
+    assert.equal(boundary.attrs.headerText.text, 'Package: AIA Foundation');
+  });
+
+  test('RaiBridge hydates Class boundary and child elements, preserving containment in round-trip SVG', () => {
+    const bridge = new RaiBridge();
+    const svgWithBoundary = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" aim-archetype="OneUseCaseDiagram">
+      <g aim-boundary="Class" id="b_meeting" aim-name="Meeting" aim-package="AIA" aim-elements="uc_schedule" transform="translate(120, 90)">
+        <rect width="380" height="240" fill="rgba(248, 250, 252, 0.70)" stroke="#C59B27" stroke-dasharray="6,4" />
+        <rect class="aim-boundary-badge" x="10" y="10" width="120" height="20" rx="3" fill="#C59B27" />
+        <text class="aim-boundary-badge-text" x="16" y="24" fill="#FFFFFF">Class: Meeting</text>
+      </g>
+      <g aim-node="true" aim-id="uc_schedule" aim-kind="uc" aim-display-name="Schedule Meeting" aim-boundary-id="b_meeting" transform="translate(200, 160)">
+        <ellipse cx="70" cy="35" rx="60" ry="30" fill="#FFFFFF" stroke="#C59B27" />
+        <text class="aim-label" x="70" y="38">Schedule Meeting</text>
+      </g>
+      <g aim-node="true" aim-id="per_host" aim-kind="per" aim-display-name="Host" transform="translate(30, 160)">
+        <circle class="aim-head" cx="20" cy="20" r="10" fill="#FFFFFF" stroke="#F59E0B" />
+        <text class="aim-label" x="20" y="45">Host</text>
+      </g>
+      <g aim-edge="true" aim-id="edge_init" aim-source="per_host" aim-target="uc_schedule" aim-expression="Host != null" aim-satisfied="true">
+        <path d="M 50 160 L 200 160" stroke="#F59E0B" fill="none" />
+      </g>
+    </svg>`;
+
+    const metamodel = bridge.extractMetamodel(svgWithBoundary);
+    assert.ok(metamodel.boundaries, 'Metamodel should extract boundaries');
+    assert.equal(metamodel.boundaries.length, 1);
+    const b = metamodel.boundaries[0];
+    assert.equal(b.id, 'b_meeting');
+    assert.equal(b.kind, 'Class');
+    assert.equal(b.name, 'Meeting');
+    assert.equal(b.package, 'AIA');
+    assert.equal(b.bounds.x, 120);
+    assert.equal(b.bounds.y, 90);
+    assert.equal(b.bounds.width, 380);
+    assert.equal(b.bounds.height, 240);
+    assert.ok(b.elementIds.includes('uc_schedule'));
+
+    const ucNode = metamodel.nodes.find(n => n.id === 'uc_schedule');
+    assert.ok(ucNode);
+    assert.equal(ucNode.boundaryId, 'b_meeting');
+
+    const edge = metamodel.edges.find(e => e.id === 'edge_init');
+    assert.ok(edge);
+    assert.equal(edge.expression, 'Host != null');
+    assert.equal(edge.satisfied, true);
+
+    const serializedSvg = bridge.updateExistingSvg(svgWithBoundary, metamodel);
+    assert.ok(serializedSvg.includes('aim-boundary="Class"'));
+    assert.ok(serializedSvg.includes('aim-name="Meeting"'));
+    assert.ok(serializedSvg.includes('aim-expression="Host != null"'));
+    assert.ok(serializedSvg.includes('aim-satisfied="true"'));
+  });
+
+  test('Edge AST Expression Capsule renders at midpoint with semantic satisfaction styling', () => {
+    // Satisfied (true) -> Heraldic Green (#ECFDF5 / #065F46 / #A7F3D0)
+    const edgeTrue = createAimEdge({
+      id: 'e1',
+      sourceId: 'n1',
+      targetId: 'n2',
+      expression: 'Host != null',
+      satisfied: true,
+    });
+    assert.ok(edgeTrue.labels && edgeTrue.labels.length > 0);
+    const pillLabelTrue = edgeTrue.labels.find(l => l.position === 0.5);
+    assert.ok(pillLabelTrue);
+    assert.equal(pillLabelTrue.attrs.pillBg.fill, '#ECFDF5');
+    assert.equal(pillLabelTrue.attrs.pillBg.stroke, '#A7F3D0');
+    assert.equal(pillLabelTrue.attrs.pillText.fill, '#065F46');
+    assert.equal(pillLabelTrue.attrs.pillText.text, 'Host != null');
+
+    // Unsatisfied (false) -> Venetian Amber (#FFFBEB / #92400E / #FDE68A)
+    const edgeFalse = createAimEdge({
+      id: 'e2',
+      sourceId: 'n1',
+      targetId: 'n2',
+      expression: 'Status := "Scheduled"',
+      satisfied: false,
+    });
+    const pillLabelFalse = edgeFalse.labels.find(l => l.position === 0.5);
+    assert.ok(pillLabelFalse);
+    assert.equal(pillLabelFalse.attrs.pillBg.fill, '#FFFBEB');
+    assert.equal(pillLabelFalse.attrs.pillBg.stroke, '#FDE68A');
+    assert.equal(pillLabelFalse.attrs.pillText.fill, '#92400E');
+
+    // Neutral (null) -> Slate Neutral (#F1F5F9 / #475569 / #CBD5E1)
+    const edgeNull = createAimEdge({
+      id: 'e3',
+      sourceId: 'n1',
+      targetId: 'n2',
+      expression: 'x > 0',
+      satisfied: null,
+    });
+    const pillLabelNull = edgeNull.labels.find(l => l.position === 0.5);
+    assert.ok(pillLabelNull);
+    assert.equal(pillLabelNull.attrs.pillBg.fill, '#F1F5F9');
+    assert.equal(pillLabelNull.attrs.pillBg.stroke, '#CBD5E1');
+    assert.equal(pillLabelNull.attrs.pillText.fill, '#475569');
+  });
+
+  test('Rule 2 (No Coining) Unbound shadow node stencils render with dashed stroke, 70% opacity, and bracketed names', () => {
+    // Unbound Person
+    const unboundPer = createAimNode({
+      id: 'per_slot',
+      kind: 'per',
+      displayName: 'Location',
+      unbound: true,
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(unboundPer.attrs.label.text, '[Location]');
+    assert.equal(unboundPer.attrs.head.strokeDasharray, '5,4');
+    assert.equal(unboundPer.attrs.head.opacity, 0.70);
+    assert.equal(unboundPer.attrs.torso.strokeDasharray, '5,4');
+    assert.equal(unboundPer.attrs.torso.opacity, 0.70);
+
+    // Unbound Object
+    const unboundObj = createAimNode({
+      id: 'obj_slot',
+      kind: 'obj',
+      displayName: 'Evidence',
+      unbound: true,
+      bounds: { x: 0, y: 0, width: 140, height: 70 },
+    });
+    assert.equal(unboundObj.attrs.label.text, '[Evidence]');
+    assert.equal(unboundObj.attrs.body.strokeDasharray, '5,4');
+    assert.equal(unboundObj.attrs.body.opacity, 0.70);
+  });
+
+  test('Component exports & Palette items integrity', () => {
+    assert.equal(typeof RaidInspector, 'function', 'RaidInspector must be exported as a React component');
+    assert.equal(typeof RaidPalette, 'function', 'RaidPalette must be exported as a React component');
+    assert.ok(Array.isArray(CANONICAL_PALETTE_ITEMS));
+
+    const itemIds = CANONICAL_PALETTE_ITEMS.map(i => i.id);
+    assert.ok(itemIds.includes('per'), 'Must have Person');
+    assert.ok(itemIds.includes('uc'), 'Must have UseCase');
+    assert.ok(itemIds.includes('act'), 'Must have Activity');
+    assert.ok(itemIds.includes('cls'), 'Must have Class');
+    assert.ok(itemIds.includes('obj'), 'Must have Object');
+    assert.ok(itemIds.includes('plc'), 'Must have Place');
+    assert.ok(itemIds.includes('boundary-class'), 'Must have Class boundary');
+    assert.ok(itemIds.includes('boundary-package'), 'Must have Package boundary');
+    assert.ok(itemIds.includes('unbound-per'), 'Must have Unbound Person slot');
+    assert.ok(itemIds.includes('unbound-obj'), 'Must have Unbound Object slot');
+  });
+
+  test('Palette symmetry: OneUseCaseDiagram and OneActivityDiagram provide exact required elements', () => {
+    // 1. OneUseCaseDiagram items: Actor/Person, UseCase, ClassBoundary, Package
+    const ucItems = getPaletteItemsForArchetype('OneUseCaseDiagram');
+    assert.equal(ucItems.length, 4, 'OneUseCaseDiagram must offer exactly 4 elements');
+    assert.deepEqual(ucItems.map(i => i.id), ['per', 'uc', 'boundary-class', 'boundary-package']);
+
+    // Case-insensitivity check
+    const ucItemsLower = getPaletteItemsForArchetype('usecase');
+    assert.equal(ucItemsLower.length, 4);
+
+    // 2. OneActivityDiagram items: Actor/Person (instance), Activity (underlined, qualifier on top, pre/post), Object (RoleFiller)
+    const actItems = getPaletteItemsForArchetype('OneActivityDiagram');
+    assert.equal(actItems.length, 3, 'OneActivityDiagram must offer exactly 3 elements');
+    assert.deepEqual(actItems.map(i => i.id), ['per-instance', 'act', 'obj']);
+
+    const actActor = actItems.find(i => i.id === 'per-instance');
+    assert.ok(actActor);
+    assert.equal(actActor.customData?.instance, true);
+    assert.equal(actActor.customData?.qualifier, 'Customer');
+    assert.equal(actActor.customData?.displayName, 'Signer');
+
+    const actActivity = actItems.find(i => i.id === 'act');
+    assert.ok(actActivity);
+    assert.equal(actActivity.customData?.instance, true);
+    assert.equal(actActivity.customData?.qualifier, 'CloseContract');
+    assert.equal(actActivity.customData?.displayName, 'MyContract.CloseContract');
+    assert.ok(Array.isArray(actActivity.customData?.properties?.preconditions));
+    assert.ok(Array.isArray(actActivity.customData?.properties?.postconditions));
+
+    const actObject = actItems.find(i => i.id === 'obj');
+    assert.ok(actObject);
+    assert.equal(actObject.customData?.instance, true);
+    assert.equal(actObject.customData?.qualifier, 'RoleFiller');
+    assert.equal(actObject.customData?.displayName, 'Host');
+  });
+
+  test('Diagram profiles: isNodeAllowedInDiagram and validateDiagramConnection for OneActivity vs OneUseCase', () => {
+    // OneUseCaseDiagram
+    assert.equal(isNodeAllowedInDiagram({ kind: 'uc' }, 'OneUseCaseDiagram'), true);
+    assert.equal(isNodeAllowedInDiagram({ kind: 'per' }, 'OneUseCaseDiagram'), true);
+    assert.equal(isNodeAllowedInDiagram({ kind: 'cls' }, 'OneUseCaseDiagram'), true);
+    assert.equal(isNodeAllowedInDiagram({ kind: 'act' }, 'OneUseCaseDiagram'), false);
+    assert.equal(isNodeAllowedInDiagram({ kind: 'per', instance: true }, 'OneUseCaseDiagram'), false);
+
+    // OneActivityDiagram
+    assert.equal(isNodeAllowedInDiagram({ kind: 'act' }, 'OneActivityDiagram'), true);
+    assert.equal(isNodeAllowedInDiagram({ kind: 'per', instance: true }, 'OneActivityDiagram'), true);
+    assert.equal(isNodeAllowedInDiagram({ kind: 'obj', instance: true }, 'OneActivityDiagram'), true);
+    assert.equal(isNodeAllowedInDiagram({ kind: 'rf' }, 'OneActivityDiagram'), true);
+    assert.equal(isNodeAllowedInDiagram({ kind: 'cls' }, 'OneActivityDiagram'), false);
+    assert.equal(isNodeAllowedInDiagram({ kind: 'uc' }, 'OneActivityDiagram'), false);
+
+    // validateDiagramConnection in OneActivityDiagram
+    assert.equal(validateDiagramConnection({ kind: 'per' }, { kind: 'act' }, 'OneActivityDiagram'), true);
+    assert.equal(validateDiagramConnection({ kind: 'obj' }, { kind: 'act' }, 'OneActivityDiagram'), true);
+    assert.equal(validateDiagramConnection({ kind: 'act' }, { kind: 'obj' }, 'OneActivityDiagram'), true);
+    assert.equal(validateDiagramConnection({ kind: 'act' }, { kind: 'act' }, 'OneActivityDiagram'), true);
+    assert.equal(validateDiagramConnection({ kind: 'cls' }, { kind: 'act' }, 'OneActivityDiagram'), false);
+  });
+
+  test('Edge AST Expression color styles & serialization round-trip', () => {
+    // Color tokens
+    const greenStyle = computeExpressionPillColors('green');
+    assert.equal(greenStyle.pillBorder, '#10B981');
+    assert.equal(greenStyle.pillBg, '#ECFDF5');
+
+    const redStyle = computeExpressionPillColors('red');
+    assert.equal(redStyle.pillBorder, '#EF4444');
+    assert.equal(redStyle.pillBg, '#FEF2F2');
+
+    const anthStyle = computeExpressionPillColors('anthracite');
+    assert.equal(anthStyle.pillBorder, '#1F2937');
+    assert.equal(anthStyle.pillBg, '#F3F4F6');
+
+    // Edge creation with custom expressionColor
+    const edge = createAimEdge({
+      id: 'e-color',
+      sourceId: 'n1',
+      targetId: 'n2',
+      expression: 'State == "Closed"',
+      expressionColor: 'red',
+    });
+    const pill = edge.labels?.find(l => l.position === 0.5);
+    assert.ok(pill);
+    assert.equal(pill.attrs.pillBg.fill, '#FEF2F2');
+    assert.equal(pill.attrs.pillBg.stroke, '#EF4444');
+    assert.equal(pill.attrs.pillText.fill, '#991B1B');
+
+    // RaiBridge round-trip
+    const bridge = new RaiBridge();
+    const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" aim-archetype="OneActivityDiagram">
+      <g class="aim-edges-layer">
+        <g aim-edge="true" aim-id="e1" aim-source="a1" aim-target="a2" aim-expression="Customer != null" aim-expression-color="green" aim-satisfied="true">
+          <path d="M 0 0 L 100 100" />
+        </g>
+      </g>
+      <g class="aim-nodes-layer">
+        <g aim-node="true" aim-id="a1" aim-kind="act" aim-display-name="Act1"><rect /></g>
+        <g aim-node="true" aim-id="a2" aim-kind="act" aim-display-name="Act2"><rect /></g>
+      </g>
+    </svg>`;
+    const metamodel = bridge.extractMetamodel(rawSvg);
+    assert.equal(metamodel.edges[0].expressionColor, 'green');
+    assert.equal(metamodel.edges[0].expression, 'Customer != null');
+  });
+});
+

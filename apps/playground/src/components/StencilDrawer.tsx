@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { isNodeAllowedInDiagram, type AimOntologyKind } from '@dr2rai/raid-canvas';
+import {
+  getPaletteItemsForArchetype,
+  type RaidPaletteItem,
+  type AimOntologyKind,
+  type RaidNodeData,
+} from '@dr2rai/raid-canvas';
 
 export interface StencilItem {
   kind: AimOntologyKind;
@@ -101,28 +106,109 @@ export const AOAIM_STENCILS: StencilItem[] = [
       </svg>
     ),
   },
-  { kind: 'rf', name: 'RoleFiller', badge: 'BINDING', badgeColor: '#2563EB', description: 'Filled circle: an object’s binding of a role to a filler', iconSvg: <svg width="24" height="24"><circle cx="12" cy="12" r="7" fill="#2563EB" /></svg> },
+  {
+    kind: 'rf',
+    name: 'RoleFiller',
+    badge: 'BINDING',
+    badgeColor: '#2563EB',
+    description: 'Filled circle: an object’s binding of a role to a filler',
+    iconSvg: (
+      <svg width="24" height="24" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="7" fill="#2563EB" />
+      </svg>
+    ),
+  },
 ];
 
-interface StencilDrawerProps {
+export interface BoundaryStencilItem {
+  id: string;
+  kind: 'Class' | 'Package';
+  name: string;
+  badge: string;
+  badgeColor: string;
+  description: string;
+  iconSvg: React.ReactNode;
+}
+
+export const BOUNDARY_STENCILS: BoundaryStencilItem[] = [
+  {
+    id: 'boundary-class',
+    kind: 'Class',
+    name: 'Class Boundary',
+    badge: 'CLASS BOX',
+    badgeColor: '#C59B27',
+    description: 'Resizable outer frame with inset badge for UseCases inside a class',
+    iconSvg: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C59B27" strokeWidth="1.6">
+        <rect x="2" y="2" width="20" height="20" rx="3" strokeDasharray="3 2" />
+        <rect x="4" y="4" width="8" height="4" fill="#C59B2730" stroke="#C59B27" strokeWidth="0.8" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    id: 'boundary-package',
+    kind: 'Package',
+    name: 'Package Folder',
+    badge: 'PACKAGE',
+    badgeColor: '#1E293B',
+    description: 'Canonical UML hanging folder notation with top-left protruding tab',
+    iconSvg: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E293B" strokeWidth="1.6">
+        <path d="M 2 7 L 10 7 L 12 9 L 22 9 L 22 21 L 2 21 Z" />
+        <path d="M 2 9 L 22 9" />
+      </svg>
+    ),
+  },
+];
+
+export interface StencilDrawerProps {
   archetype?: string;
-  onAddNode: (kind: AimOntologyKind) => void;
+  onAddNode: (kind: AimOntologyKind, customData?: Partial<RaidNodeData>) => void;
+  onAddBoundary?: (kind: 'Class' | 'Package', name: string) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
 
 export const StencilDrawer: React.FC<StencilDrawerProps> = ({
   onAddNode,
+  onAddBoundary,
   archetype = '',
   collapsed,
   onToggleCollapse,
 }) => {
-  const [hoveredKind, setHoveredKind] = useState<AimOntologyKind | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const items = getPaletteItemsForArchetype(archetype);
 
-  const handleDragStart = (e: React.DragEvent, kind: AimOntologyKind) => {
-    e.dataTransfer.setData('application/aoaim-kind', kind);
-    e.dataTransfer.setData('text/plain', kind);
+  const handleDragStart = (e: React.DragEvent, item: RaidPaletteItem) => {
+    if (item.isBoundary) {
+      e.dataTransfer.setData('application/aim-boundary', item.boundaryKind ?? 'Class');
+      e.dataTransfer.setData('text/plain', item.boundaryKind ?? 'Class');
+    } else if (item.kind) {
+      e.dataTransfer.setData('application/aoaim-kind', item.kind);
+      e.dataTransfer.setData('application/aim-stencil', item.kind);
+      if (item.unbound) {
+        e.dataTransfer.setData('application/aim-unbound', 'true');
+      }
+      if (item.customData) {
+        e.dataTransfer.setData('application/aim-custom-data', JSON.stringify(item.customData));
+      }
+      e.dataTransfer.setData('text/plain', item.kind);
+    }
     e.dataTransfer.effectAllowed = 'copy';
+  };
+
+  const handleClickItem = (item: RaidPaletteItem) => {
+    if (item.isBoundary) {
+      const defaultName = item.boundaryKind === 'Package' ? 'Namespace' : 'DomainClass';
+      onAddBoundary?.(item.boundaryKind ?? 'Class', defaultName);
+    } else if (item.kind) {
+      const customData: Record<string, any> = { ...(item.customData ?? {}) };
+      if (item.unbound) {
+        customData.unbound = true;
+        customData.displayName = `[${item.name.replace(/[\[\]]/g, '')}]`;
+      }
+      onAddNode(item.kind, customData as Partial<RaidNodeData>);
+    }
   };
 
   if (collapsed) {
@@ -136,7 +222,7 @@ export const StencilDrawer: React.FC<StencilDrawerProps> = ({
           flexDirection: 'column',
           alignItems: 'center',
           padding: '12px 0',
-          gap: 12,
+          gap: 8,
           userSelect: 'none',
         }}
       >
@@ -148,14 +234,14 @@ export const StencilDrawer: React.FC<StencilDrawerProps> = ({
         >
           ▶
         </button>
-        <div style={{ width: 24, height: 1, background: '#E2E8F0' }} />
-        {AOAIM_STENCILS.filter(s => isNodeAllowedInDiagram(s, archetype)).map((s) => (
+        <div style={{ width: 24, height: 1, background: '#E2E8F0', margin: '2px 0' }} />
+        {items.map((item) => (
           <div
-            key={s.kind}
+            key={item.id}
             draggable
-            onDragStart={(e) => handleDragStart(e, s.kind)}
-            onClick={() => onAddNode(s.kind)}
-            title={`Drag or click to add ${s.name}`}
+            onDragStart={(e) => handleDragStart(e, item)}
+            onClick={() => handleClickItem(item)}
+            title={`${item.name} (${item.badge})\n${item.description}\nDrag or click to insert`}
             style={{
               cursor: 'grab',
               padding: 6,
@@ -165,8 +251,14 @@ export const StencilDrawer: React.FC<StencilDrawerProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#F1F5F9';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
           >
-            {s.iconSvg}
+            {item.iconSvg}
           </div>
         ))}
       </aside>
@@ -236,22 +328,22 @@ export const StencilDrawer: React.FC<StencilDrawerProps> = ({
           gap: 10,
         }}
       >
-        {AOAIM_STENCILS.filter(s => isNodeAllowedInDiagram(s, archetype)).map((s) => {
-          const isHovered = hoveredKind === s.kind;
+        {items.map((item) => {
+          const isHovered = hoveredId === item.id;
           return (
             <div
-              key={s.kind}
+              key={item.id}
               draggable
-              onDragStart={(e) => handleDragStart(e, s.kind)}
-              onMouseEnter={() => setHoveredKind(s.kind)}
-              onMouseLeave={() => setHoveredKind(null)}
+              onDragStart={(e) => handleDragStart(e, item)}
+              onMouseEnter={() => setHoveredId(item.id)}
+              onMouseLeave={() => setHoveredId(null)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '10px 12px',
                 borderRadius: 8,
-                border: `1px solid ${isHovered ? s.badgeColor : '#E2E8F0'}`,
+                border: `1px solid ${isHovered ? item.badgeColor : '#E2E8F0'}`,
                 background: isHovered ? '#F8FAFC' : '#FFFFFF',
                 boxShadow: isHovered
                   ? '0 4px 12px rgba(0, 0, 0, 0.05)'
@@ -272,12 +364,12 @@ export const StencilDrawer: React.FC<StencilDrawerProps> = ({
                     justifyContent: 'center',
                   }}
                 >
-                  {s.iconSvg}
+                  {item.iconSvg}
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#1E293B' }}>
-                      {s.name}
+                      {item.name}
                     </span>
                     <span
                       style={{
@@ -285,15 +377,15 @@ export const StencilDrawer: React.FC<StencilDrawerProps> = ({
                         fontSize: 9,
                         fontWeight: 700,
                         borderRadius: 3,
-                        background: `${s.badgeColor}15`,
-                        color: s.badgeColor,
+                        background: `${item.badgeColor}15`,
+                        color: item.badgeColor,
                       }}
                     >
-                      {s.badge}
+                      {item.badge}
                     </span>
                   </div>
                   <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, maxWidth: 140 }}>
-                    {s.description}
+                    {item.description}
                   </div>
                 </div>
               </div>
@@ -302,9 +394,9 @@ export const StencilDrawer: React.FC<StencilDrawerProps> = ({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onAddNode(s.kind);
+                  handleClickItem(item);
                 }}
-                title={`Add ${s.name} to canvas`}
+                title={`Add ${item.name} to canvas`}
                 style={{
                   width: 24,
                   height: 24,

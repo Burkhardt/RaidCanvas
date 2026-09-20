@@ -206,6 +206,9 @@ importers:
       '@antv/x6-plugin-history':
         specifier: ^2.2.4
         version: 2.2.4(@antv/x6@2.19.2)
+      '@antv/x6-plugin-transform':
+        specifier: ^2.1.8
+        version: 2.1.8(@antv/x6@2.19.2)
     devDependencies:
       '@types/jsdom':
         specifier: ^30.0.0
@@ -242,6 +245,11 @@ packages:
 
   '@antv/x6-plugin-history@2.2.4':
     resolution: {integrity: sha512-9gHHvEW4Fla+1hxUV49zNgJyIMoV9CjVM52MrFgAJcvyRn1Kvxz4MfxiKlG+DEZUs+/zvfjl9pS6gJOd8laRkg==}
+    peerDependencies:
+      '@antv/x6': ^2.x
+
+  '@antv/x6-plugin-transform@2.1.8':
+    resolution: {integrity: sha512-GvJuiJ4BKp0H7+qx3R1I+Vzbw5gXp9+oByXo/WyVxE3urOC7LC5sqnaDfIjyYMN6ROLPYPZraLSeSyYBgMgcDw==}
     peerDependencies:
       '@antv/x6': ^2.x
 
@@ -1178,6 +1186,10 @@ snapshots:
   '@antv/x6-geometry@2.0.5': {}
 
   '@antv/x6-plugin-history@2.2.4(@antv/x6@2.19.2)':
+    dependencies:
+      '@antv/x6': 2.19.2
+
+  '@antv/x6-plugin-transform@2.1.8(@antv/x6@2.19.2)':
     dependencies:
       '@antv/x6': 2.19.2
 

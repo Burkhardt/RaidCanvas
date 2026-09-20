@@ -1,26 +1,38 @@
 import React from 'react';
-import type { AimOntologyKind, AimEdgeKind, RaidNodeData, RaidEdgeData } from '@dr2rai/raid-canvas';
+import {
+  computeExpressionPillColors,
+  type AimOntologyKind,
+  type AimEdgeKind,
+  type RaidNodeData,
+  type RaidEdgeData,
+  type RaidBoundaryData,
+} from '@dr2rai/raid-canvas';
 
 export interface SelectedEntityData {
   id: string;
-  type: 'node' | 'edge';
+  type: 'node' | 'edge' | 'boundary';
   nodeData?: Partial<RaidNodeData>;
   edgeData?: Partial<RaidEdgeData>;
+  boundaryData?: Partial<RaidBoundaryData>;
 }
 
 interface PropertyInspectorProps {
+  archetype?: string;
   selection: SelectedEntityData | null;
   onUpdateNode: (id: string, updates: Partial<RaidNodeData>) => void;
   onUpdateEdge: (id: string, updates: Partial<RaidEdgeData>) => void;
+  onUpdateBoundary?: (id: string, updates: Partial<RaidBoundaryData>) => void;
   onDeleteSelected: () => void;
   onAwakenDuality?: (id: string) => void;
   onNavigatePortal?: (href: string) => void;
 }
 
 export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
+  archetype = '',
   selection,
   onUpdateNode,
   onUpdateEdge,
+  onUpdateBoundary,
   onDeleteSelected,
   onAwakenDuality,
   onNavigatePortal,
@@ -37,16 +49,19 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
     );
   }
 
+  const isBoundary = selection.type === 'boundary';
   const isNode = selection.type === 'node';
+  const isEdge = selection.type === 'edge';
   const node = selection.nodeData;
   const edge = selection.edgeData;
+  const boundary = selection.boundaryData;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, userSelect: 'none' }}>
       {/* Title & Type Badge */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#F8FAFC' }}>
-          {isNode ? (node?.kind === 'rf' ? 'RoleFiller' : node?.kind === 'rol' ? 'Role' : 'Node Properties') : 'Edge Properties'}
+          {isBoundary ? `${boundary?.kind ?? 'Class'} Boundary` : isNode ? (node?.kind === 'rf' ? 'RoleFiller' : node?.kind === 'rol' ? 'Role' : 'Node Properties') : 'Edge Properties'}
         </span>
         <span
           style={{
@@ -54,11 +69,11 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
             fontSize: 10,
             fontWeight: 700,
             borderRadius: 4,
-            background: isNode ? '#2563EB20' : '#10B98120',
-            color: isNode ? '#38BDF8' : '#34D399',
+            background: isBoundary ? '#C59B2720' : (isNode ? '#2563EB20' : '#10B98120'),
+            color: isBoundary ? '#FBBF24' : (isNode ? '#38BDF8' : '#34D399'),
           }}
         >
-          {isNode ? node?.kind?.toUpperCase() ?? 'NODE' : edge?.directed === false ? 'AIM-EDGE' : 'AIM-ARROW'}
+          {isBoundary ? (boundary?.kind ?? 'CLASS').toUpperCase() : isNode ? node?.kind?.toUpperCase() ?? 'NODE' : edge?.directed === false ? 'AIM-EDGE' : 'AIM-ARROW'}
         </span>
       </div>
 
@@ -72,6 +87,230 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
           style={{ ...inputStyle, background: '#1E293B', color: '#94A3B8', cursor: 'not-allowed' }}
         />
       </div>
+
+      {/* Boundary Inspector Form */}
+      {isBoundary && boundary && (
+        <>
+          <div>
+            <label style={labelStyle}>Boundary Type</label>
+            <select
+              value={boundary.kind ?? 'Class'}
+              onChange={(e) => onUpdateBoundary?.(selection.id, { kind: e.target.value as 'Class' | 'Package' })}
+              style={selectStyle}
+            >
+              <option value="Class">Class Scope (aim-boundary-class, Inset Frame)</option>
+              <option value="Package">Package Namespace (aim-boundary-package, Folder Tab)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Scope Name</label>
+            <input
+              type="text"
+              value={boundary.name ?? ''}
+              onChange={(e) => onUpdateBoundary?.(selection.id, { name: e.target.value })}
+              style={inputStyle}
+              placeholder="e.g. Contract or Meeting"
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Package Namespace (optional)</label>
+            <input
+              type="text"
+              value={boundary.package ?? ''}
+              onChange={(e) => onUpdateBoundary?.(selection.id, { package: e.target.value })}
+              style={inputStyle}
+              placeholder="e.g. Commercial"
+            />
+          </div>
+
+          {/* Ontological Deep Link & Portuguese Bicolor Duality (Class Browser Portal) */}
+          <div style={{ padding: '10px 12px', background: boundary.href ? '#064E3B20' : '#1E293B60', border: `1px solid ${boundary.href ? '#10B98150' : '#334155'}`, borderRadius: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Class Browser Link (aim-href)</label>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '1px 6px',
+                  borderRadius: 3,
+                  background: boundary.href ? '#10B98130' : '#47556940',
+                  color: boundary.href ? '#34D399' : '#94A3B8',
+                }}
+              >
+                {boundary.href ? '🟢 DUALITY ACTIVE' : '⚪ MONOLITHIC'}
+              </span>
+            </div>
+
+            <input
+              type="text"
+              value={boundary.href ?? ''}
+              onChange={(e) => onUpdateBoundary?.(selection.id, { href: e.target.value })}
+              style={inputStyle}
+              placeholder="e.g. /classes?select=Contract"
+            />
+
+            {boundary.href && boundary.href.trim().length > 0 ? (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 10, color: '#A7F3D0', lineHeight: 1.4, marginBottom: 8 }}>
+                  <strong>Dynabook 2-Tap Model:</strong><br />
+                  • <em>Tap 1:</em> Awakens Duality (Gold Seam &amp; Green Door).<br />
+                  • <em>Tap 2 (Left):</em> Inspects Class in Inspector.<br />
+                  • <em>Tap 2 (Right / ›):</em> Steps through to Class Browser.
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => onAwakenDuality?.(selection.id)}
+                    style={{
+                      flex: 1,
+                      padding: '5px 8px',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      background: '#F59E0B25',
+                      color: '#FBBF24',
+                      border: '1px solid #F59E0B60',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ⚡ Awaken Duality
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onNavigatePortal?.(boundary.href!)}
+                    style={{
+                      flex: 1,
+                      padding: '5px 8px',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      background: '#10B98130',
+                      color: '#6EE7B7',
+                      border: '1px solid #10B98160',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🚪 Class Browser
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const generatedHref = `/classes?select=${encodeURIComponent(boundary.name || boundary.id || 'Contract')}`;
+                    onUpdateBoundary?.(selection.id, { href: generatedHref });
+                    setTimeout(() => {
+                      onAwakenDuality?.(selection.id);
+                    }, 50);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: '#10B98125',
+                    color: '#34D399',
+                    border: '1px solid #10B98150',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✨ Enable Class Duality
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Spatial Bounds */}
+          <div style={{ background: '#1E293B', padding: '10px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+            <div style={{ fontWeight: 600, color: '#E2E8F0', fontSize: 11, marginBottom: 8 }}>
+              Spatial Geometry &amp; Bounds:
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div>
+                <label style={{ ...labelStyle, fontSize: 10 }}>Width (px)</label>
+                <input
+                  type="number"
+                  value={boundary.bounds?.width ?? 320}
+                  onChange={(e) => onUpdateBoundary?.(selection.id, {
+                    bounds: { ...boundary.bounds!, width: Math.max(120, parseInt(e.target.value) || 120) }
+                  })}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={{ ...labelStyle, fontSize: 10 }}>Height (px)</label>
+                <input
+                  type="number"
+                  value={boundary.bounds?.height ?? 220}
+                  onChange={(e) => onUpdateBoundary?.(selection.id, {
+                    bounds: { ...boundary.bounds!, height: Math.max(80, parseInt(e.target.value) || 80) }
+                  })}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={{ ...labelStyle, fontSize: 10 }}>Position X</label>
+                <input
+                  type="number"
+                  value={boundary.bounds?.x ?? 0}
+                  onChange={(e) => onUpdateBoundary?.(selection.id, {
+                    bounds: { ...boundary.bounds!, x: parseInt(e.target.value) || 0 }
+                  })}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={{ ...labelStyle, fontSize: 10 }}>Position Y</label>
+                <input
+                  type="number"
+                  value={boundary.bounds?.y ?? 0}
+                  onChange={(e) => onUpdateBoundary?.(selection.id, {
+                    bounds: { ...boundary.bounds!, y: parseInt(e.target.value) || 0 }
+                  })}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ background: '#1E293B', padding: '10px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontWeight: 600, color: '#E2E8F0', fontSize: 11 }}>Enclosed Entities:</span>
+              <span style={{ fontWeight: 700, color: '#38BDF8', fontSize: 11 }}>
+                {boundary.elementIds?.length ?? 0}
+              </span>
+            </div>
+            {boundary.elementIds && boundary.elementIds.length > 0 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {boundary.elementIds.map((elemId) => (
+                  <span
+                    key={elemId}
+                    style={{
+                      background: '#0F172A',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      border: '1px solid #334155',
+                      fontSize: 10,
+                      color: '#94A3B8',
+                    }}
+                  >
+                    {elemId}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: 10, color: '#64748B' }}>
+                Drag UseCases or objects inside this box to contain them.
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {isNode && node && (
         <>
@@ -399,10 +638,62 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
               </div>
             </div>
           )}
+
+          {/* Activity Preconditions & Postconditions (OneActivity Diagram semantics; prohibited in OneUseCaseDiagram) */}
+          {node.kind === 'act' && !archetype.toLowerCase().includes('usecase') && (
+            <div style={{ background: '#1E293B', padding: '10px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontWeight: 600, color: '#E2E8F0', fontSize: 11 }}>Activity Conditions</span>
+                <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 3, background: '#10B98125', color: '#34D399' }}>
+                  ONE-ACTIVITY
+                </span>
+              </div>
+
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ ...labelStyle, fontSize: 10 }}>Preconditions (1 per line)</label>
+                <textarea
+                  rows={2}
+                  value={
+                    Array.isArray(node.properties?.preconditions)
+                      ? (node.properties?.preconditions as string[]).join('\n')
+                      : (typeof node.properties?.preconditions === 'string' ? node.properties.preconditions : '')
+                  }
+                  onChange={(e) => {
+                    const lines = e.target.value.split('\n').filter((l) => l.trim().length > 0);
+                    onUpdateNode(selection.id, {
+                      properties: { ...node.properties, preconditions: lines },
+                    });
+                  }}
+                  style={textareaStyle}
+                  placeholder="e.g. Customer != null&#10;Contract.State == Draft"
+                />
+              </div>
+
+              <div>
+                <label style={{ ...labelStyle, fontSize: 10 }}>Postconditions / DoD (1 per line)</label>
+                <textarea
+                  rows={2}
+                  value={
+                    Array.isArray(node.properties?.postconditions)
+                      ? (node.properties?.postconditions as string[]).join('\n')
+                      : (typeof node.properties?.postconditions === 'string' ? node.properties.postconditions : '')
+                  }
+                  onChange={(e) => {
+                    const lines = e.target.value.split('\n').filter((l) => l.trim().length > 0);
+                    onUpdateNode(selection.id, {
+                      properties: { ...node.properties, postconditions: lines },
+                    });
+                  }}
+                  style={textareaStyle}
+                  placeholder="e.g. Contract.State == Closed"
+                />
+              </div>
+            </div>
+          )}
         </>
       )}
 
-      {!isNode && edge && (
+      {isEdge && edge && (
         <>
           {/* Relationship Kind */}
           <div>
@@ -548,6 +839,131 @@ export const PropertyInspector: React.FC<PropertyInspectorProps> = ({
                 «extends»
               </button>
             </div>
+          </div>
+
+          {/* Edge AST Expression & Capsule Color */}
+          <div style={{ background: '#1E293B', padding: '10px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>AST Infix Expression (aim-expression)</label>
+              {edge.expression && edge.expression.trim().length > 0 ? (
+                <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: '#10B98125', color: '#34D399' }}>
+                  CAPSULE ACTIVE
+                </span>
+              ) : (
+                <span style={{ fontSize: 9, color: '#64748B' }}>OPTIONAL</span>
+              )}
+            </div>
+
+            <input
+              type="text"
+              value={edge.expression ?? ''}
+              onChange={(e) => onUpdateEdge(selection.id, { expression: e.target.value })}
+              style={{ ...inputStyle, fontFamily: '"JetBrains Mono", Consolas, monospace' }}
+              placeholder="e.g. Customer != null or Status := Closed"
+            />
+
+            {/* Expression Color Selector: Cascais Red, Cascais Green, Cascais Anthracite */}
+            <div style={{ marginTop: 8 }}>
+              <span style={{ fontSize: 10, color: '#94A3B8', display: 'block', marginBottom: 4 }}>
+                Capsule Color (Casçais Palette):
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
+                {[
+                  { id: 'green', label: '🟢 Green', color: '#10B981', desc: 'Cascais Green (#10B981)' },
+                  { id: 'red', label: '🔴 Red', color: '#EF4444', desc: 'Cascais Red (#EF4444)' },
+                  { id: 'anthracite', label: '⚫ Anthracite', color: '#1F2937', desc: 'Cascais Anthracite (#1F2937)' },
+                  { id: 'auto', label: '⚪ Auto', color: '#64748B', desc: 'Default / Evaluated state' },
+                ].map((opt) => {
+                  const active =
+                    opt.id === 'auto'
+                      ? !edge.expressionColor || edge.expressionColor === 'auto'
+                      : edge.expressionColor?.toLowerCase() === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      title={opt.desc}
+                      onClick={() =>
+                        onUpdateEdge(selection.id, {
+                          expressionColor: opt.id === 'auto' ? undefined : opt.id,
+                        })
+                      }
+                      style={{
+                        ...chipStyle,
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        fontSize: 10,
+                        padding: '4px 2px',
+                        fontWeight: active ? 700 : 500,
+                        borderColor: active ? (opt.id === 'anthracite' ? '#94A3B8' : opt.color) : '#334155',
+                        background: active ? (opt.id === 'anthracite' ? '#334155' : `${opt.color}25`) : '#0F172A',
+                        color: active ? (opt.id === 'anthracite' ? '#F8FAFC' : opt.color) : '#94A3B8',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quick-Pick Expression Snippets */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+              {[
+                'Customer != null',
+                'Meeting.Status == "Scheduled"',
+                'Contract.State == Draft',
+              ].map((expr) => (
+                <button
+                  key={expr}
+                  type="button"
+                  onClick={() => onUpdateEdge(selection.id, { expression: expr })}
+                  style={{
+                    ...chipStyle,
+                    fontSize: 9,
+                    padding: '2px 6px',
+                    color: '#CBD5E1',
+                    background: '#0F172A',
+                  }}
+                >
+                  {expr}
+                </button>
+              ))}
+            </div>
+
+            {/* Live Expression Capsule Preview */}
+            {edge.expression && edge.expression.trim().length > 0 && (
+              <div style={{ marginTop: 10, padding: '8px', background: '#0F172A', borderRadius: 4, border: '1px solid #334155' }}>
+                <span style={{ fontSize: 9, color: '#64748B', display: 'block', marginBottom: 4 }}>
+                  Midpoint Capsule Preview:
+                </span>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  {(() => {
+                    const { pillBg, pillBorder, pillText } = computeExpressionPillColors(
+                      edge.expressionColor,
+                      edge.satisfied,
+                    );
+                    return (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '3px 10px',
+                          borderRadius: 10,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                          background: pillBg,
+                          color: pillText,
+                          border: `1px solid ${pillBorder}`,
+                        }}
+                      >
+                        {edge.expression}
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cardinality Specifications */}

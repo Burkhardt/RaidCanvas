@@ -17,6 +17,7 @@ import type {
   AimRoutingMode,
   RaidNodeData,
   RaidEdgeData,
+  RaidBoundaryData,
   OrthogonalPortId,
   Bounds,
 } from './types.js';
@@ -1114,6 +1115,240 @@ export function registerAimShapes(): void {
     },
   });
 
+  // 8a. AimBoundaryClass ('aim-boundary-class', 'aim-boundary') — Class Context Boundary Box with inset label & Duality
+  Shape.Rect.define({
+    shape: 'aim-boundary-class',
+    overwrite: true,
+    width: 320,
+    height: 220,
+    markup: [
+      {
+        tagName: 'rect',
+        selector: 'body',
+      },
+      {
+        tagName: 'path',
+        selector: 'door',
+      },
+      {
+        tagName: 'line',
+        selector: 'seam',
+      },
+      {
+        tagName: 'rect',
+        selector: 'headerBg',
+      },
+      {
+        tagName: 'text',
+        selector: 'headerText',
+      },
+      {
+        tagName: 'text',
+        selector: 'chevron',
+      },
+    ],
+    attrs: {
+      body: {
+        fill: 'rgba(248, 250, 252, 0.65)',
+        stroke: '#C59B27',
+        strokeWidth: 1.5,
+        strokeDasharray: '6,4',
+        rx: 8,
+        ry: 8,
+        class: 'aim-boundary aim-boundary-class',
+      },
+      headerBg: {
+        display: 'none',
+        fill: 'none',
+        stroke: 'none',
+        class: 'aim-boundary-header-bg',
+      },
+      headerText: {
+        text: 'Class: Scope',
+        fill: '#1F2937',
+        fontSize: 12,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'start',
+        textVerticalAnchor: 'middle',
+        refX: 14,
+        refY: 18,
+        class: 'aim-boundary-header-text',
+      },
+      door: {
+        d: '',
+        display: 'none',
+        fill: 'rgba(16, 185, 129, 0.15)',
+        class: 'aim-portal-door',
+      },
+      seam: {
+        display: 'none',
+        stroke: '#C59B27',
+        strokeWidth: 1.5,
+        class: 'aim-portal-seam',
+      },
+      chevron: {
+        text: '›',
+        display: 'none',
+        fill: 'rgba(16, 185, 129, 0.85)',
+        fontSize: 18,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        refX: 1,
+        refDx: -20,
+        refY: 20,
+        class: 'aim-portal-chevron',
+      },
+    },
+  });
+
+  // Default aim-boundary alias
+  Shape.Rect.define({
+    shape: 'aim-boundary',
+    overwrite: true,
+    width: 320,
+    height: 220,
+    markup: [
+      {
+        tagName: 'rect',
+        selector: 'body',
+      },
+      {
+        tagName: 'path',
+        selector: 'door',
+      },
+      {
+        tagName: 'line',
+        selector: 'seam',
+      },
+      {
+        tagName: 'rect',
+        selector: 'headerBg',
+      },
+      {
+        tagName: 'text',
+        selector: 'headerText',
+      },
+      {
+        tagName: 'text',
+        selector: 'chevron',
+      },
+    ],
+    attrs: {
+      body: {
+        fill: 'rgba(248, 250, 252, 0.65)',
+        stroke: '#C59B27',
+        strokeWidth: 1.5,
+        strokeDasharray: '6,4',
+        rx: 8,
+        ry: 8,
+        class: 'aim-boundary',
+      },
+      headerBg: {
+        display: 'none',
+        fill: 'none',
+        stroke: 'none',
+        class: 'aim-boundary-header-bg',
+      },
+      headerText: {
+        text: 'Class: Scope',
+        fill: '#1F2937',
+        fontSize: 12,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'start',
+        textVerticalAnchor: 'middle',
+        refX: 14,
+        refY: 18,
+        class: 'aim-boundary-header-text',
+      },
+      door: {
+        d: '',
+        display: 'none',
+        fill: 'rgba(16, 185, 129, 0.15)',
+        class: 'aim-portal-door',
+      },
+      seam: {
+        display: 'none',
+        stroke: '#C59B27',
+        strokeWidth: 1.5,
+        class: 'aim-portal-seam',
+      },
+      chevron: {
+        text: '›',
+        display: 'none',
+        fill: 'rgba(16, 185, 129, 0.85)',
+        fontSize: 18,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        refX: 1,
+        refDx: -20,
+        refY: 20,
+        class: 'aim-portal-chevron',
+      },
+    },
+  });
+
+  // 8b. AimBoundaryPackage ('aim-boundary-package') — UML Tabbed Folder notation per media_1789883224444.png
+  Shape.Rect.define({
+    shape: 'aim-boundary-package',
+    overwrite: true,
+    width: 340,
+    height: 240,
+    markup: [
+      {
+        tagName: 'path',
+        selector: 'folderTab',
+      },
+      {
+        tagName: 'rect',
+        selector: 'body',
+      },
+      {
+        tagName: 'text',
+        selector: 'headerText',
+      },
+    ],
+    attrs: {
+      body: {
+        fill: 'rgba(248, 250, 252, 0.70)',
+        stroke: '#1E293B',
+        strokeWidth: 1.5,
+        strokeDasharray: 'none',
+        rx: 6,
+        ry: 6,
+        refY: 26,
+        refWidth: '100%',
+        refHeight: '100%',
+        refHeight2: -26,
+        class: 'aim-boundary aim-boundary-package',
+      },
+      folderTab: {
+        d: 'M 0 26 L 0 6 A 6 6 0 0 1 6 0 L 140 0 L 162 26 Z',
+        fill: '#FFFFFF',
+        stroke: '#1E293B',
+        strokeWidth: 1.5,
+        class: 'aim-boundary-tab',
+      },
+      headerText: {
+        text: 'Package: Scope',
+        fill: '#1E293B',
+        fontSize: 11,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'start',
+        textVerticalAnchor: 'middle',
+        refX: 12,
+        refY: 14,
+        class: 'aim-boundary-header-text',
+      },
+    },
+  });
+
   shapesRegistered = true;
 }
 
@@ -1345,6 +1580,43 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
     };
   }
 
+  if ((data as any).kind === 'Class' || ((data as any).isBoundary && (data as any).kind !== 'Package')) {
+    const r = 8;
+    const pathD = `M ${midX} 0 H ${w - r} a ${r} ${r} 0 0 1 ${r} ${r} v ${h - 2 * r} a ${r} ${r} 0 0 1 -${r} ${r} H ${midX} Z`;
+    return {
+      door: {
+        d: pathD,
+        display: 'block',
+        fill: 'rgba(16, 185, 129, 0.15)',
+        class: 'aim-portal-door',
+      },
+      seam: {
+        x1: midX,
+        y1: 0,
+        x2: midX,
+        y2: h,
+        stroke: CascaisPalette.NetGold,
+        strokeWidth: 1.5,
+        display: 'block',
+        class: 'aim-portal-seam',
+      },
+      chevron: {
+        text: '›',
+        refX: 1,
+        refDx: -20,
+        refY: 20,
+        fill: 'rgba(16, 185, 129, 0.85)',
+        fontSize: 18,
+        fontWeight: 'bold',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textAnchor: 'middle',
+        textVerticalAnchor: 'middle',
+        display: 'block',
+        class: 'aim-portal-chevron',
+      },
+    };
+  }
+
   let pathD = `M ${midX} 0 H ${w} v ${h} H ${midX} Z`;
   if (data.kind === 'uc') {
     const rx = Math.round(w / 2);
@@ -1394,7 +1666,7 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
  */
 export function setNodeDualityActive(node: Node, active: boolean): void {
   const data = node.getData<RaidNodeData>();
-  if (!data?.href) {
+  if (!data?.href && (data as any)?.kind !== 'Class') {
     return;
   }
   const opt = { ignoreHistory: true };
@@ -1419,6 +1691,7 @@ export function setNodeDualityActive(node: Node, active: boolean): void {
     if ((attrs.chevron as any).refX !== undefined) node.setAttrByPath('chevron/refX', (attrs.chevron as any).refX, opt);
     if ((attrs.chevron as any).refDx !== undefined) node.setAttrByPath('chevron/refDx', (attrs.chevron as any).refDx, opt);
     if ((attrs.chevron as any).refY !== undefined) node.setAttrByPath('chevron/refY', (attrs.chevron as any).refY, opt);
+    if ((attrs.chevron as any).fontSize !== undefined) node.setAttrByPath('chevron/fontSize', (attrs.chevron as any).fontSize, opt);
     if ((attrs.chevron as any).fill) node.setAttrByPath('chevron/fill', (attrs.chevron as any).fill, opt);
   }
   node.setAttrByPath('chevron/display', attrs.chevron.display, opt);
@@ -1779,6 +2052,104 @@ export function layoutDescription(data: RaidNodeData): RaidNodeData {
   return { ...data, bounds: { ...data.bounds, width: columns * 7.5 + 28, height: 68 + lines * 18 } };
 }
 
+/**
+ * Factory creating an AntV X6 Node model representing a UML Subject / Scope Boundary Box.
+ */
+export function createAimBoundary(data: RaidBoundaryData): Node.Metadata {
+  registerAimShapes();
+  const isPackage = (data.kind ?? '').toLowerCase() === 'package';
+  const shapeName = isPackage ? 'aim-boundary-package' : 'aim-boundary-class';
+  const primaryColor = isPackage ? '#1E293B' : '#C59B27';
+  const label = `${data.kind || (isPackage ? 'Package' : 'Class')}: ${data.name || data.id}`;
+
+  if (isPackage) {
+    const tabWidth = Math.max(140, Math.min(data.bounds.width * 0.55, label.length * 7.5 + 36));
+    const tabPath = `M 0 26 L 0 6 A 6 6 0 0 1 6 0 L ${tabWidth - 18} 0 L ${tabWidth} 26 Z`;
+
+    return {
+      id: data.id,
+      shape: shapeName,
+      zIndex: 0,
+      x: data.bounds.x,
+      y: data.bounds.y,
+      width: data.bounds.width,
+      height: data.bounds.height,
+      data: {
+        ...data,
+        displayName: data.name || data.id,
+        isBoundary: true,
+      },
+      attrs: {
+        body: {
+          stroke: primaryColor,
+        },
+        folderTab: {
+          d: tabPath,
+          fill: '#FFFFFF',
+          stroke: primaryColor,
+        },
+        headerText: {
+          text: label,
+          fill: '#1E293B',
+        },
+      },
+    };
+  }
+
+  const href = data.href || `/classes?select=${encodeURIComponent(data.name || data.id)}`;
+
+  return {
+    id: data.id,
+    shape: shapeName,
+    zIndex: 0,
+    x: data.bounds.x,
+    y: data.bounds.y,
+    width: data.bounds.width,
+    height: data.bounds.height,
+    data: {
+      ...data,
+      displayName: data.name || data.id,
+      href,
+      isBoundary: true,
+    },
+    attrs: {
+      body: {
+        stroke: primaryColor,
+        strokeDasharray: '6,4',
+      },
+      headerBg: {
+        display: 'none',
+        fill: 'none',
+        stroke: 'none',
+      },
+      headerText: {
+        text: label,
+        fill: '#1F2937',
+      },
+      door: {
+        d: '',
+        display: 'none',
+        fill: 'rgba(16, 185, 129, 0.15)',
+        class: 'aim-portal-door',
+      },
+      seam: {
+        display: 'none',
+        stroke: '#C59B27',
+        strokeWidth: 1.5,
+        class: 'aim-portal-seam',
+      },
+      chevron: {
+        text: '›',
+        display: 'none',
+        fill: 'rgba(16, 185, 129, 0.85)',
+        fontSize: 18,
+        fontWeight: 'bold',
+        class: 'aim-portal-chevron',
+      },
+    },
+  };
+}
+
 export function createAimNode(data: RaidNodeData): Node.Metadata {
   registerAimShapes();
   data = layoutDescription(data);
@@ -1815,9 +2186,13 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
     : (data.kind === 'per' || isFramelessPlc ? Math.max(boxWidth, 180) : boxWidth);
   const maxLineLength = computeMaxLineLength(availableTextWidth, fontSize);
 
+  const isUnbound = data.unbound === true;
+  const rawDisplayName = isUnbound && !data.displayName.startsWith('[') && !data.displayName.endsWith(']')
+    ? `[${data.displayName}]`
+    : data.displayName;
   const hasQualifier = Boolean(data.qualifier && data.qualifier.trim().length > 0);
   const wrappedQualifier = hasQualifier ? wrapAimText(data.qualifier!, maxLineLength) : '';
-  const wrappedName = wrapAimText(data.displayName, maxLineLength);
+  const wrappedName = wrapAimText(rawDisplayName, maxLineLength);
   const portalAttrs = computePortalDoorAttrs(data);
 
   const cardTextRefX = hasStereotypeIcon && data.kind !== 'plc' ? 0.62 : 0.5;
@@ -1828,8 +2203,9 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
   const labelText = wrappedName;
 
   // Archetype-specific customization
-  switch (data.kind) {
-    case 'uc': {
+  const resultMetadata: Node.Metadata = (() => {
+    switch (data.kind) {
+      case 'uc': {
       return {
         ...baseMetadata,
         attrs: {
@@ -2097,7 +2473,37 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
           ...stereoAttrs,
         },
       };
+    }
+  })();
+
+  if (isUnbound && resultMetadata.attrs) {
+    const attrs = resultMetadata.attrs as Record<string, any>;
+    attrs.body = {
+      ...(attrs.body ?? {}),
+      strokeDasharray: '5,4',
+      opacity: 0.70,
+    };
+    if (attrs.head) {
+      attrs.head.strokeDasharray = '5,4';
+      attrs.head.opacity = 0.70;
+    }
+    if (attrs.torso) {
+      attrs.torso.strokeDasharray = '5,4';
+      attrs.torso.opacity = 0.70;
+    }
+    if (attrs.iconStroke) {
+      attrs.iconStroke.strokeDasharray = '5,4';
+      attrs.iconStroke.opacity = 0.70;
+    }
+    if (attrs.label) {
+      attrs.label.fill = CascaisPalette.GraphiteMuted;
+    }
+    if (attrs.title) {
+      attrs.title.fill = CascaisPalette.GraphiteMuted;
+    }
   }
+
+  return resultMetadata;
 }
 
 /**
@@ -2126,6 +2532,77 @@ export function applyEdgeRouting(edge: Edge, routing: AimRoutingMode = 'manhatta
       edge.setConnector('rounded', { radius: 8 });
       break;
   }
+}
+
+/**
+ * Computed color styling for edge AST expression capsules.
+ */
+export interface ExpressionPillColors {
+  pillBg: string;
+  pillBorder: string;
+  pillText: string;
+}
+
+/**
+ * Computes background, border, and text colors for an edge AST expression capsule.
+ * Supports Cascais Green, Cascais Red, Cascais Anthracite, and semantic evaluation states.
+ */
+export function computeExpressionPillColors(
+  expressionColor?: string,
+  satisfied?: boolean | null,
+): ExpressionPillColors {
+  const normalized = expressionColor?.trim().toLowerCase();
+
+  if (normalized === 'green' || normalized === '#10b981') {
+    return {
+      pillBg: '#ECFDF5',
+      pillBorder: '#10B981',
+      pillText: '#065F46',
+    };
+  }
+
+  if (normalized === 'red' || normalized === '#ef4444') {
+    return {
+      pillBg: '#FEF2F2',
+      pillBorder: '#EF4444',
+      pillText: '#991B1B',
+    };
+  }
+
+  if (
+    normalized === 'anthracite' ||
+    normalized === 'antracit' ||
+    normalized === '#1f2937' ||
+    normalized === 'graphite'
+  ) {
+    return {
+      pillBg: '#F3F4F6',
+      pillBorder: '#1F2937',
+      pillText: '#111827',
+    };
+  }
+
+  // Fallback to satisfied semantic evaluation state if expressionColor is not specified
+  if (satisfied === true) {
+    return {
+      pillBg: '#ECFDF5',
+      pillBorder: '#A7F3D0',
+      pillText: '#065F46',
+    };
+  }
+  if (satisfied === false) {
+    return {
+      pillBg: '#FFFBEB',
+      pillBorder: '#FDE68A',
+      pillText: '#92400E',
+    };
+  }
+
+  return {
+    pillBg: '#F1F5F9',
+    pillBorder: '#CBD5E1',
+    pillText: '#475569',
+  };
 }
 
 /**
@@ -2173,20 +2650,72 @@ export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
       ...(data.targetPort !== undefined ? { port: data.targetPort } : {}),
     },
     vertices: (data.bendPoints ?? []).map((pt) => ({ x: pt.x, y: pt.y })),
-    labels: data.label
-      ? [
-          {
-            attrs: {
-              text: {
-                text: data.label,
-                fill: CascaisPalette.TextSecondary,
-                fontSize: 11,
-              },
+    labels: (() => {
+      const edgeLabels: any[] = [];
+      const hasExpression = Boolean(data.expression && data.expression.trim().length > 0);
+
+      if (data.label) {
+        edgeLabels.push({
+          attrs: {
+            text: {
+              text: data.label,
+              fill: CascaisPalette.TextSecondary,
+              fontSize: 11,
             },
-            position: 0.5,
           },
-        ]
-      : undefined,
+          position: hasExpression ? 0.25 : 0.5,
+        });
+      }
+
+      if (hasExpression) {
+        const { pillBg, pillBorder, pillText } = computeExpressionPillColors(
+          data.expressionColor,
+          data.satisfied,
+        );
+
+        edgeLabels.push({
+          markup: [
+            {
+              tagName: 'rect',
+              selector: 'pillBg',
+            },
+            {
+              tagName: 'text',
+              selector: 'pillText',
+            },
+          ],
+          attrs: {
+            pillBg: {
+              fill: pillBg,
+              stroke: pillBorder,
+              strokeWidth: 1,
+              rx: 8,
+              ry: 8,
+              ref: 'pillText',
+              refX: -6,
+              refY: -3,
+              refWidth2: 12,
+              refHeight2: 6,
+              cursor: 'pointer',
+              class: 'aim-expression-pill',
+            },
+            pillText: {
+              text: data.expression!,
+              fill: pillText,
+              fontSize: 10,
+              fontWeight: 'bold',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+              textAnchor: 'middle',
+              textVerticalAnchor: 'middle',
+              class: 'aim-expression-text',
+            },
+          },
+          position: 0.5,
+        });
+      }
+
+      return edgeLabels.length > 0 ? edgeLabels : undefined;
+    })(),
     attrs: {
       line: edgeAttrs,
     },

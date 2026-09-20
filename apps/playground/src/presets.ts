@@ -134,51 +134,125 @@ export const PRESETS: DiagramPreset[] = [
     id: 'one-use-case',
     name: 'OneUseCase Diagram',
     archetype: 'OneUseCaseDiagram',
-    description: 'Initiating role, core UseCase ellipse, and included verification UseCase with ontological deep links.',
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" id="SignContract_UCD" aim-archetype="OneUseCaseDiagram" aim-routing="manhattan">
+    description: 'Increment 2: Resizable Class boundary enclosure (Class: Contract) containing method UseCases (Close Contract, Sign Contract) inside, with cross-boundary initiating edge from Customer.',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 540" id="Contract_UCD" aim-archetype="OneUseCaseDiagram" aim-routing="manhattan">
   <defs>
     <marker id="arrow-classic" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#1F2937" />
     </marker>
-    <marker id="arrow-hollow" viewBox="0 0 12 12" refX="12" refY="6" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
-      <polygon points="0 0, 12 6, 0 12" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.5" />
-    </marker>
     <style>
       .aim-edge { fill: none; stroke: #1F2937; stroke-width: 1.5; }
       text { font-family: Inter, system-ui, sans-serif; }
-      .aim-act text, .aim-obj text { text-decoration: underline; }
     </style>
   </defs>
 
+  <!-- Boundaries Layer (zIndex: 0) -->
+  <g class="aim-boundaries-layer">
+    <!-- Resizable Class Scope Box: Class: Contract -->
+    <g aim-boundary="Class" id="boundary_contract" aim-name="Contract" aim-package="Commercial" aim-href="/classes?select=Contract" aim-elements="CloseContract_UC,SignContract_UC" transform="translate(240, 50)">
+      <rect width="440" height="360" rx="8" ry="8" fill="rgba(248, 250, 252, 0.65)" stroke="#C59B27" stroke-width="1.5" stroke-dasharray="6,4" />
+      <text class="aim-boundary-header-text" x="14" y="22" fill="#1F2937" font-size="12" font-weight="bold" font-family="Inter, system-ui, sans-serif">Class: Contract</text>
+    </g>
+  </g>
+
   <!-- Edges -->
   <g class="aim-edges-layer">
-    <g aim-edge="true" aim-id="edge-initiate" aim-edge-kind="association" aim-source="Customer_Actor" aim-target="SignContract_UC" aim-bends="140,130; 250,130">
-      <path d="M 140 130 L 250 130" class="aim-edge" marker-end="url(#arrow-classic)" />
-      <text x="195" y="122" font-size="11" fill="#4B5563" text-anchor="middle">«initiates»</text>
+    <!-- Cross-boundary initiating edge with AST expression capsule pill -->
+    <g aim-edge="true" aim-id="edge-initiate" aim-edge-kind="association" aim-source="Customer_Actor" aim-target="CloseContract_UC" aim-expression="Customer != null" aim-expression-color="green" aim-satisfied="true" aim-bends="140,150; 320,150">
+      <path d="M 140 150 L 320 150" class="aim-edge" stroke="#F59E0B" stroke-width="2" marker-end="url(#arrow-classic)" />
+      <text x="210" y="140" font-size="11" fill="#4B5563" text-anchor="middle">«initiates»</text>
     </g>
-    <g aim-edge="true" aim-id="edge-include" aim-edge-kind="dependency" aim-source="SignContract_UC" aim-target="VerifyIdentity_Act" aim-bends="390,130; 500,130">
-      <path d="M 390 130 L 500 130" class="aim-edge" stroke-dasharray="5,5" marker-end="url(#arrow-classic)" />
-      <text x="445" y="122" font-size="11" fill="#4B5563" text-anchor="middle">«includes»</text>
+    <!-- Internal UseCase dependency -->
+    <g aim-edge="true" aim-id="edge-include" aim-edge-kind="dependency" aim-source="CloseContract_UC" aim-target="SignContract_UC" aim-bends="400,195; 400,270">
+      <path d="M 400 195 L 400 270" class="aim-edge" stroke-dasharray="5,5" marker-end="url(#arrow-classic)" />
+      <text x="420" y="235" font-size="11" fill="#4B5563" text-anchor="start">«includes»</text>
     </g>
   </g>
 
   <!-- Nodes -->
   <g class="aim-nodes-layer">
-    <g aim-node="true" aim-id="Customer_Actor" aim-kind="per" aim-display-name="Customer" aim-href="/actors?select=7010" aim-stereotype="«initiates»" transform="translate(50, 85)">
+    <!-- External Actor: Customer -->
+    <g aim-node="true" aim-id="Customer_Actor" aim-kind="per" aim-display-name="Customer" aim-href="/actors?select=7010" aim-stereotype="Customer, initiates" transform="translate(50, 95)">
       <rect width="90" height="90" fill="none" stroke="none" />
       <path d="M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
       <circle cx="45" cy="22" r="8" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" />
       <text x="45" y="68" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Customer</text>
     </g>
 
-    <g aim-node="true" aim-id="SignContract_UC" aim-kind="uc" aim-display-name="Sign Contract" aim-href="/usecases?select=uc-sign-contract" transform="translate(250, 95)">
-      <ellipse cx="70" cy="35" rx="70" ry="35" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" />
-      <text x="70" y="35" font-size="13" font-weight="bold" fill="#111827" text-anchor="middle" dominant-baseline="central">Sign Contract</text>
+    <!-- Method UseCase 1: Close Contract (INSIDE Class: Contract) -->
+    <g aim-node="true" aim-id="CloseContract_UC" aim-kind="uc" aim-display-name="Close Contract" aim-boundary-id="boundary_contract" aim-href="/usecases?select=uc-close-contract" transform="translate(320, 115)">
+      <ellipse cx="80" cy="40" rx="80" ry="40" fill="#FFFFFF" stroke="#C59B27" stroke-width="2" />
+      <text x="80" y="44" font-size="13" font-weight="bold" fill="#111827" text-anchor="middle">Close Contract</text>
     </g>
 
-    <g aim-node="true" aim-id="VerifyIdentity_Act" aim-kind="uc" aim-display-name="Verify Identity" aim-href="/activities?activity=act-verify-id" transform="translate(500, 100)">
-      <rect width="150" height="60" rx="12" ry="12" fill="#FFFFFF" stroke="#EF4444" stroke-width="2" />
-      <text x="75" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" >Verify Identity</text>
+    <!-- Method UseCase 2: Sign Contract (INSIDE Class: Contract) -->
+    <g aim-node="true" aim-id="SignContract_UC" aim-kind="uc" aim-display-name="Sign Contract" aim-boundary-id="boundary_contract" aim-href="/usecases?select=uc-sign-contract" transform="translate(320, 270)">
+      <ellipse cx="80" cy="40" rx="80" ry="40" fill="#FFFFFF" stroke="#C59B27" stroke-width="2" />
+      <text x="80" y="44" font-size="13" font-weight="bold" fill="#111827" text-anchor="middle">Sign Contract</text>
+    </g>
+  </g>
+</svg>`,
+  },
+  {
+    id: 'one-activity',
+    name: 'OneActivity Diagram',
+    archetype: 'OneActivityDiagram',
+    description: 'Increment 2: OneActivity Diagram featuring Actor instance (Signer: Customer), Cascais red Activity (MyContract.CloseContract with underlined name and quiet UseCase name CloseContract on top), Object RoleFiller (Host), Precondition boolean expression edge, and Postcondition set expression edge.',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 540" id="Contract_OAD" aim-archetype="OneActivityDiagram" aim-routing="manhattan">
+  <defs>
+    <marker id="arrow-classic" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1F2937" />
+    </marker>
+    <style>
+      .aim-edge { fill: none; stroke: #1F2937; stroke-width: 1.5; }
+      text { font-family: Inter, system-ui, sans-serif; }
+    </style>
+  </defs>
+
+  <!-- Edges -->
+  <g class="aim-edges-layer">
+    <!-- Actor executes Activity -->
+    <g aim-edge="true" aim-id="edge-executes" aim-edge-kind="association" aim-source="Signer_Actor" aim-target="CloseContract_Act" aim-bends="180,155; 320,155">
+      <path d="M 180 155 L 320 155" class="aim-edge" stroke="#1F2937" stroke-width="1.5" marker-end="url(#arrow-classic)" />
+      <text x="250" y="145" font-size="11" fill="#4B5563" text-anchor="middle">«executes»</text>
+    </g>
+
+    <!-- Precondition boolean expression edge from Host Object to Activity -->
+    <g aim-edge="true" aim-id="edge-precondition" aim-edge-kind="association" aim-source="Host_Obj" aim-target="CloseContract_Act" aim-expression="Customer != null" aim-expression-color="green" aim-satisfied="true" aim-bends="250,330; 400,200">
+      <path d="M 250 330 L 400 200" class="aim-edge" stroke="#10B981" stroke-width="1.5" marker-end="url(#arrow-classic)" />
+      <text x="325" y="275" font-size="11" fill="#10B981" text-anchor="middle">«precondition»</text>
+    </g>
+
+    <!-- Postcondition condition/set expression edge from Activity to Host Object -->
+    <g aim-edge="true" aim-id="edge-postcondition" aim-edge-kind="association" aim-source="CloseContract_Act" aim-target="Host_Obj" aim-expression='Contract.State := "Closed"' aim-expression-color="red" aim-satisfied="false" aim-bends="450,200; 340,330">
+      <path d="M 450 200 L 340 330" class="aim-edge" stroke="#EF4444" stroke-width="1.5" marker-end="url(#arrow-classic)" />
+      <text x="410" y="275" font-size="11" fill="#EF4444" text-anchor="middle">«postcondition»</text>
+    </g>
+  </g>
+
+  <!-- Nodes -->
+  <g class="aim-nodes-layer">
+    <!-- Actor/Person Instance: Rolefiller name (Signer) underlined, Person name (Customer) quiet on top -->
+    <g aim-node="true" aim-id="Signer_Actor" aim-kind="per" aim-instance="true" aim-display-name="Signer" aim-qualifier="Customer" aim-href="/actors?select=Customer" transform="translate(60, 100)">
+      <rect width="120" height="110" fill="none" stroke="none" />
+      <path d="M 81 54 v -6 a 10 10 0 0 0 -10 -10 H 49 a 10 10 0 0 0 -10 10 v 6" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="60" cy="20" r="12" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2.2" />
+      <text x="60" y="66" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Customer</text>
+      <text x="60" y="84" font-size="12" font-weight="600" fill="#111827" text-anchor="middle" text-decoration="underline">Signer</text>
+    </g>
+
+    <!-- Activity: Cascais red rounded rectangle, Activity name (MyContract.CloseContract) underlined, UseCase name (CloseContract) quiet on top -->
+    <g aim-node="true" aim-id="CloseContract_Act" aim-kind="act" aim-instance="true" aim-display-name="MyContract.CloseContract" aim-qualifier="CloseContract" aim-href="/activities?activity=act-close-contract" transform="translate(320, 125)">
+      <rect width="210" height="65" rx="12" ry="12" fill="#FFFFFF" stroke="#EF4444" stroke-width="2" />
+      <text x="105" y="26" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">CloseContract</text>
+      <text x="105" y="46" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" text-decoration="underline">MyContract.CloseContract</text>
+    </g>
+
+    <!-- Object: RoleFiller (Host) -->
+    <g aim-node="true" aim-id="Host_Obj" aim-kind="obj" aim-instance="true" aim-display-name="Host" aim-qualifier="RoleFiller" aim-href="/objects?select=Host" transform="translate(240, 330)">
+      <rect width="140" height="60" rx="4" ry="4" fill="#FFFFFF" stroke="#10B981" stroke-width="1.8" stroke-dasharray="3 2" />
+      <text x="70" y="24" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">RoleFiller</text>
+      <text x="70" y="42" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" text-decoration="underline">Host</text>
     </g>
   </g>
 </svg>`,

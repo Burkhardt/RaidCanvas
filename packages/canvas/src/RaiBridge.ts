@@ -19,6 +19,7 @@ import {
 	type AimRoutingMode,
 	type RaidNodeData,
 	type RaidEdgeData,
+	type RaidBoundaryData,
 	type RaidMetamodel,
 	type SvgBendPoint,
 	type Bounds,
@@ -30,10 +31,12 @@ import {
 	wrapDescription,
 	createAimNode,
 	createAimEdge,
+	createAimBoundary,
 	configureAimGraph,
 	CascaisPalette,
 	wrapAimText,
 	computeMaxLineLength,
+	computeExpressionPillColors,
 } from './X6Shapes.js';
 import {
 	resolveStereotype,
@@ -106,10 +109,40 @@ export class RaiBridge {
 		const metamodel = projectRoleAttributes(this.extractMetamodel(svgSource, options));
 		this.diagramContexts.set(graph, { diagramId: metamodel.diagramId, archetype: metamodel.archetype, ...(metamodel.metadata ? { metadata: metamodel.metadata } : {}) });
 
+		// 0. Add all boundary nodes to graph at zIndex 0
+		if (metamodel.boundaries) {
+			for (const boundaryData of metamodel.boundaries) {
+				const boundaryMeta = createAimBoundary(boundaryData);
+				const boundaryNode = graph.addNode(boundaryMeta);
+				boundaryNode.setZIndex(0);
+			}
+		}
+
 		// 1. Add all nodes to graph
 		for (const nodeData of metamodel.nodes) {
 			const nodeMeta = createAimNode(nodeData);
-			graph.addNode(nodeMeta);
+			const node = graph.addNode(nodeMeta);
+			if (nodeData.boundaryId) {
+				const boundaryNode = graph.getCellById(nodeData.boundaryId);
+				if (boundaryNode && boundaryNode.isNode()) {
+					boundaryNode.addChild(node);
+				}
+			}
+		}
+
+		// 1b. Embed any additional children specified in boundary elementIds
+		if (metamodel.boundaries) {
+			for (const boundaryData of metamodel.boundaries) {
+				const boundaryNode = graph.getCellById(boundaryData.id);
+				if (boundaryNode && boundaryNode.isNode()) {
+					for (const elemId of boundaryData.elementIds) {
+						const childNode = graph.getCellById(elemId);
+						if (childNode && childNode.isNode() && !childNode.getParent()) {
+							boundaryNode.addChild(childNode);
+						}
+					}
+				}
+			}
 		}
 
 		// 2. Add all edges to graph
@@ -158,13 +191,48 @@ export class RaiBridge {
 	public metamodelFromGraph(graph: Graph): RaidMetamodel {
 		const nodes: RaidNodeData[] = [];
 		const edges: RaidEdgeData[] = [];
+		const boundaries: RaidBoundaryData[] = [];
 
-		// Extract nodes
+		// Extract nodes and boundaries
 		const x6Nodes = graph.getNodes();
 		for (const node of x6Nodes) {
 			const pos = node.getPosition();
 			const size = node.getSize();
-			const customData = (node.getData() ?? {}) as Partial<RaidNodeData>;
+			const customData = (node.getData() ?? {}) as Record<string, any>;
+
+			if (
+				node.shape === 'aim-boundary' ||
+				node.shape === 'aim-boundary-class' ||
+				node.shape === 'aim-boundary-package' ||
+				customData.isBoundary
+			) {
+				const children =
+					node.getChildren()?.filter((c) => c.isNode()).map((c) => String(c.id)) ??
+					(customData.elementIds ?? []);
+				const headerText = (node.getAttrByPath('headerText/text') as string) ?? '';
+				const rawName =
+					customData.name ??
+					headerText.replace(/^(Class|Package):\s*/, '').trim() ??
+					String(node.id);
+				const kind = customData.kind ?? (node.shape === 'aim-boundary-package' ? 'Package' : 'Class');
+
+				boundaries.push({
+					id: String(node.id),
+					kind,
+					name: rawName,
+					...(customData.package ? { package: customData.package } : {}),
+					...(customData.href ? { href: customData.href } : {}),
+					elementIds: Array.from(new Set(children)),
+					bounds: {
+						x: pos.x,
+						y: pos.y,
+						width: size.width,
+						height: size.height,
+					},
+					...(customData.properties ? { properties: customData.properties } : {}),
+				});
+				continue;
+			}
 
 			const id = node.id;
 			const kind = (customData.kind ?? this.kindFromShape(node.shape)) as AimOntologyKind;
@@ -176,6 +244,13 @@ export class RaiBridge {
 				node.getAttrByPath('title/textDecoration') === 'underline'
 					? true
 					: undefined);
+			const parentNode = node.getParent();
+			const boundaryId =
+				parentNode &&
+				(parentNode.shape?.startsWith('aim-boundary') ||
+					(parentNode.getData() as any)?.isBoundary)
+					? String(parentNode.id)
+					: (customData.boundaryId ?? undefined);
 
 			const nodeData: RaidNodeData = {
 				id,
@@ -183,6 +258,8 @@ export class RaiBridge {
 				displayName,
 				...(qualifier ? { qualifier } : {}),
 				...(isInstance !== undefined ? { instance: isInstance } : {}),
+				...(customData.unbound === true ? { unbound: true } : {}),
+				...(boundaryId ? { boundaryId } : {}),
 				...(customData.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
 				...(customData.namespace !== undefined ? { namespace: customData.namespace } : {}),
 				...(customData.description !== undefined ? { description: customData.description } : {}),
@@ -274,6 +351,10 @@ export class RaiBridge {
 				...(customData.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
 				...(customData.sourceCardinality !== undefined ? { sourceCardinality: customData.sourceCardinality } : {}),
 				...(customData.targetCardinality !== undefined ? { targetCardinality: customData.targetCardinality } : {}),
+				...(customData.expression !== undefined ? { expression: customData.expression } : {}),
+				...(customData.expressionColor !== undefined ? { expressionColor: customData.expressionColor } : {}),
+				...(customData.satisfied !== undefined ? { satisfied: customData.satisfied } : {}),
+				...(customData.ast !== undefined ? { ast: customData.ast } : {}),
 				bendPoints,
 				...(pathData !== undefined ? { pathData } : {}),
 			};
@@ -289,6 +370,7 @@ export class RaiBridge {
 			...this.diagramContexts.get(graph),
 			nodes,
 			edges,
+			...(boundaries.length > 0 ? { boundaries } : {}),
 			...(diagramRouting !== undefined ? { routing: diagramRouting } : {}),
 		};
 	}
@@ -458,12 +540,17 @@ export class RaiBridge {
 			const stereotype = el.getAttribute(AimSvgContract.ATTR_STEREOTYPE) ?? undefined;
 			const bounds = this.extractBounds(el, options.defaultNodeSize);
 
+			const unbound = el.getAttribute(AimSvgContract.ATTR_UNBOUND) === 'true' || undefined;
+			const boundaryId = el.getAttribute('aim-boundary-id') ?? undefined;
+
 			nodes.push({
 				id,
 				kind,
 				displayName,
 				...(qualifier !== undefined ? { qualifier } : {}),
 				...(isInstance !== undefined ? { instance: isInstance } : {}),
+				...(unbound ? { unbound: true } : {}),
+				...(boundaryId ? { boundaryId } : {}),
 				...(href !== undefined && href.trim().length > 0 ? { href: href.trim() } : {}),
 				...(stereotype !== undefined ? { stereotype } : {}),
 				...(el.getAttribute('aim-description') ? { description: JSON.parse(el.getAttribute('aim-description')!) } : {}),
@@ -473,6 +560,42 @@ export class RaiBridge {
 				...(el.getAttribute('aim-methods') ? { methods: JSON.parse(el.getAttribute('aim-methods')!) } : {}),
 				...(el.getAttribute('aim-properties') ? { properties: JSON.parse(el.getAttribute('aim-properties')!) } : {}),
 				...(el.getAttribute('aim-namespace') ? { namespace: el.getAttribute('aim-namespace')! } : {}),
+				bounds,
+			});
+		}
+
+		// 1b. Locate all boundary elements
+		const boundaryElements = Array.from(
+			svgRoot.querySelectorAll(AimSvgContract.SELECTOR_BOUNDARY),
+		);
+		const boundaries: RaidBoundaryData[] = [];
+
+		for (const el of boundaryElements) {
+			const id =
+				el.getAttribute(AimSvgContract.ATTR_ID) ??
+				el.getAttribute('id') ??
+				`boundary_${boundaries.length + 1}`;
+			const rawKind = el.getAttribute(AimSvgContract.ATTR_BOUNDARY);
+			const kind = rawKind && rawKind !== 'true' ? rawKind : (el.classList?.contains('aim-boundary-package') ? 'Package' : 'Class');
+			const name =
+				el.getAttribute(AimSvgContract.ATTR_BOUNDARY_NAME) ??
+				el.querySelector('.aim-boundary-header-text, text')?.textContent?.replace(/^(Class|Package):\s*/, '')?.trim() ??
+				id;
+			const pkg = el.getAttribute(AimSvgContract.ATTR_BOUNDARY_PACKAGE) ?? undefined;
+			const href = el.getAttribute(AimSvgContract.ATTR_HREF) ?? undefined;
+			const elementsAttr = el.getAttribute(AimSvgContract.ATTR_BOUNDARY_ELEMENTS);
+			const elementIds = elementsAttr
+				? elementsAttr.split(',').map((s) => s.trim()).filter(Boolean)
+				: [];
+			const bounds = this.extractBounds(el, { width: 320, height: 220 });
+
+			boundaries.push({
+				id,
+				kind,
+				name,
+				...(pkg ? { package: pkg } : {}),
+				...(href ? { href } : {}),
+				elementIds,
 				bounds,
 			});
 		}
@@ -499,6 +622,11 @@ export class RaiBridge {
 				el.getAttribute('aim-label') ??
 				el.querySelector('text')?.textContent?.trim() ??
 				undefined;
+
+			const expression = el.getAttribute(AimSvgContract.ATTR_EXPRESSION) ?? undefined;
+			const expressionColor = el.getAttribute(AimSvgContract.ATTR_EXPRESSION_COLOR) ?? undefined;
+			const satisfiedAttr = el.getAttribute(AimSvgContract.ATTR_SATISFIED);
+			const satisfied = satisfiedAttr === 'true' ? true : (satisfiedAttr === 'false' ? false : undefined);
 
 			let sourcePort = el.getAttribute(AimSvgContract.ATTR_SOURCE_PORT) ?? undefined;
 			let targetPort = el.getAttribute(AimSvgContract.ATTR_TARGET_PORT) ?? undefined;
@@ -570,6 +698,9 @@ export class RaiBridge {
 				...(targetPort !== undefined ? { targetPort } : {}),
 				...(routing !== undefined ? { routing } : {}),
 				...(label !== undefined ? { label } : {}),
+				...(expression !== undefined ? { expression } : {}),
+				...(expressionColor !== undefined ? { expressionColor } : {}),
+				...(satisfied !== undefined ? { satisfied } : {}),
 				...(sourceCardinality !== undefined ? { sourceCardinality } : {}),
 				...(targetCardinality !== undefined ? { targetCardinality } : {}),
 				directed: el.getAttribute('aim-directed') !== 'false',
@@ -588,6 +719,7 @@ export class RaiBridge {
 			archetype: svgRoot.getAttribute('aim-archetype') ?? 'AOAIMDiagram',
 			nodes,
 			edges,
+			...(boundaries.length > 0 ? { boundaries } : {}),
 			...(diagramRouting !== undefined ? { routing: diagramRouting } : {}),
 		};
 	}
@@ -647,7 +779,7 @@ export class RaiBridge {
 	public updateExistingSvg(
 		baseSvg: string,
 		model: RaidMetamodel,
-		_options: SerializationOptions,
+		_options: SerializationOptions = {},
 	): string {
 		if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
 			return this.generateFreshSvg(model, _options);
@@ -759,6 +891,13 @@ export class RaiBridge {
 				envMaxY = Math.max(envMaxY, node.bounds.y + node.bounds.height + padding);
 			}
 
+			for (const b of model.boundaries ?? []) {
+				envMinX = Math.min(envMinX, b.bounds.x - padding);
+				envMinY = Math.min(envMinY, b.bounds.y - padding);
+				envMaxX = Math.max(envMaxX, b.bounds.x + b.bounds.width + padding);
+				envMaxY = Math.max(envMaxY, b.bounds.y + b.bounds.height + padding);
+			}
+
 			for (const edge of model.edges) {
 				for (const bp of edge.bendPoints) {
 					envMinX = Math.min(envMinX, bp.x - padding);
@@ -840,6 +979,17 @@ export class RaiBridge {
 				el.removeAttribute(AimSvgContract.ATTR_STEREOTYPE);
 			}
 
+			if (node.unbound === true) {
+				el.setAttribute(AimSvgContract.ATTR_UNBOUND, 'true');
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_UNBOUND);
+			}
+			if (node.boundaryId) {
+				el.setAttribute('aim-boundary-id', node.boundaryId);
+			} else {
+				el.removeAttribute('aim-boundary-id');
+			}
+
 			for (const field of ["description", "descriptionWidth", "visibility", "attributes", "methods", "properties", "namespace"] as const) {
 				if (node[field] !== undefined) el.setAttribute(`aim-${field}`, field === 'namespace' ? String(node[field]) : JSON.stringify(node[field]));
 				else el.removeAttribute(`aim-${field}`);
@@ -861,6 +1011,115 @@ export class RaiBridge {
 
 			for (const child of Array.from(fragmentDoc.documentElement.childNodes)) {
 				el.appendChild(doc.importNode(child, true));
+			}
+		}
+
+		// Remove deleted boundaries
+		const existingBoundaryEls = Array.from(doc.querySelectorAll(AimSvgContract.SELECTOR_BOUNDARY));
+		for (const bEl of existingBoundaryEls) {
+			const id = bEl.getAttribute(AimSvgContract.ATTR_ID) ?? bEl.getAttribute('id');
+			if (id && !model.boundaries?.some((b) => b.id === id)) {
+				bEl.remove();
+			}
+		}
+
+		// Update or insert boundary boxes (Class context and Package scopes)
+		if (model.boundaries && model.boundaries.length > 0) {
+			for (const b of model.boundaries) {
+				let el = doc.querySelector(`[${AimSvgContract.ATTR_ID}="${b.id}"], [id="${b.id}"]`);
+				if (!el) {
+					el = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
+					if (nodesLayer && nodesLayer.parentNode) {
+						nodesLayer.parentNode.insertBefore(el, nodesLayer);
+					} else {
+						doc.documentElement.insertBefore(el, doc.documentElement.firstChild);
+					}
+				}
+
+				const isPackage = (b.kind ?? '').toLowerCase() === 'package';
+				const primaryColor = isPackage ? '#1E293B' : '#C59B27';
+				const label = `${b.kind || (isPackage ? 'Package' : 'Class')}: ${b.name || b.id}`;
+				const tabWidth = Math.max(80, label.length * 7.5 + 20);
+
+				el.setAttribute('transform', `translate(${b.bounds.x}, ${b.bounds.y})`);
+				el.setAttribute(AimSvgContract.ATTR_BOUNDARY, b.kind || (isPackage ? 'Package' : 'Class'));
+				el.setAttribute(AimSvgContract.ATTR_ID, b.id);
+				el.setAttribute(AimSvgContract.ATTR_BOUNDARY_NAME, b.name);
+				if (b.package) el.setAttribute(AimSvgContract.ATTR_BOUNDARY_PACKAGE, b.package);
+				if (b.href) {
+					el.setAttribute(AimSvgContract.ATTR_HREF, b.href);
+				} else {
+					el.removeAttribute(AimSvgContract.ATTR_HREF);
+				}
+				if (b.elementIds && b.elementIds.length > 0) {
+					el.setAttribute(AimSvgContract.ATTR_BOUNDARY_ELEMENTS, b.elementIds.join(','));
+				} else {
+					el.removeAttribute(AimSvgContract.ATTR_BOUNDARY_ELEMENTS);
+				}
+				el.setAttribute('class', `aim-boundary ${isPackage ? 'aim-boundary-package' : 'aim-boundary-class'}`);
+
+				while (el.firstChild) {
+					el.removeChild(el.firstChild);
+				}
+
+				if (isPackage) {
+					// UML Tabbed Folder: Protruding tab on top-left outside main rectangle per media_1789883224444.png
+					const tab = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+					tab.setAttribute('d', `M 0 26 L 0 6 A 6 6 0 0 1 6 0 L ${tabWidth - 18} 0 L ${tabWidth} 26 Z`);
+					tab.setAttribute('fill', '#FFFFFF');
+					tab.setAttribute('stroke', primaryColor);
+					tab.setAttribute('stroke-width', '1.5');
+					tab.setAttribute('class', 'aim-boundary-tab');
+					el.appendChild(tab);
+
+					const tabText = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
+					tabText.setAttribute('x', '12');
+					tabText.setAttribute('y', '17');
+					tabText.setAttribute('fill', primaryColor);
+					tabText.setAttribute('font-family', 'Inter, system-ui, sans-serif');
+					tabText.setAttribute('font-size', '11');
+					tabText.setAttribute('font-weight', 'bold');
+					tabText.setAttribute('class', 'aim-boundary-header-text');
+					tabText.textContent = label;
+					el.appendChild(tabText);
+
+					const body = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+					body.setAttribute('x', '0');
+					body.setAttribute('y', '26');
+					body.setAttribute('width', `${b.bounds.width}`);
+					body.setAttribute('height', `${Math.max(40, b.bounds.height - 26)}`);
+					body.setAttribute('rx', '6');
+					body.setAttribute('ry', '6');
+					body.setAttribute('fill', 'rgba(248, 250, 252, 0.70)');
+					body.setAttribute('stroke', primaryColor);
+					body.setAttribute('stroke-width', '1.5');
+					body.setAttribute('class', 'aim-boundary-body');
+					el.appendChild(body);
+				} else {
+					// UML Class / Subject Boundary: Rectangle with Anthracite name inset inside top-left (no gold badge)
+					const body = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+					body.setAttribute('width', `${b.bounds.width}`);
+					body.setAttribute('height', `${b.bounds.height}`);
+					body.setAttribute('rx', '8');
+					body.setAttribute('ry', '8');
+					body.setAttribute('fill', 'rgba(248, 250, 252, 0.65)');
+					body.setAttribute('stroke', primaryColor);
+					body.setAttribute('stroke-width', '1.5');
+					body.setAttribute('stroke-dasharray', '6,4');
+					body.setAttribute('class', 'aim-boundary-body');
+					el.appendChild(body);
+
+					const headerText = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
+					headerText.setAttribute('x', '14');
+					headerText.setAttribute('y', '22');
+					headerText.setAttribute('fill', '#1F2937');
+					headerText.setAttribute('font-family', 'Inter, system-ui, sans-serif');
+					headerText.setAttribute('font-size', '12');
+					headerText.setAttribute('font-weight', 'bold');
+					headerText.setAttribute('class', 'aim-boundary-header-text');
+					headerText.textContent = label;
+					el.appendChild(headerText);
+				}
 			}
 		}
 
@@ -959,33 +1218,74 @@ export class RaiBridge {
 			if (edge.directed === false) pathEl.removeAttribute('marker-end');
 			else pathEl.setAttribute('marker-end', markerEnd);
 
+			if (edge.expression !== undefined) {
+				el.setAttribute(AimSvgContract.ATTR_EXPRESSION, edge.expression);
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_EXPRESSION);
+			}
+			if (edge.expressionColor !== undefined) {
+				el.setAttribute(AimSvgContract.ATTR_EXPRESSION_COLOR, edge.expressionColor);
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_EXPRESSION_COLOR);
+			}
+			if (edge.satisfied !== undefined) {
+				el.setAttribute(AimSvgContract.ATTR_SATISFIED, String(edge.satisfied));
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_SATISFIED);
+			}
+
+			const midPoint =
+				edge.bendPoints.length > 0
+					? (edge.bendPoints[Math.floor(edge.bendPoints.length / 2)] ?? { x: 50, y: 50 })
+					: (() => {
+							const s = model.nodes.find((n) => n.id === edge.sourceId);
+							const t = model.nodes.find((n) => n.id === edge.targetId);
+							if (s && t) {
+								return {
+									x: Math.round((s.bounds.x + s.bounds.width / 2 + t.bounds.x + t.bounds.width / 2) / 2),
+									y: Math.round((s.bounds.y + s.bounds.height / 2 + t.bounds.y + t.bounds.height / 2) / 2),
+								};
+							}
+							return { x: 50, y: 50 };
+						})();
+
 			// Update or inject edge label
 			if (edge.label) {
-				let textEl = el.querySelector('text');
+				let textEl = el.querySelector('text.aim-edge-label') ?? el.querySelector('text');
 				if (!textEl) {
 					textEl = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
 					el.appendChild(textEl);
 				}
-				const midPoint =
-					edge.bendPoints.length > 0
-						? (edge.bendPoints[Math.floor(edge.bendPoints.length / 2)] ?? { x: 50, y: 50 })
-						: (() => {
-								const s = model.nodes.find((n) => n.id === edge.sourceId);
-								const t = model.nodes.find((n) => n.id === edge.targetId);
-								if (s && t) {
-									return {
-										x: Math.round((s.bounds.x + s.bounds.width / 2 + t.bounds.x + t.bounds.width / 2) / 2),
-										y: Math.round((s.bounds.y + s.bounds.height / 2 + t.bounds.y + t.bounds.height / 2) / 2),
-									};
-								}
-								return { x: 50, y: 50 };
-							})();
+				textEl.setAttribute('class', 'aim-edge-label');
 				textEl.setAttribute('x', `${midPoint.x}`);
-				textEl.setAttribute('y', `${midPoint.y - 8}`);
+				textEl.setAttribute('y', `${edge.expression ? midPoint.y - 14 : midPoint.y - 8}`);
 				textEl.setAttribute('font-size', '11');
 				textEl.setAttribute('fill', CascaisPalette.TextSecondary);
 				textEl.setAttribute('text-anchor', 'middle');
 				textEl.textContent = edge.label;
+			}
+
+			// Update or inject edge AST expression capsule pill
+			if (edge.expression) {
+				const { pillBg, pillBorder, pillText } = computeExpressionPillColors(
+					edge.expressionColor,
+					edge.satisfied,
+				);
+
+				let pillG = el.querySelector('g.aim-expression-pill');
+				if (!pillG) {
+					pillG = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
+					pillG.setAttribute('class', 'aim-expression-pill');
+					el.appendChild(pillG);
+				}
+				const pillW = Math.max(48, edge.expression.length * 7 + 16);
+				const pillH = 18;
+				pillG.innerHTML = `
+					<rect x="${midPoint.x - pillW / 2}" y="${midPoint.y - pillH / 2}" width="${pillW}" height="${pillH}" rx="8" ry="8" fill="${pillBg}" stroke="${pillBorder}" stroke-width="1" />
+					<text x="${midPoint.x}" y="${midPoint.y + 4}" fill="${pillText}" font-size="10" font-weight="bold" font-family="ui-monospace, monospace" text-anchor="middle">${escapeXmlText(edge.expression)}</text>
+				`;
+			} else {
+				el.querySelector('g.aim-expression-pill')?.remove();
 			}
 		}
 
@@ -1044,6 +1344,7 @@ export class RaiBridge {
 		let svg = '';
 		node = layoutDescription(node);
 		const isInstance = node.instance === true || node.kind === 'obj' || node.kind === 'rf';
+		const isUnbound = node.unbound === true;
 		const width = node.bounds.width;
 		const height = node.bounds.height;
 		const resolvedStereo = resolveStereotype(node.stereotype);
@@ -1052,43 +1353,49 @@ export class RaiBridge {
 		const cardTextWidth = hasStereoIcon ? Math.max(40, width - 52) : width;
 		const iconY = Math.max(6, Math.round((height - 24) / 2));
 
+		const rawDisplayName = isUnbound && !node.displayName.startsWith('[') && !node.displayName.endsWith(']')
+			? `[${node.displayName}]`
+			: node.displayName;
+		const textColor = isUnbound ? CascaisPalette.GraphiteMuted : CascaisPalette.TextPrimary;
+		const unboundAttrs = isUnbound ? ' stroke-dasharray="5,4" opacity="0.70"' : '';
+
 		if (node.kind === 'uc') {
 			const rx = width / 2;
 			const ry = height / 2;
-			svg += `      <ellipse cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGold}" stroke-width="2" />\n`;
+			svg += `      <ellipse cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGold}" stroke-width="2"${unboundAttrs} />\n`;
 			if (hasStereoIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
 			}
-			svg += this.renderSvgText(node.displayName, cardTextCx, ry, 13, 'bold', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
+			svg += this.renderSvgText(rawDisplayName, cardTextCx, ry, 13, 'bold', textColor, isInstance, node.qualifier, cardTextWidth);
 		} else if (node.kind === 'act') {
-			svg += `      <rect width="${width}" height="${height}" rx="12" ry="12" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.CascaisRed}" stroke-width="2" />\n`;
+			svg += `      <rect width="${width}" height="${height}" rx="12" ry="12" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.CascaisRed}" stroke-width="2"${unboundAttrs} />\n`;
 			if (hasStereoIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
 			}
-			svg += this.renderSvgText(node.displayName, cardTextCx, height / 2, 13, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
+			svg += this.renderSvgText(rawDisplayName, cardTextCx, height / 2, 13, '600', textColor, isInstance, node.qualifier, cardTextWidth);
 		} else if (node.kind === 'cls') {
-			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
+			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
 			svg += `      <rect width="${width}" height="28" fill="${CascaisPalette.CanvasCream}" stroke="none" />\n`;
 			svg += `      <line x1="0" y1="28" x2="${width}" y2="28" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
 			if (hasStereoIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 8, 2);
 			}
-			svg += this.renderSvgText(node.displayName, cardTextCx, 14, 12, 'bold', CascaisPalette.TextPrimary, isInstance, undefined, cardTextWidth);
+			svg += this.renderSvgText(rawDisplayName, cardTextCx, 14, 12, 'bold', textColor, isInstance, undefined, cardTextWidth);
             classAttributeLines(node).forEach((line, i) => {
                 svg += `<text x="8" y="${46 + i * 16}" font-size="11" fill="#475569">${escapeXmlText(line)}</text>`;
             });
 		} else if (node.kind === 'obj' && node.description) {
-            svg += `<rect width="${width}" height="${height}" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5" />`;
-            svg += this.renderSvgText(node.displayName, width / 2, 22, 13, '600', CascaisPalette.TextPrimary, true, undefined, width);
+            svg += `<rect width="${width}" height="${height}" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"${unboundAttrs} />`;
+            svg += this.renderSvgText(rawDisplayName, width / 2, 22, 13, '600', textColor, true, undefined, width);
             wrapDescription(node.description, node.descriptionWidth).split('\n').forEach((line, i) => {
                 svg += `<text x="14" y="${62 + i * 18}" font-size="12" fill="#475569">${escapeXmlText(line)}</text>`;
             });
         } else if (node.kind === 'obj') {
-			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
+			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
 			if (hasStereoIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
 			}
-			svg += this.renderSvgText(node.displayName, cardTextCx, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
+			svg += this.renderSvgText(rawDisplayName, cardTextCx, height / 2, 12, 'normal', textColor, isInstance, node.qualifier, cardTextWidth);
 		} else if (node.kind === 'per') {
 			const isInitiating = isInitiatingStereotype(node.stereotype);
 			const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
@@ -1098,8 +1405,8 @@ export class RaiBridge {
 				const sysColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
 				svg += renderStereotypeIconSvg('system', cx - 22, 8, sysColor, sysColor);
 			} else {
-				svg += `      <path d="M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6" fill="none" stroke="${strokeColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />\n`;
-				svg += `      <circle cx="${cx}" cy="20" r="12" fill="${CascaisPalette.ChalkWhite}" stroke="${strokeColor}" stroke-width="2.2" />\n`;
+				svg += `      <path d="M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6" fill="none" stroke="${strokeColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"${unboundAttrs} />\n`;
+				svg += `      <circle cx="${cx}" cy="20" r="12" fill="${CascaisPalette.ChalkWhite}" stroke="${strokeColor}" stroke-width="2.2"${unboundAttrs} />\n`;
 				if (resolvedStereo === 'customer') {
 					svg += renderStereotypeIconSvg('customer', cx - 12, -7, CascaisPalette.NetGold, CascaisPalette.NetGold);
 				} else if (resolvedStereo === 'headliner') {
@@ -1109,7 +1416,7 @@ export class RaiBridge {
 					svg += renderStereotypeIconSvg('ai', cx - 12, 8, aiColor, aiColor);
 				}
 			}
-			svg += this.renderSvgText(node.displayName, cx, 80, 12, '500', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+			svg += this.renderSvgText(rawDisplayName, cx, 80, 12, '500', textColor, isInstance, node.qualifier, width);
 		} else if (node.kind === 'plc') {
 			const isFramelessPlc = ['venue', 'stage', 'bar'].includes(resolvedStereo ?? '');
 			if (isFramelessPlc && resolvedStereo) {
@@ -1123,22 +1430,22 @@ export class RaiBridge {
 				const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
 				const accentColor = strokeColor;
 				svg += renderStereotypeIconSvg(resolvedStereo, iconX, iconY, strokeColor, accentColor);
-				svg += this.renderSvgText(node.displayName, cx, 84, 12, '500', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+				svg += this.renderSvgText(rawDisplayName, cx, 84, 12, '500', textColor, isInstance, node.qualifier, width);
 			} else if (hasStereoIcon && resolvedStereo) {
 				const cx = Math.round(width / 2);
 				const paths = getStereotypePaths(resolvedStereo);
 				const iconX = cx - Math.round(paths.width / 2);
-				svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
+				svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
 				svg += renderStereotypeIconSvg(node.stereotype, iconX, 8, CascaisPalette.NetGold, CascaisPalette.NetGold);
-				svg += this.renderSvgText(node.displayName, cx, 56, 12, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+				svg += this.renderSvgText(rawDisplayName, cx, 56, 12, '600', textColor, isInstance, node.qualifier, width);
 			} else {
-				svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
-				svg += this.renderSvgText(node.displayName, width / 2, height / 2, 12, '600', CascaisPalette.TextPrimary, isInstance, node.qualifier, width);
+				svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
+				svg += this.renderSvgText(rawDisplayName, width / 2, height / 2, 12, '600', textColor, isInstance, node.qualifier, width);
 			}
 		} else if (node.kind === 'rol' || node.kind === 'rf') {
             const fill = node.kind === 'rf' ? String(node.properties?.color ?? '#2563EB') : '#FFFFFF';
-            svg += `<circle cx="${width / 2}" cy="${height / 2}" r="${Math.min(width, height) / 2}" fill="${escapeXmlAttr(fill)}" stroke="#334155" stroke-width="2" />`;
-            svg += this.renderSvgText(node.displayName, width / 2, -14, 13, '600', CascaisPalette.TextPrimary, isInstance, undefined, 240);
+            svg += `<circle cx="${width / 2}" cy="${height / 2}" r="${Math.min(width, height) / 2}" fill="${escapeXmlAttr(fill)}" stroke="#334155" stroke-width="2"${unboundAttrs} />`;
+            svg += this.renderSvgText(rawDisplayName, width / 2, -14, 13, '600', textColor, isInstance, undefined, 240);
 
 		} else {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" />\n`;

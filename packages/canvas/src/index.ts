@@ -17,12 +17,14 @@ export {
   type AimOntologyKind,
   type AimRoutingMode,
   type AimEdgeKind,
+  type AimExpressionColor,
   type Point,
   type SvgBendPoint,
   type Bounds,
   type OrthogonalPortId,
   type RaidNodeData,
   type RaidEdgeData,
+  type RaidBoundaryData,
   type RaidMetamodel,
   type HydrationOptions,
   type SerializationOptions,
@@ -36,6 +38,9 @@ export {
   configureAimGraph,
   createAimNode,
   createAimEdge,
+  createAimBoundary,
+  computeExpressionPillColors,
+  type ExpressionPillColors,
   applyEdgeRouting,
   getDefaultNodeBounds,
   getDefaultNodeName,
@@ -79,6 +84,20 @@ export {
   type RaidCanvasProps,
   type RaidCanvasHandle,
 } from './RaidCanvas.js';
+
+export {
+  RaidInspector,
+  type RaidInspectorProps,
+  type RaidInspectorSelection,
+} from './RaidInspector.js';
+
+export {
+  RaidPalette,
+  type RaidPaletteProps,
+  type RaidPaletteItem,
+  CANONICAL_PALETTE_ITEMS,
+  getPaletteItemsForArchetype,
+} from './RaidPalette.js';
 
 export { isNodeAllowedInDiagram, validateDiagramConnection } from './semanticRules.js';
 

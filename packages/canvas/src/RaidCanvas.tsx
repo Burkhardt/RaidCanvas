@@ -18,12 +18,14 @@ import React, {
 } from 'react';
 import { Graph, Shape, Node as X6Node, Edge } from '@antv/x6';
 import { History } from '@antv/x6-plugin-history';
+import { Transform } from '@antv/x6-plugin-transform';
 import { RaiBridge } from './RaiBridge.js';
 import {
 	registerAimShapes,
 	configureAimGraph,
 	createAimNode,
 	createAimEdge,
+	createAimBoundary,
 	applyEdgeRouting,
 	CascaisPalette,
 	getDefaultNodeBounds,
@@ -40,7 +42,7 @@ import {
 	getSemanticEdgeKind,
 	getSemanticEdgeStereotype,
 } from './semanticRules.js';
-import type { AimOntologyKind, AimRoutingMode, RaidNodeData, RaidEdgeData } from './types.js';
+import type { AimOntologyKind, AimRoutingMode, RaidNodeData, RaidEdgeData, RaidBoundaryData } from './types.js';
 
 export interface RaidCanvasProps {
 	/** The raw SVG string carrying aim-* ontological attributes (preferred) */
@@ -129,6 +131,19 @@ export interface RaidCanvasHandle {
 	selectNode: (nodeId: string) => void;
 	/** Currently active duality node ID, or null if dormant */
 	getActiveDualityNodeId: () => string | null;
+	/** Add a new boundary box (Class scope or Package folder) to the canvas */
+	addBoundary: (
+		kind: 'Class' | 'Package' | string,
+		name: string,
+		x?: number,
+		y?: number,
+		width?: number,
+		height?: number,
+	) => string;
+	/** Get all boundary boxes currently on the canvas */
+	getBoundaries: () => RaidBoundaryData[];
+	/** Update properties of an existing boundary box */
+	updateBoundary: (id: string, updates: Partial<RaidBoundaryData>) => void;
 }
 
 /**
@@ -230,8 +245,15 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			const graph = graphRef.current;
 			const node = typeof nodeOrId === 'string' ? graph.getCellById(nodeOrId) : nodeOrId;
 			if (node && node.isNode()) {
-				const nodeData = (node.getData() ?? {}) as Partial<RaidNodeData>;
-				if (nodeData.href && nodeData.href.trim().length > 0) {
+				const rawData = (node.getData() ?? {}) as Record<string, any>;
+				const isClassBoundary = rawData.kind === 'Class' || node.shape === 'aim-boundary-class';
+				let href = rawData.href as string | undefined;
+				if (!href && isClassBoundary) {
+					const name = rawData.name || rawData.displayName || String(node.id);
+					href = `/classes?select=${encodeURIComponent(name)}`;
+					node.setData({ ...rawData, href }, { silent: true });
+				}
+				if (href && href.trim().length > 0) {
 					const wasEnabled = (graph as unknown as { isHistoryEnabled?: () => boolean }).isHistoryEnabled?.();
 					if (wasEnabled) (graph as unknown as { disableHistory?: () => void }).disableHistory?.();
 					try {
@@ -346,6 +368,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						...(customData?.stereotype !== undefined ? { stereotype: customData.stereotype } : (kind === 'plc' ? { stereotype: 'Venue' } : {})),
 						...(customData?.attributes !== undefined ? { attributes: customData.attributes } : {}),
 						...(customData?.methods !== undefined ? { methods: customData.methods } : {}),
+						...(customData?.properties !== undefined ? { properties: customData.properties } : {}),
+						...(customData?.unbound !== undefined ? { unbound: customData.unbound } : {}),
 						...(customData?.href !== undefined ? { href: customData.href } : {}),
 						bounds: {
 							...defaultBounds,
@@ -649,24 +673,16 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						}
 					}
 
-					if (updates.label !== undefined || updates.stereotype !== undefined) {
-						const text = updates.label ?? updates.stereotype ?? '';
-						edge.setLabels(
-							text
-								? [
-										{
-											attrs: {
-												text: {
-													text,
-													fill: CascaisPalette.TextSecondary,
-													fontSize: 11,
-												},
-											},
-											position: 0.5,
-										},
-									]
-								: [],
-						);
+					if (
+						updates.label !== undefined ||
+						updates.stereotype !== undefined ||
+						updates.expression !== undefined ||
+						updates.expressionColor !== undefined ||
+						updates.satisfied !== undefined
+					) {
+						const nextEdgeData = mutableData as unknown as RaidEdgeData;
+						const edgeMeta = createAimEdge(nextEdgeData);
+						edge.setLabels(edgeMeta.labels ?? []);
 					}
 
 					triggerDebouncedChange();
@@ -788,6 +804,84 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					onSelectionChangeRef.current?.([nodeId]);
 				},
 				getActiveDualityNodeId: () => activeDualityNodeIdRef.current,
+				addBoundary: (kind, name, x, y, width, height) => {
+					const graph = graphRef.current;
+					if (!graph) return '';
+					const id = `boundary_${Date.now().toString(36).slice(-4)}`;
+					const isPackage = kind.toLowerCase() === 'package';
+					const boundaryData: RaidBoundaryData = {
+						id,
+						kind: isPackage ? 'Package' : 'Class',
+						name,
+						elementIds: [],
+						bounds: {
+							x: x ?? 100,
+							y: y ?? 80,
+							width: width ?? (isPackage ? 340 : 320),
+							height: height ?? (isPackage ? 240 : 220),
+						},
+					};
+					const boundaryMeta = createAimBoundary(boundaryData);
+					const node = graph.addNode(boundaryMeta);
+					node.setZIndex(0);
+					triggerDebouncedChange();
+					return id;
+				},
+				getBoundaries: () => {
+					if (!graphRef.current) return [];
+					const metamodel = bridgeRef.current.metamodelFromGraph(graphRef.current);
+					return metamodel.boundaries ? [...metamodel.boundaries] : [];
+				},
+				updateBoundary: (id, updates) => {
+					const graph = graphRef.current;
+					if (!graph) return;
+					const node = graph.getCellById(id);
+					if (!node || !node.isNode()) return;
+					const currentData = (node.getData() ?? {}) as RaidBoundaryData;
+					const nextData: RaidBoundaryData = {
+						...currentData,
+						...updates,
+						id: updates.id ?? currentData.id ?? id,
+						kind: updates.kind ?? currentData.kind ?? 'Class',
+						name: updates.name ?? currentData.name ?? id,
+						href: updates.href !== undefined ? updates.href : currentData.href,
+						bounds: {
+							...currentData.bounds,
+							...(updates.bounds ?? {}),
+						},
+					};
+					node.setData(nextData);
+					const label = `${nextData.kind}: ${nextData.name}`;
+					node.setAttrByPath('headerText/text', label);
+					if (nextData.kind === 'Package') {
+						const primaryColor = '#1E293B';
+						const tabWidth = Math.max(140, Math.min(node.getSize().width * 0.55, label.length * 7.5 + 36));
+						node.setAttrByPath('body/stroke', primaryColor);
+						node.setAttrByPath('body/strokeDasharray', 'none');
+						node.setAttrByPath('body/refY', 26);
+						node.setAttrByPath('body/refHeight2', -26);
+						node.setAttrByPath('folderTab/d', `M 0 26 L 0 6 A 6 6 0 0 1 6 0 L ${tabWidth - 18} 0 L ${tabWidth} 26 Z`);
+						node.setAttrByPath('folderTab/fill', '#FFFFFF');
+						node.setAttrByPath('folderTab/stroke', primaryColor);
+						node.setAttrByPath('headerText/fill', '#1E293B');
+						node.setAttrByPath('headerText/refX', 12);
+						node.setAttrByPath('headerText/refY', 14);
+					} else {
+						const primaryColor = '#C59B27';
+						node.setAttrByPath('body/stroke', primaryColor);
+						node.setAttrByPath('body/strokeDasharray', '6,4');
+						node.setAttrByPath('body/refY', 0);
+						node.setAttrByPath('body/refHeight2', 0);
+						node.setAttrByPath('headerText/fill', '#1F2937');
+						node.setAttrByPath('headerText/refX', 14);
+						node.setAttrByPath('headerText/refY', 18);
+					}
+					if (updates.bounds) {
+						node.setPosition(updates.bounds.x, updates.bounds.y);
+						node.setSize(updates.bounds.width, updates.bounds.height);
+					}
+					triggerDebouncedChange();
+				},
 			}),
 			[
 				handleCenter,
@@ -870,6 +964,31 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					enabled: true,
 					modifiers: ['ctrl', 'meta'],
 				},
+				embedding: {
+					enabled: !readOnly,
+					findParent({ node }) {
+						const bbox = node.getBBox();
+						return this.getNodes().filter((n) => {
+							if (n === node) return false;
+							const isBoundary =
+								n.shape === 'aim-boundary' ||
+								n.shape === 'aim-boundary-class' ||
+								n.shape === 'aim-boundary-package' ||
+								(n.getData() as any)?.isBoundary;
+							if (!isBoundary) return false;
+							const parentBBox = n.getBBox();
+							return parentBBox.containsRect(bbox);
+						});
+					},
+					validate({ child, parent }) {
+						const isBoundary =
+							parent.shape === 'aim-boundary' ||
+							parent.shape === 'aim-boundary-class' ||
+							parent.shape === 'aim-boundary-package' ||
+							(parent.getData() as any)?.isBoundary;
+						return Boolean(isBoundary && !child.shape?.startsWith('aim-boundary'));
+					},
+				},
 				connecting: {
 					router: 'manhattan',
 					connector: { name: 'rounded', args: { radius: 8 } },
@@ -936,6 +1055,23 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 								return false;
 							}
 							return true;
+						},
+					}),
+				);
+
+				graph.use(
+					new Transform({
+						resizing: {
+							enabled: (node) =>
+								node.shape === 'aim-boundary' ||
+								node.shape === 'aim-boundary-class' ||
+								node.shape === 'aim-boundary-package' ||
+								(node.getData() as any)?.isBoundary,
+							minWidth: 180,
+							minHeight: 120,
+						},
+						rotating: {
+							enabled: false,
 						},
 					}),
 				);
@@ -1101,7 +1237,12 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 			// Canvas change events
 			graph.on('node:change:position', triggerDebouncedChange);
-			graph.on('node:change:size', triggerDebouncedChange);
+			graph.on('node:change:size', ({ node }: any) => {
+				if (node && String(node.id) === activeDualityNodeIdRef.current) {
+					setNodeDualityActive(node, true);
+				}
+				triggerDebouncedChange();
+			});
 			graph.on('edge:change:vertices', triggerDebouncedChange);
 			graph.on('edge:change:source', triggerDebouncedChange);
 			graph.on('edge:change:target', triggerDebouncedChange);
@@ -1109,6 +1250,41 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			graph.on('cell:removed', ({ cell }) => {
 				if (cell === activeToolEdge) {
 					activeToolEdge = null;
+				}
+				triggerDebouncedChange();
+			});
+
+			graph.on('node:embedded', ({ cell, parent, current }: any) => {
+				const childNode = cell;
+				const parentNode = parent ?? current;
+				if (childNode?.isNode() && parentNode?.isNode()) {
+					const childData = (childNode.getData() ?? {}) as Partial<RaidNodeData>;
+					const parentData = (parentNode.getData() ?? {}) as Partial<RaidBoundaryData>;
+					const boundaryId = String(parentNode.id);
+					childNode.setData({ ...childData, boundaryId }, { silent: true });
+
+					const elementIds = Array.isArray(parentData.elementIds) ? [...parentData.elementIds] : [];
+					const childId = String(childNode.id);
+					if (!elementIds.includes(childId)) {
+						elementIds.push(childId);
+						parentNode.setData({ ...parentData, elementIds }, { silent: true });
+					}
+				}
+				triggerDebouncedChange();
+			});
+
+			graph.on('node:unembedded', ({ cell, parent, previous }: any) => {
+				const childNode = cell;
+				const prevParent = parent ?? previous;
+				if (childNode?.isNode()) {
+					const childData = (childNode.getData() ?? {}) as Partial<RaidNodeData>;
+					childNode.setData({ ...childData, boundaryId: undefined }, { silent: true });
+
+					if (prevParent?.isNode()) {
+						const parentData = (prevParent.getData() ?? {}) as Partial<RaidBoundaryData>;
+						const elementIds = (parentData.elementIds ?? []).filter((id: string) => id !== String(childNode.id));
+						prevParent.setData({ ...parentData, elementIds }, { silent: true });
+					}
 				}
 				triggerDebouncedChange();
 			});
@@ -1125,14 +1301,22 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 				if (cell.isNode()) {
 					clearEdgeTools();
-					const data = (cell.getData() ?? {}) as Partial<RaidNodeData>;
-					const kind = (data.kind ?? 'act') as AimOntologyKind;
+					const data = (cell.getData() ?? {}) as Record<string, any>;
+					const isBoundary =
+						cell.shape === 'aim-boundary' ||
+						cell.shape === 'aim-boundary-class' ||
+						cell.shape === 'aim-boundary-package' ||
+						Boolean(data.isBoundary);
+
+					const rawKind = (data.kind ?? (isBoundary ? 'Class' : 'act')) as string;
 					const label =
 						data.displayName ??
+						data.name ??
+						(cell.getAttrByPath('headerText/text') as string)?.replace(/^(Class|Package):\s*/, '') ??
 						(cell.getAttrByPath('label/text') as string) ??
 						(cell.getAttrByPath('title/text') as string) ??
 						id;
-					onSelectRef.current?.({ id, kind, label });
+					onSelectRef.current?.({ id, kind: rawKind as AimOntologyKind, label });
 				} else if (cell.isEdge()) {
 					deactivateDuality();
 					setEdgeTools(cell);
@@ -1150,19 +1334,34 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			// Node click and drag-immunity tracking
 			const extractNodeData = (node: any): RaidNodeData => {
 				const bbox = node.getBBox ? node.getBBox() : { x: 0, y: 0, width: 140, height: 60 };
-				const rawData = (node.getData?.() ?? {}) as Partial<RaidNodeData>;
-				const kind = (rawData.kind ?? 'act') as AimOntologyKind;
+				const rawData = (node.getData?.() ?? {}) as Record<string, any>;
+				const isBoundary =
+					node.shape === 'aim-boundary' ||
+					node.shape === 'aim-boundary-class' ||
+					node.shape === 'aim-boundary-package' ||
+					Boolean(rawData.isBoundary);
+
+				const rawKind = (rawData.kind ?? (isBoundary ? 'Class' : 'act')) as string;
 				const displayName =
 					rawData.displayName ??
+					rawData.name ??
+					(node.getAttrByPath?.('headerText/text') as string)?.replace(/^(Class|Package):\s*/, '') ??
 					(node.getAttrByPath?.('label/text') as string) ??
 					(node.getAttrByPath?.('title/text') as string) ??
 					String(node.id);
 
+				const href =
+					rawData.href ??
+					(isBoundary && rawKind === 'Class' && displayName
+						? `/classes?select=${encodeURIComponent(displayName)}`
+						: undefined);
+
 				return {
 					...rawData,
 					id: String(node.id),
-					kind,
+					kind: rawKind as AimOntologyKind,
 					displayName,
+					...(href ? { href } : {}),
 					bounds: {
 						x: Math.round(bbox.x),
 						y: Math.round(bbox.y),
@@ -1414,24 +1613,71 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			e.preventDefault();
 			setIsDragOver(false);
 
-			const kind = (e.dataTransfer.getData('application/aoaim-kind') ||
-				e.dataTransfer.getData('text/plain')) as AimOntologyKind;
-
-			if (!kind || !graphRef.current || !containerRef.current) return;
-			if (!isNodeAllowedInDiagram({ kind }, new DOMParser().parseFromString(svgPropRef.current, 'image/svg+xml').documentElement.getAttribute('aim-archetype') ?? '')) return;
-
+			if (!graphRef.current || !containerRef.current) return;
 			const rect = containerRef.current.getBoundingClientRect();
 			const clientX = e.clientX - rect.left;
 			const clientY = e.clientY - rect.top;
-
 			const graph = graphRef.current;
 			const localPos = graph.clientToLocal({ x: clientX, y: clientY });
+
+			const boundaryKind = e.dataTransfer.getData('application/aim-boundary');
+			if (boundaryKind) {
+				const isPkg = boundaryKind.toLowerCase() === 'package';
+				const defaultName = isPkg ? 'Namespace' : 'DomainClass';
+				const width = isPkg ? 340 : 320;
+				const height = isPkg ? 240 : 220;
+				const id = `boundary_${Date.now().toString(36).slice(-4)}`;
+				const boundaryData: RaidBoundaryData = {
+					id,
+					kind: isPkg ? 'Package' : 'Class',
+					name: defaultName,
+					elementIds: [],
+					bounds: {
+						x: Math.round(localPos.x - width / 2),
+						y: Math.round(localPos.y - height / 2),
+						width,
+						height,
+					},
+				};
+				const boundaryMeta = createAimBoundary(boundaryData);
+				const node = graph.addNode(boundaryMeta);
+				node.setZIndex(0);
+				selectedCellIdRef.current = id;
+				onSelectRef.current?.({ id, kind: 'cls', label: defaultName });
+				onSelectionChangeRef.current?.([id]);
+				triggerDebouncedChange();
+				return;
+			}
+
+			const kind = (e.dataTransfer.getData('application/aoaim-kind') ||
+				e.dataTransfer.getData('application/aim-stencil') ||
+				e.dataTransfer.getData('text/plain')) as AimOntologyKind;
+
+			if (!kind) return;
+
+			let customData: Partial<RaidNodeData> | undefined;
+			const customDataRaw = e.dataTransfer.getData('application/aim-custom-data');
+			if (customDataRaw) {
+				try {
+					customData = JSON.parse(customDataRaw);
+				} catch {}
+			}
+			const isUnbound = e.dataTransfer.getData('application/aim-unbound') === 'true';
+			if (isUnbound) {
+				customData = {
+					...(customData ?? {}),
+					unbound: true,
+				};
+			}
+
+			if (!isNodeAllowedInDiagram({ ...customData, kind }, new DOMParser().parseFromString(svgPropRef.current, 'image/svg+xml').documentElement.getAttribute('aim-archetype') ?? '')) return;
 
 			const defaultBounds = getDefaultNodeBounds(kind, localPos.x, localPos.y);
 			const bounds = {
 				...defaultBounds,
-				x: Math.round(localPos.x - defaultBounds.width / 2),
-				y: Math.round(localPos.y - defaultBounds.height / 2),
+				...(customData?.bounds ?? {}),
+				x: Math.round(localPos.x - (customData?.bounds?.width ?? defaultBounds.width) / 2),
+				y: Math.round(localPos.y - (customData?.bounds?.height ?? defaultBounds.height) / 2),
 			};
 
 			const defaultName = getDefaultNodeName(kind);
@@ -1440,7 +1686,17 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			const nodeData: RaidNodeData = {
 				id,
 				kind,
-				displayName: defaultName,
+				displayName: customData?.displayName ?? defaultName,
+				...(customData?.qualifier !== undefined ? { qualifier: customData.qualifier } : {}),
+				instance: kind === 'obj' || kind === 'rf' || customData?.instance === true,
+				...(customData?.description !== undefined ? { description: customData.description } : {}),
+				...(customData?.descriptionWidth !== undefined ? { descriptionWidth: customData.descriptionWidth } : {}),
+				...(customData?.stereotype !== undefined ? { stereotype: customData.stereotype } : (kind === 'plc' ? { stereotype: 'Venue' } : {})),
+				...(customData?.attributes !== undefined ? { attributes: customData.attributes } : {}),
+				...(customData?.methods !== undefined ? { methods: customData.methods } : {}),
+				...(customData?.properties !== undefined ? { properties: customData.properties } : {}),
+				...(customData?.unbound !== undefined ? { unbound: customData.unbound } : {}),
+				...(customData?.href !== undefined ? { href: customData.href } : {}),
 				bounds,
 			};
 
@@ -1448,7 +1704,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			graph.addNode(nodeMeta);
 
 			selectedCellIdRef.current = id;
-			onSelectRef.current?.({ id, kind, label: defaultName });
+			onSelectRef.current?.({ id, kind, label: nodeData.displayName });
 			onSelectionChangeRef.current?.([id]);
 			onDropStencilRef.current?.(kind, { x: bounds.x, y: bounds.y });
 			triggerDebouncedChange();

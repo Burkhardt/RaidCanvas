@@ -42,6 +42,38 @@ export const SEMANTIC_RULES_MATRIX: Readonly<Record<string, SemanticRule>> = {
   'per->rf': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Person owns role binding', availableStereotypes: [] },
   'plc->rf': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Place owns role binding', availableStereotypes: [] },
   'act->rf': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Activity owns role binding', availableStereotypes: [] },
+  'act->obj': {
+    valid: true,
+    defaultEdgeKind: 'association',
+    defaultStereotype: '«postcondition»',
+    description: 'Activity produces or mutates object state (postcondition)',
+    availableStereotypes: [
+      {
+        stereotype: '«postcondition»',
+        description: 'Postcondition effect on object state',
+      },
+      {
+        stereotype: '«output»',
+        description: 'Activity produces object as output',
+      },
+    ],
+  },
+  'obj->act': {
+    valid: true,
+    defaultEdgeKind: 'association',
+    defaultStereotype: '«precondition»',
+    description: 'Object state guards or provides input to activity (precondition)',
+    availableStereotypes: [
+      {
+        stereotype: '«precondition»',
+        description: 'Precondition guard on object state',
+      },
+      {
+        stereotype: '«input»',
+        description: 'Object consumed or referenced as input',
+      },
+    ],
+  },
   'rf->obj': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Binding points to filler object', availableStereotypes: [] },
   'rf->per': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Binding points to filler person', availableStereotypes: [] },
   'rf->plc': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'Binding points to filler place', availableStereotypes: [] },
@@ -257,8 +289,14 @@ export function getSemanticRuleDescription(
 
 /** Diagram profiles constrain projections without adding persistence Kind values. */
 export function isNodeAllowedInDiagram(node: { kind?: string; instance?: boolean }, archetype: string): boolean {
-  if (!/usecase/i.test(archetype)) return true;
-  return !node.instance && ['uc', 'per', 'rol', 'cls'].includes(node.kind ?? '');
+  const norm = (archetype ?? '').toLowerCase();
+  if (norm.includes('usecase')) {
+    return !node.instance && ['uc', 'per', 'rol', 'cls'].includes(node.kind ?? '');
+  }
+  if (norm.includes('activity')) {
+    return ['act', 'per', 'obj', 'rf'].includes(node.kind ?? '');
+  }
+  return true;
 }
 
 export function validateDiagramConnection(source: { kind?: string; instance?: boolean }, target: { kind?: string; instance?: boolean }, archetype: string): boolean {
@@ -268,6 +306,9 @@ export function validateDiagramConnection(source: { kind?: string; instance?: bo
   }
   if (/classobject|rolefiller/i.test(archetype)) {
     return ['cls->cls', 'cls->rol', 'rol->cls', 'obj->rf', 'per->rf', 'plc->rf', 'act->rf', 'rf->obj', 'rf->per', 'rf->plc', 'rf->act', 'rf->rol', 'obj->cls', 'per->cls', 'plc->cls', 'act->uc'].includes(`${source.kind}->${target.kind}`);
+  }
+  if (/activity/i.test(archetype)) {
+    return ['per->act', 'act->act', 'act->obj', 'obj->act', 'act->rf', 'rf->act', 'obj->rf', 'rf->obj'].includes(`${source.kind}->${target.kind}`);
   }
   return validateSemanticConnection(source.kind ?? '', target.kind ?? '');
 }

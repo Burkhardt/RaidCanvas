@@ -4,6 +4,7 @@ import {
   type RaidCanvasHandle,
   type RaidNodeData,
   type RaidEdgeData,
+  type RaidBoundaryData,
 } from '@dr2rai/raid-canvas';
 import { PRESETS } from './presets';
 import { StencilDrawer } from './components/StencilDrawer';
@@ -28,7 +29,7 @@ export const App: React.FC = () => {
   const [selectedEntity, setSelectedEntity] = useState<SelectedEntityData | null>(null);
   const [activeTab, setActiveTab] = useState<'inspector' | 'svg' | 'metamodel'>('inspector');
   const [copied, setCopied] = useState<boolean>(false);
-  const [stencilCollapsed, setStencilCollapsed] = useState<boolean>(true);
+  const [stencilCollapsed, setStencilCollapsed] = useState<boolean>(false);
   const [routingMode, setRoutingMode] = useState<'manhattan' | 'normal' | 'smooth'>('normal');
   const [portalToast, setPortalToast] = useState<{ entityName: string; href: string } | null>(null);
 
@@ -105,6 +106,45 @@ export const App: React.FC = () => {
     }
 
     if (cell.isNode()) {
+      const isBoundary =
+        cell.shape === 'aim-boundary' ||
+        cell.shape === 'aim-boundary-class' ||
+        cell.shape === 'aim-boundary-package' ||
+        (cell.getData() as any)?.isBoundary;
+
+      if (isBoundary) {
+        const boundaryData = (cell.getData() ?? {}) as Partial<RaidBoundaryData>;
+        const children =
+          cell.getChildren()?.filter((c) => c.isNode()).map((c) => String(c.id)) ??
+          (boundaryData.elementIds ?? []);
+        const kind = boundaryData.kind ?? (cell.shape === 'aim-boundary-package' ? 'Package' : 'Class');
+        const name =
+          boundaryData.name ??
+          (cell.getAttrByPath('headerText/text') as string)?.replace(/^(Class|Package):\s*/, '') ??
+          id;
+        const href =
+          boundaryData.href ??
+          (kind === 'Class' ? `/classes?select=${encodeURIComponent(name)}` : undefined);
+        setSelectedEntity({
+          id,
+          type: 'boundary',
+          boundaryData: {
+            ...boundaryData,
+            id,
+            kind,
+            name,
+            href,
+            elementIds: children,
+            bounds: {
+              x: cell.getPosition().x,
+              y: cell.getPosition().y,
+              width: cell.getSize().width,
+              height: cell.getSize().height,
+            },
+          },
+        });
+        return;
+      }
       const nodeData = (cell.getData() ?? {}) as Partial<RaidNodeData>;
       setSelectedEntity({
         id,
@@ -274,7 +314,8 @@ export const App: React.FC = () => {
       <main className="studio-main" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left Column: AOAIM Stencil Drawer (Drag-and-Drop Palette) */}
         <StencilDrawer archetype={currentPreset.archetype}
-          onAddNode={(kind) => canvasRef.current?.addNode(kind)}
+          onAddNode={(kind, customData) => canvasRef.current?.addNode(kind, undefined, undefined, customData)}
+          onAddBoundary={(kind, name) => canvasRef.current?.addBoundary(kind, name)}
           collapsed={stencilCollapsed}
           onToggleCollapse={() => setStencilCollapsed((c) => !c)}
         />
@@ -454,6 +495,7 @@ export const App: React.FC = () => {
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px', position: 'relative' }}>
             {activeTab === 'inspector' && (
               <PropertyInspector
+                archetype={currentPreset.archetype}
                 selection={selectedEntity}
                 onUpdateNode={(id, updates) => {
                   canvasRef.current?.updateNode(id, updates);
@@ -461,6 +503,10 @@ export const App: React.FC = () => {
                 }}
                 onUpdateEdge={(id, updates) => {
                   canvasRef.current?.updateEdge(id, updates);
+                  refreshSelectedEntity(id);
+                }}
+                onUpdateBoundary={(id, updates) => {
+                  canvasRef.current?.updateBoundary(id, updates);
                   refreshSelectedEntity(id);
                 }}
                 onDeleteSelected={() => canvasRef.current?.deleteSelection()}
