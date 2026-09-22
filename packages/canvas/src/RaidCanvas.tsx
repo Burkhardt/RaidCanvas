@@ -44,7 +44,10 @@ import {
 } from './semanticRules.js';
 import type { AimOntologyKind, AimRoutingMode, RaidNodeData, RaidEdgeData, RaidBoundaryData } from './types.js';
 
+export interface RaidWaypointSelection { edgeId: string; index: number; x: number; y: number; }
+
 export interface RaidCanvasState {
+    showExpressions: boolean;
     canUndo: boolean;
     canRedo: boolean;
     routing: AimRoutingMode | 'mixed';
@@ -57,6 +60,9 @@ export interface RaidCanvasProps {
 	svgContent?: string;
 	/** Whether the canvas allows dragging and editing, or behaves as a pan/zoom viewer */
 	readOnly?: boolean;
+    /** Allow layout edits while preventing semantic node/edge creation, reconnection and deletion. */
+    layoutOnly?: boolean;
+    onWaypointSelect?: (point: RaidWaypointSelection | null) => void;
 	/** Default routing mode for edges ('manhattan', 'normal', 'smooth'). Default: 'manhattan' */
 	defaultRouting?: AimRoutingMode;
 	/** Optional CSS class name for the outer wrapper */
@@ -94,6 +100,7 @@ export interface RaidCanvasProps {
 export interface RaidCanvasHandle {
 	/** Access underlying AntV X6 Graph instance */
 	getGraph: () => Graph | null;
+    setShowExpressions: (visible: boolean) => void;
 	/** Get current serialized SVG */
 	getSvg: () => string;
 	/** Add a new AOAIM archetype node to the canvas */
@@ -167,7 +174,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 		{
 			svg,
 			svgContent,
-			readOnly = false,
+			readOnly = false, layoutOnly = false, onWaypointSelect,
 			defaultRouting = 'manhattan',
 			className,
 			style,
@@ -196,6 +203,9 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 		const selectedCellIdRef = useRef<string | null>(null);
 		const clearEdgeToolsRef = useRef<(() => void) | null>(null);
 		const routingModeRef = useRef<AimRoutingMode>(defaultRouting);
+		const selectedWaypointRef = useRef<RaidWaypointSelection | null>(null);
+        const onWaypointSelectRef = useRef(onWaypointSelect);
+        onWaypointSelectRef.current = onWaypointSelect;
 		const activeDualityNodeIdRef = useRef<string | null>(null);
 
 		const [zoomLevel, setZoomLevel] = useState<number>(100);
@@ -234,7 +244,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
                 (graph as Graph & { _aimRoutingMode?: AimRoutingMode })._aimRoutingMode = routing;
             }
             const history = graph as Graph & { canUndo?: () => boolean; canRedo?: () => boolean };
-            onCanvasStateChangeRef.current?.({ routing, canUndo: !readOnly && (history.canUndo?.() ?? false), canRedo: !readOnly && (history.canRedo?.() ?? false) });
+            onCanvasStateChangeRef.current?.({ showExpressions: (graph as Graph & { _aimShowExpressions?: boolean })._aimShowExpressions ?? true, routing, canUndo: !readOnly && (history.canUndo?.() ?? false), canRedo: !readOnly && (history.canRedo?.() ?? false) });
         }, [readOnly]);
 
 		const onRoutingModeChangeRef = useRef(onRoutingModeChange);
@@ -371,6 +381,14 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			ref,
 			() => ({
 				getGraph: () => graphRef.current,
+                setShowExpressions: visible => {
+                    const graph = graphRef.current;
+                    if (!graph || readOnly) return;
+                    (graph as Graph & { _aimShowExpressions?: boolean })._aimShowExpressions = visible;
+                    for (const edge of graph.getEdges()) edge.setLabels(createAimEdge({ ...edge.getData(), id: edge.id, sourceId: edge.getSourceCellId(), targetId: edge.getTargetCellId(), bendPoints: edge.getVertices() } as RaidEdgeData, visible).labels ?? [], { ignoreHistory: true });
+                    emitCanvasState();
+                    triggerDebouncedChange();
+                },
 				getSvg: () => {
 					if (!graphRef.current) return svgPropRef.current;
 					return bridgeRef.current.serializeToSvg(
@@ -380,6 +398,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					);
 				},
 				addNode: (kind, x, y, customData) => {
+                    if (readOnly || layoutOnly) return "";
 					const graph = graphRef.current;
 					if (!graph) return '';
 					if (!isNodeAllowedInDiagram({ ...customData, kind }, new DOMParser().parseFromString(svgPropRef.current, 'image/svg+xml').documentElement.getAttribute('aim-archetype') ?? '')) return '';
@@ -419,6 +438,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					return id;
 				},
 				updateNode: (id, updates) => {
+                    if (readOnly || layoutOnly) return;
 					const graph = graphRef.current;
 					if (!graph) return;
 					const node = graph.getCellById(id);
@@ -639,6 +659,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					triggerDebouncedChange();
 				},
 				updateEdge: (id, updates) => {
+                    if (readOnly) return;
+                    if (layoutOnly) updates = { ...(updates.bendPoints !== undefined ? { bendPoints: updates.bendPoints } : {}), ...(updates.routing !== undefined ? { routing: updates.routing } : {}) };
 					const graph = graphRef.current;
 					if (!graph) return;
 					const edge = graph.getCellById(id);
@@ -648,6 +670,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					const mutableData: Record<string, unknown> = { ...currentData, ...updates };
 
 					if (updates.bendPoints !== undefined) {
+                        selectedWaypointRef.current = null;
+                        onWaypointSelectRef.current?.(null);
 						edge.setVertices(updates.bendPoints.map((p) => ({ x: p.x, y: p.y })));
 						mutableData.bendPoints = updates.bendPoints;
 					}
@@ -687,7 +711,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					if (updates.kind !== undefined || updates.directed !== undefined) {
 						const nextEdgeData = mutableData as unknown as RaidEdgeData;
 						const isDirected = nextEdgeData.directed !== false;
-						const edgeMeta = createAimEdge(nextEdgeData);
+						const edgeMeta = createAimEdge(nextEdgeData, (graph as Graph & { _aimShowExpressions?: boolean })._aimShowExpressions ?? true);
 						edge.prop('shape', edgeMeta.shape);
 						edge.setAttrs(edgeMeta.attrs ?? {});
 						if (!isDirected) {
@@ -712,7 +736,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						updates.satisfied !== undefined
 					) {
 						const nextEdgeData = mutableData as unknown as RaidEdgeData;
-						const edgeMeta = createAimEdge(nextEdgeData);
+						const edgeMeta = createAimEdge(nextEdgeData, (graph as Graph & { _aimShowExpressions?: boolean })._aimShowExpressions ?? true);
 						edge.setLabels(edgeMeta.labels ?? []);
 					}
 
@@ -742,6 +766,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				},
 				getRoutingMode: () => routingModeRef.current,
 				deleteSelection: () => {
+                    if (readOnly || layoutOnly) return;
 					const graph = graphRef.current;
 					if (!graph || readOnly) return;
 					if (selectedCellIdRef.current) {
@@ -760,6 +785,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					}
 				},
 				clear: () => {
+                    if (readOnly || layoutOnly) return;
 					const graph = graphRef.current;
 					if (!graph || readOnly) return;
 					deactivateDuality();
@@ -836,6 +862,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				},
 				getActiveDualityNodeId: () => activeDualityNodeIdRef.current,
 				addBoundary: (kind, name, x, y, width, height) => {
+                    if (readOnly || layoutOnly) return "";
 					const graph = graphRef.current;
 					if (!graph) return '';
 					const id = `boundary_${Date.now().toString(36).slice(-4)}`;
@@ -864,6 +891,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					return metamodel.boundaries ? [...metamodel.boundaries] : [];
 				},
 				updateBoundary: (id, updates) => {
+                    if (readOnly || layoutOnly) return;
 					const graph = graphRef.current;
 					if (!graph) return;
 					const node = graph.getCellById(id);
@@ -920,7 +948,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				handleResetView,
 				handleZoomIn,
 				handleZoomOut,
-				readOnly,
+				readOnly, layoutOnly, emitCanvasState,
 				triggerDebouncedChange,
 				activateDuality,
 				deactivateDuality,
@@ -980,7 +1008,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					nodeMovable: !readOnly,
 					edgeMovable: !readOnly,
 					edgeLabelMovable: !readOnly,
-					arrowheadMovable: !readOnly,
+					arrowheadMovable: !readOnly && !layoutOnly,
+                    magnetConnectable: !readOnly && !layoutOnly,
 					vertexMovable: !readOnly,
 					vertexAddable: !readOnly,
 					vertexDeletable: !readOnly,
@@ -996,7 +1025,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					modifiers: ['ctrl', 'meta'],
 				},
 				embedding: {
-					enabled: !readOnly,
+					enabled: !readOnly && !layoutOnly,
 					findParent({ node }) {
 						const bbox = node.getBBox();
 						return this.getNodes().filter((n) => {
@@ -1117,6 +1146,15 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
                 queueMicrotask(() => { stateQueued = false; if (!disposed) emitCanvasState(); });
             };
             graph.on('history:change', queueCanvasState);
+            // Labels are a projection of semantic data and the current diagram preference.
+            // Reapply after history restores an older edge snapshot.
+            const refreshExpressionLabels = () => {
+                for (const edge of graph.getEdges()) {
+                    edge.setLabels(createAimEdge({ ...edge.getData(), id: edge.id, sourceId: edge.getSourceCellId(), targetId: edge.getTargetCellId(), bendPoints: edge.getVertices() } as RaidEdgeData, (graph as Graph & { _aimShowExpressions?: boolean })._aimShowExpressions ?? true).labels ?? [], { ignoreHistory: true });
+                }
+            };
+            graph.on('history:undo', refreshExpressionLabels);
+            graph.on('history:redo', refreshExpressionLabels);
             graph.on('edge:change:router', queueCanvasState);
             graph.on('edge:change:connector', queueCanvasState);
             graph.on('cell:added', queueCanvasState);
@@ -1124,8 +1162,12 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
             queueCanvasState();
 
 			let activeToolEdge: Edge | null = null;
+            let activeWaypointHandle: SVGElement | null = null;
 
 			const clearEdgeTools = () => {
+                activeWaypointHandle = null;
+                selectedWaypointRef.current = null;
+                onWaypointSelectRef.current?.(null);
 				if (activeToolEdge) {
 					try {
 						activeToolEdge.removeTools();
@@ -1147,7 +1189,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 				try {
 					edge.addTools([
-						{
+                        ...(!layoutOnly ? [{
 							name: 'source-arrowhead',
 							args: {
 								attrs: {
@@ -1171,19 +1213,45 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 								},
 							},
 						},
+                        ] : []),
 						{
 							name: 'vertices',
 							args: {
 								attrs: {
+                                    r: 8,
 									fill: CascaisPalette.WarmGraphite,
 									stroke: '#FFFFFF',
 									strokeWidth: 1.5,
 								},
 								processHandle: (handle: any) => {
 									if (handle?.container) {
-										handle.container.addEventListener('contextmenu', (e: MouseEvent) => {
+										handle.container.setAttribute('role', 'button');
+                                        handle.container.setAttribute('tabindex', '0');
+                                        handle.container.setAttribute('aria-label', `Bend point P${handle.options.index + 1}`);
+                                        const selectWaypoint = () => {
+                                            const index = handle.options.index as number;
+                                            const point = edge.getVertices()[index];
+                                            if (!point) return;
+                                            selectedCellIdRef.current = edge.id;
+                                            activeWaypointHandle?.setAttribute('aria-pressed', 'false');
+                                            activeWaypointHandle = handle.container;
+                                            activeWaypointHandle?.setAttribute('aria-pressed', 'true');
+                                            const selection = { edgeId: edge.id, index, x: point.x, y: point.y };
+                                            selectedWaypointRef.current = selection;
+                                            onWaypointSelectRef.current?.(selection);
+                                        };
+                                        handle.container.addEventListener('pointerdown', selectWaypoint);
+                                        handle.container.addEventListener('keydown', (event: KeyboardEvent) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                selectWaypoint();
+                                            }
+                                        });
+                                        handle.container.addEventListener('contextmenu', (e: MouseEvent) => {
 											e.preventDefault();
 											e.stopPropagation();
+                                            selectedWaypointRef.current = null;
+                                            onWaypointSelectRef.current?.(null);
 											handle.emit('remove', { e, handle });
 										});
 									}
@@ -1238,7 +1306,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 					edge.setData(edgeData);
 
-					const edgeMeta = createAimEdge(edgeData);
+					const edgeMeta = createAimEdge(edgeData, (graph as Graph & { _aimShowExpressions?: boolean })._aimShowExpressions ?? true);
 					edge.prop('shape', edgeMeta.shape);
 					edge.setAttrs(edgeMeta.attrs ?? {});
 					if (!isDirected) {
@@ -1287,7 +1355,14 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				}
 				triggerDebouncedChange();
 			});
-			graph.on('edge:change:vertices', triggerDebouncedChange);
+			graph.on('edge:change:vertices', ({ edge }) => {
+                triggerDebouncedChange();
+                const selection = selectedWaypointRef.current;
+                if (selection?.edgeId !== edge.id) return;
+                const point = edge.getVertices()[selection.index];
+                selectedWaypointRef.current = point ? { ...selection, x: point.x, y: point.y } : null;
+                onWaypointSelectRef.current?.(selectedWaypointRef.current);
+            });
 			graph.on('edge:change:source', triggerDebouncedChange);
 			graph.on('edge:change:target', triggerDebouncedChange);
 			graph.on('cell:added', triggerDebouncedChange);
@@ -1545,6 +1620,15 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				}
 
 				if (e.key === 'Delete' || e.key === 'Backspace') {
+                    const point = selectedWaypointRef.current;
+                    if (point) {
+                        const edge = graph.getCellById(point.edgeId);
+                        if (edge?.isEdge()) { e.preventDefault(); edge.removeVertexAt(point.index); }
+                        selectedWaypointRef.current = null;
+                        onWaypointSelectRef.current?.(null);
+                        return;
+                    }
+                    if (layoutOnly) return;
 					if (selectedCellIdRef.current && graphRef.current) {
 						const cell = graphRef.current.getCellById(selectedCellIdRef.current);
 						if (cell) {
@@ -1613,7 +1697,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				graph.dispose();
 				graphRef.current = null;
 			};
-		}, [readOnly, triggerDebouncedChange, emitCanvasState]);
+		}, [readOnly, layoutOnly, triggerDebouncedChange, emitCanvasState]);
 
 		// --------------------------------------------------------------------------
 		// 2. React to External SVG Changes
@@ -1664,7 +1748,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 		// 3. HTML5 Drag-and-Drop Stencil Dropzone
 		// --------------------------------------------------------------------------
 		const handleDragOver = (e: React.DragEvent) => {
-			if (readOnly) return;
+			if (readOnly || layoutOnly) return;
 			const hasStencil =
 				e.dataTransfer.types.includes('application/aoaim-kind') ||
 				e.dataTransfer.types.includes('text/plain');
@@ -1682,7 +1766,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 		};
 
 		const handleDrop = (e: React.DragEvent) => {
-			if (readOnly) return;
+			if (readOnly || layoutOnly) return;
 			e.preventDefault();
 			setIsDragOver(false);
 

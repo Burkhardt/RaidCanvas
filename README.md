@@ -25,6 +25,20 @@ pnpm add @dr2rai/raid-canvas
 
 The npm package provides reusable React components and styles for your application. **RaidCanvas Studio**, the standalone web preview and reference application, is maintained in [apps/playground on GitHub](https://github.com/Burkhardt/RaidCanvas/tree/main/apps/playground) and is not included in the npm package. Run Studio from a repository checkout to explore and test the components.
 
+## 0.8.1 — routing, waypoints and expression visibility
+
+- Select a bend point on the canvas, then use **Delete Bend Point** in `RaidInspector`. Individual point deletion, **Clear All Bend Points**, and native undo/redo are supported. Hover enlarges the hit target without moving the point; the selected point stays gold/green.
+- `RaidCanvasToolbar` offers single-click **Orthogonal / Straight / Curved** glyphs and an optional **ƒ(x)** toggle.
+- Expression visibility belongs to each diagram: `<svg aim-show-expressions="true|false">`. Missing metadata defaults to `true`; `data-aim-show-expressions` is accepted on import. Hidden capsules retain `aim-expression`, color and satisfaction metadata through export and re-import.
+- `RaidCanvasHandle.setShowExpressions(visible)` updates the diagram and emits the normal `onChange` / `onSave` SVG. `onCanvasStateChange` now includes `showExpressions`. The preference is independent of geometry undo/redo.
+- Forward `RaidCanvas.onWaypointSelect` into `RaidInspector.waypoint`; wire `onUpdateWaypoints(id, points)` to `canvasRef.current?.updateEdge(id, { bendPoints: points })`. The inspector also accepts `showExpressions` / `onShowExpressionsChange` for its unselected canvas settings.
+- Optional `layoutOnly` permits arrangement and routing while blocking semantic creation, reconnection, property editing and entity deletion through the canvas UI/handle. `readOnly` still represents a viewer; raw `getGraph()` access is an escape hatch, not a permission boundary.
+- The inspector uses **Expression** as its tab label and shows **Provenance** only for valid `s<timestamp>` statements. Empty `bendPoints` display as `(auto)` in `RaidPropertyTree`.
+
+Studio opens **Living Stage · Routing & Expressions (0.8.1)** with Pre, Exec and Post capsules and editable waypoints. Switching presets keeps each diagram's current SVG for the Studio session. Export SVG to retain those edits beyond a reload.
+
+See [0.8.1 release notes](https://github.com/Burkhardt/RaidCanvas/blob/main/doc/ReleaseNotes0.8.1.md) and [Zébio's integration handover](https://github.com/Burkhardt/RaidCanvas/blob/main/doc/HANDOVER_ALAN_TO_ZEBIO_0.8.1.md).
+
 ## 0.8.0 — reusable Living Stage UI
 
 This release makes DaisyUI 5 and Tailwind CSS 4 package dependencies. Studio and application consumers use the same Inspector, Palette, toolbar, property tree, history, and portal interaction.
@@ -45,9 +59,9 @@ The stylesheet includes the required DaisyUI components and Tailwind utilities, 
 
 Use the imperative canvas handle for toolbar actions and the state callback for availability. Undo/redo and routing synchronization belong to the canvas; applications should not maintain a parallel SVG history or poll the graph.
 
-Studio at `http://localhost:5173/` opens **Living Stage · Reusable Inspector (0.8.0)**. Select Schedule Meeting to see the shared inspector slots, projected roles and description wrapping. Studio's Duplicate Use Case is a local canvas demonstration; AIA owns authenticated blueprint specialization and persistence.
+Studio at `http://localhost:5173/` also includes **Living Stage · Reusable Inspector (0.8.0)**. Select Schedule Meeting to see the shared inspector slots, projected roles and description wrapping. Studio's Duplicate Use Case is a local canvas demonstration; AIA owns authenticated blueprint specialization and persistence.
 
-Build and validate from the repository root with `pnpm build && pnpm test && pnpm lint`. Publishing remains a manual RAI operation from `packages/canvas` after these checks: `pnpm publish --access public`. Version 0.8.0 is published on npm.
+Build and validate from the repository root with `pnpm build && pnpm test && pnpm lint`. The release command from `packages/canvas`, after these checks, is: `pnpm publish --access public`. Version 0.8.0 is published on npm.
 
 ## 1. Vision & Architectural Heritage
 

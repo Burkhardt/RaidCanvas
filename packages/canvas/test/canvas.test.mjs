@@ -2725,3 +2725,43 @@ describe('v0.7.1 Patch — Expression Tooltip, Provenance Contract, Boundary Rou
   });
 });
 
+
+
+describe('0.8.1 per-diagram expression visibility', () => {
+  const edge = { id: 'guard', kind: 'dependency', sourceId: 'a', targetId: 'b', label: 'Pre', expression: 'Ready && Count < 3', expressionColor: 'green', satisfied: false, bendPoints: [{ x: 80, y: 60 }] };
+  const model = { diagramId: 'visibility', archetype: 'ActivityDiagram', nodes: [
+    { id: 'a', kind: 'act', displayName: 'A', bounds: { x: 0, y: 0, width: 60, height: 40 } },
+    { id: 'b', kind: 'act', displayName: 'B', bounds: { x: 200, y: 0, width: 60, height: 40 } },
+  ], edges: [edge] };
+  const bridge = new RaiBridge();
+  test('hidden live labels retain the semantic expression', () => {
+    const hidden = createAimEdge(edge, false);
+    assert.equal(hidden.data.expression, edge.expression);
+    assert.ok(!hidden.labels.some(label => label.attrs?.pillText));
+    assert.ok(createAimEdge(edge).labels.some(label => label.attrs?.pillText));
+  });
+  for (const visible of [true, false]) test(`fresh SVG round-trips expression visibility ${visible} without losing conditions`, () => {
+    const svg = bridge.generateFreshSvg({ ...model, showExpressions: visible }, {});
+    assert.equal(svg.includes('class="aim-expression-pill"'), visible);
+    const restored = bridge.extractMetamodel(svg);
+    assert.equal(restored.showExpressions, visible);
+    assert.equal(restored.edges[0].expression, edge.expression);
+    assert.equal(restored.edges[0].satisfied, false);
+    assert.equal(restored.edges[0].expressionColor, 'green');
+    assert.deepEqual(restored.edges[0].bendPoints, edge.bendPoints);
+  });
+  test('existing artifacts hide and restore pills independently and preserve metadata', () => {
+    const original = bridge.generateFreshSvg(model, {});
+    const hidden = bridge.updateExistingSvg(original, { ...model, showExpressions: false });
+    assert.ok(!hidden.includes('class="aim-expression-pill"'));
+    assert.equal(bridge.extractMetamodel(hidden).edges[0].expression, edge.expression);
+    const shown = bridge.updateExistingSvg(hidden, { ...model, showExpressions: true });
+    assert.ok(shown.includes('class="aim-expression-pill"'));
+    assert.equal(bridge.extractMetamodel(original).showExpressions, true);
+    assert.equal(bridge.extractMetamodel(hidden).showExpressions, false);
+  });
+  test('legacy diagrams default to visible; data-prefixed metadata is accepted', () => {
+    assert.equal(bridge.extractMetamodel('<svg xmlns="http://www.w3.org/2000/svg"/>').showExpressions, true);
+    assert.equal(bridge.extractMetamodel('<svg xmlns="http://www.w3.org/2000/svg" data-aim-show-expressions="false"/>').showExpressions, false);
+  });
+});

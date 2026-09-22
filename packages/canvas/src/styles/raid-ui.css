@@ -9,7 +9,7 @@
 @source "../RaidCanvasToolbar.tsx";
 @plugin "daisyui" {
   themes: false;
-  include: button, input, select, textarea, checkbox, menu, tabs, badge, card;
+  include: button, input, select, textarea, checkbox, menu, tabs, badge, card, join;
 }
 @plugin "daisyui/theme" {
   name: "raid-cascais";

@@ -9,6 +9,18 @@ export interface DiagramPreset {
 
 export const PRESETS: DiagramPreset[] = [
   {
+    id: 'canvas-ergonomics', name: 'Living Stage · Routing & Expressions (0.8.1)', archetype: 'ActivityDiagram',
+    description: 'Select an edge, then tap a bend point to delete it in the Inspector. Switch routing in one tap. The formula glyph hides conditions in this diagram only; exported SVG retains the conditions and visibility preference.',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 460" id="Ergonomics_081" aim-archetype="ActivityDiagram" aim-routing="normal" aim-show-expressions="true">
+      <g aim-node="true" aim-id="Prepare" aim-kind="act" transform="translate(40,200)"><rect width="140" height="70"/><text>Prepare</text></g>
+      <g aim-node="true" aim-id="Perform" aim-kind="act" transform="translate(340,200)"><rect width="140" height="70"/><text>Perform</text></g>
+      <g aim-node="true" aim-id="Conclude" aim-kind="act" transform="translate(620,200)"><rect width="140" height="70"/><text>Conclude</text></g>
+      <g aim-edge="true" aim-id="Pre" aim-source="Prepare" aim-target="Perform" aim-edge-kind="dependency" aim-expression="Ready == true" aim-expression-color="green" aim-bends="240,235; 240,130; 410,130" aim-routing="normal"><path d="M180 235 L240 235 L240 130 L410 130 L410 200"/><text>Pre</text></g>
+      <g aim-edge="true" aim-id="Exec" aim-source="Perform" aim-target="Conclude" aim-edge-kind="dependency" aim-expression="Progress &gt; 0" aim-expression-color="blue" aim-routing="normal"><path d="M480 235 L620 235"/><text>Exec</text></g>
+      <g aim-edge="true" aim-id="Post" aim-source="Prepare" aim-target="Conclude" aim-edge-kind="dependency" aim-expression="Result != null" aim-expression-color="green" aim-bends="110,365; 690,365" aim-routing="normal"><path d="M110 270 L110 365 L690 365 L690 270"/><text>Post</text></g>
+    </svg>`,
+  },
+  {
     id: 'living-stage-inspector', name: 'Living Stage · Reusable Inspector (0.8.0)', archetype: 'OneUseCaseDiagram',
     description: 'Published DaisyUI inspector, projected attribute tree, Pin, header actions and right-click portal. Duplicate is a local Studio canvas demonstration; application persistence belongs to the consumer.',
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" id="LivingStage_UCC" aim-archetype="OneUseCaseDiagram">

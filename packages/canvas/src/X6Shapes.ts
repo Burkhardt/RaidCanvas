@@ -2608,7 +2608,7 @@ export function computeExpressionPillColors(
 /**
  * Factory creating an AntV X6 Edge model from a RaidEdgeData specification.
  */
-export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
+export function createAimEdge(data: RaidEdgeData, showExpressions = true): Edge.Metadata {
   registerAimShapes();
 
   const isDirected = data.directed !== false;
@@ -2652,7 +2652,7 @@ export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
     vertices: (data.bendPoints ?? []).map((pt) => ({ x: pt.x, y: pt.y })),
     labels: (() => {
       const edgeLabels: any[] = [];
-      const hasExpression = Boolean(data.expression && data.expression.trim().length > 0);
+      const hasExpression = Boolean(showExpressions && data.expression && data.expression.trim().length > 0);
 
       if (data.label) {
         edgeLabels.push({
@@ -2663,7 +2663,7 @@ export function createAimEdge(data: RaidEdgeData): Edge.Metadata {
               fontSize: 11,
             },
           },
-          position: hasExpression ? 0.25 : 0.5,
+          position: hasExpression ? { distance: 0.5, offset: -20 } : 0.5,
         });
       }
 

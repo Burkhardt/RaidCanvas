@@ -18,6 +18,7 @@ import type {
 	SpeechActStatement,
 } from './types.js';
 import { STATEMENT_KEY_PATTERN } from './types.js';
+import type { RaidWaypointSelection } from './RaidCanvas.js';
 import { RaidPropertyTree } from './RaidPropertyTree.js';
 import { computeExpressionPillColors } from './X6Shapes.js';
 
@@ -52,6 +53,12 @@ export interface RaidInspectorProps {
 	onTogglePin?: () => void;
 	/** Consumer actions, rendered beside the built-in Pin control. */
     headerActions?: React.ReactNode;
+    /** Live vertex selection reported by RaidCanvas.onWaypointSelect. */
+    waypoint?: RaidWaypointSelection | null;
+    /** Visual editing callback independent of semantic property editing. */
+    onUpdateWaypoints?: (edgeId: string, points: { x: number; y: number }[]) => void;
+    showExpressions?: boolean;
+    onShowExpressionsChange?: (visible: boolean) => void;
     /** Domain context before the standard property fields; the inspector owns layout/scrolling. */
     contextPanel?: React.ReactNode;
     /** Optional status/expression content after the standard inspector. */
@@ -238,11 +245,15 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 	onNavigatePortal,
 	isPinned = false,
 	onTogglePin,
-    headerActions, contextPanel, footer, projectedProperties,
+    headerActions, contextPanel, footer, projectedProperties, waypoint, onUpdateWaypoints, showExpressions = true, onShowExpressionsChange,
 	className,
 	style,
 }) => {
-	const [activeTab, setActiveTab] = useState<'properties' | 'ast' | 'provenance'>('properties');
+	const [requestedTab, setActiveTab] = useState<'properties' | 'ast' | 'provenance'>('properties');
+    const properties = selection?.nodeData?.properties ?? (selection?.edgeData as { properties?: Record<string, unknown> } | undefined)?.properties ?? selection?.boundaryData?.properties;
+    const hasProvenance = Object.entries(properties ?? {}).some(([key, value]) => STATEMENT_KEY_PATTERN.test(key) && value !== null && typeof value === 'object' && 'AtUtc' in value && !!value.AtUtc && 'Actor' in value && !!value.Actor && 'RawMessage' in value && !!value.RawMessage);
+    const activeTab = (requestedTab === 'provenance' && !hasProvenance) || (requestedTab === 'ast' && selection?.type !== 'edge') ? 'properties' : requestedTab;
+    const expressionSetting = onShowExpressionsChange && <label className="flex items-center justify-between gap-3 text-xs"><span>Show expressions</span><input className="checkbox checkbox-sm" type="checkbox" checked={showExpressions} onChange={event => onShowExpressionsChange(event.target.checked)}/></label>;
 
 	if (!selection) {
 		return (
@@ -265,7 +276,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 			>
 				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
 					<span style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-						Studio Inspector
+						Canvas settings
 					</span>
 					{onTogglePin && (
 						<button className="btn btn-xs"
@@ -287,7 +298,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						</button>
 					)}
 				</div>
-				<div style={{ textAlign: 'center', margin: 'auto 0', padding: '32px 8px' }}>
+				{expressionSetting}
+                <div style={{ textAlign: 'center', margin: 'auto 0', padding: '32px 8px' }}>
 					<div style={{ fontSize: 28, marginBottom: 8 }}>🎯</div>
 					<div style={{ fontWeight: 600, color: '#334155', marginBottom: 4 }}>No Entity Selected</div>
 					<div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.5 }}>
@@ -434,10 +446,10 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							cursor: 'pointer',
 						}}
 					>
-						AST Expression
+						Expression
 					</button>
 				)}
-				<button className="btn btn-xs"
+				{hasProvenance && <button className="btn btn-xs"
 					type="button"
 					onClick={() => setActiveTab('provenance')}
 					style={{
@@ -452,10 +464,21 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					}}
 				>
 					Provenance
-				</button>
+				</button>}
 			</div>
 
             {activeTab === 'properties' && contextPanel}
+            {isEdge && edge && activeTab === 'properties' && <section className="card border border-base-300 bg-base-100 p-3" aria-label="Bend points">
+                <h3 className="text-sm font-bold">Bend points</h3>
+                {waypoint?.edgeId === selection.id && edge.bendPoints?.[waypoint.index] && <div className="my-2 rounded-box bg-base-200 p-2">
+                    <p className="text-xs">Waypoint P{waypoint.index + 1}: ({waypoint.x}, {waypoint.y})</p>
+                    <button type="button" className="btn btn-sm btn-error mt-2 w-full" disabled={!onUpdateWaypoints && !onUpdateEdge} onClick={() => (onUpdateWaypoints ? onUpdateWaypoints(selection.id, edge.bendPoints!.filter((_, i) => i !== waypoint.index)) : onUpdateEdge?.(selection.id, { bendPoints: edge.bendPoints!.filter((_, i) => i !== waypoint.index) }))}>Delete Bend Point</button>
+                </div>}
+                {(edge.bendPoints?.length ?? 0) > 0 ? <>
+                    <ul className="menu w-full p-0">{edge.bendPoints!.map((point, index) => <li key={index}><div className="flex justify-between gap-2"><span>P{index + 1}: ({point.x}, {point.y})</span><button type="button" className="btn btn-ghost btn-sm btn-square" aria-label={`Delete bend point P${index + 1}`} disabled={!onUpdateWaypoints && !onUpdateEdge} onClick={() => (onUpdateWaypoints ? onUpdateWaypoints(selection.id, edge.bendPoints!.filter((_, i) => i !== index)) : onUpdateEdge?.(selection.id, { bendPoints: edge.bendPoints!.filter((_, i) => i !== index) }))}>✕</button></div></li>)}</ul>
+                    <button type="button" className="btn btn-sm btn-outline mt-2" disabled={!onUpdateWaypoints && !onUpdateEdge} onClick={() => (onUpdateWaypoints ? onUpdateWaypoints(selection.id, []) : onUpdateEdge?.(selection.id, { bendPoints: [] }))}>Clear All Bend Points</button>
+                </> : <p className="text-xs text-base-content/60">Automatic routing (no manual bend points)</p>}
+            </section>}
 
             {activeTab === 'properties' && !contextPanel && node?.properties && <RaidPropertyTree value={node.properties} {...(projectedProperties ? { projectedNames: projectedProperties } : {})}/>}
 			{/* ═══ PROVENANCE TAB ═══ */}

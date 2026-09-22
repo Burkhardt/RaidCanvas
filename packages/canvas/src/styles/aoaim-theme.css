@@ -269,7 +269,7 @@ circle[magnet="true"]:hover {
 
 .x6-edge-tool-vertex:hover {
   fill: var(--aim-accent-blue);
-  transform: scale(1.3);
+  r: 10;
 }
 
 /* Dark Mode Overrides */
@@ -291,4 +291,11 @@ circle[magnet="true"]:hover {
   .aim-edge {
     stroke: var(--aim-warm-graphite);
   }
+}
+
+/* A selected routing point remains visible when the pointer moves to the Inspector. */
+.x6-edge-tool-vertex[aria-pressed="true"] {
+  fill: #FDE68A;
+  stroke: #1E5631;
+  stroke-width: 3px;
 }

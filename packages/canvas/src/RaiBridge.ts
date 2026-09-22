@@ -107,6 +107,7 @@ export class RaiBridge {
 		}
 
 		const metamodel = projectRoleAttributes(this.extractMetamodel(svgSource, options));
+        (graph as Graph & { _aimShowExpressions?: boolean })._aimShowExpressions = metamodel.showExpressions ?? true;
 		this.diagramContexts.set(graph, { diagramId: metamodel.diagramId, archetype: metamodel.archetype, ...(metamodel.metadata ? { metadata: metamodel.metadata } : {}) });
 
 		// 0. Add all boundary nodes to graph at zIndex 0
@@ -147,7 +148,7 @@ export class RaiBridge {
 
 		// 2. Add all edges to graph
 		for (const edgeData of metamodel.edges) {
-			const edgeMeta = createAimEdge(edgeData);
+			const edgeMeta = createAimEdge(edgeData, metamodel.showExpressions ?? true);
 			graph.addEdge(edgeMeta);
 		}
 
@@ -368,6 +369,7 @@ export class RaiBridge {
 			diagramId: 'RaidDiagram',
 			archetype: 'InteractiveCanvas',
 			...this.diagramContexts.get(graph),
+            showExpressions: (graph as Graph & { _aimShowExpressions?: boolean })._aimShowExpressions ?? true,
 			nodes,
 			edges,
 			...(boundaries.length > 0 ? { boundaries } : {}),
@@ -716,6 +718,7 @@ export class RaiBridge {
 
 		return {
 			diagramId: svgRoot.getAttribute('id') ?? 'ImportedDiagram',
+            showExpressions: (svgRoot.getAttribute(AimSvgContract.ATTR_SHOW_EXPRESSIONS) ?? svgRoot.getAttribute('data-aim-show-expressions')) !== 'false',
 			archetype: svgRoot.getAttribute('aim-archetype') ?? 'AOAIMDiagram',
 			nodes,
 			edges,
@@ -846,6 +849,8 @@ export class RaiBridge {
 			.aim-node[aim-instance="true"] text.aim-name, .aim-node[aim-instance="true"] tspan.aim-name { text-decoration: underline; }
 `;
 		}
+
+		doc.documentElement.setAttribute(AimSvgContract.ATTR_SHOW_EXPRESSIONS, String(model.showExpressions ?? true));
 
 		// Update diagram-level routing mode on root <svg>
 		const diagramRouting = _options.routingMode ?? model.routing;
@@ -1258,7 +1263,7 @@ export class RaiBridge {
 				}
 				textEl.setAttribute('class', 'aim-edge-label');
 				textEl.setAttribute('x', `${midPoint.x}`);
-				textEl.setAttribute('y', `${edge.expression ? midPoint.y - 14 : midPoint.y - 8}`);
+				textEl.setAttribute('y', `${edge.expression && model.showExpressions !== false ? midPoint.y - 14 : midPoint.y - 8}`);
 				textEl.setAttribute('font-size', '11');
 				textEl.setAttribute('fill', CascaisPalette.TextSecondary);
 				textEl.setAttribute('text-anchor', 'middle');
@@ -1266,7 +1271,7 @@ export class RaiBridge {
 			}
 
 			// Update or inject edge AST expression capsule pill
-			if (edge.expression) {
+			if (edge.expression && model.showExpressions !== false) {
 				const { pillBg, pillBorder, pillText } = computeExpressionPillColors(
 					edge.expressionColor,
 					edge.satisfied,
@@ -1560,7 +1565,7 @@ export class RaiBridge {
 		const diagramRouting = options.routingMode ?? model.routing;
 		const routingAttr = diagramRouting ? ` ${AimSvgContract.ATTR_ROUTING}="${escapeXmlAttr(diagramRouting)}"` : '';
 
-		let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" id="${escapeXmlAttr(model.diagramId)}" aim-archetype="${escapeXmlAttr(model.archetype)}"${routingAttr}>\n`;
+		let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" id="${escapeXmlAttr(model.diagramId)}" aim-archetype="${escapeXmlAttr(model.archetype)}"${routingAttr} aim-show-expressions="${model.showExpressions ?? true}">\n`;
 
 		// Definitions & Markers
 		svg += `  <defs>\n`;
@@ -1607,7 +1612,7 @@ export class RaiBridge {
 			const sourceCardAttr = edge.sourceCardinality ? ` aim-source-cardinality="${escapeXmlAttr(edge.sourceCardinality)}"` : '';
 			const targetCardAttr = edge.targetCardinality ? ` aim-target-cardinality="${escapeXmlAttr(edge.targetCardinality)}"` : '';
 
-			svg += `    <g ${AimSvgContract.ATTR_EDGE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(edge.id)}" ${AimSvgContract.ATTR_EDGE_KIND}="${escapeXmlAttr(edge.kind)}" ${AimSvgContract.ATTR_SOURCE}="${escapeXmlAttr(edge.sourceId)}" ${AimSvgContract.ATTR_TARGET}="${escapeXmlAttr(edge.targetId)}" aim-directed="${edge.directed !== false}"${sourcePortAttr}${targetPortAttr}${routingAttr}${stereotypeAttr}${sourceCardAttr}${targetCardAttr} ${AimSvgContract.ATTR_BENDS}="${escapeXmlAttr(bendsFormatted)}">\n`;
+			svg += `    <g ${AimSvgContract.ATTR_EDGE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(edge.id)}" ${AimSvgContract.ATTR_EDGE_KIND}="${escapeXmlAttr(edge.kind)}" ${AimSvgContract.ATTR_SOURCE}="${escapeXmlAttr(edge.sourceId)}" ${AimSvgContract.ATTR_TARGET}="${escapeXmlAttr(edge.targetId)}" aim-directed="${edge.directed !== false}"${sourcePortAttr}${targetPortAttr}${routingAttr}${edge.expression !== undefined ? ` aim-expression="${escapeXmlAttr(edge.expression)}"` : ''}${edge.expressionColor !== undefined ? ` aim-expression-color="${escapeXmlAttr(edge.expressionColor)}"` : ''}${edge.satisfied !== undefined ? ` aim-satisfied="${edge.satisfied}"` : ''}${stereotypeAttr}${sourceCardAttr}${targetCardAttr} ${AimSvgContract.ATTR_BENDS}="${escapeXmlAttr(bendsFormatted)}">\n`;
 			if (pathD) {
 				svg += `      <path d="${pathD}" class="aim-edge" fill="none" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5"${strokeDash}${markerEnd} />\n`;
 			}
@@ -1626,9 +1631,17 @@ export class RaiBridge {
 								}
 								return { x: 50, y: 50 };
 							})();
-				svg += `      <text x="${midPoint.x}" y="${midPoint.y - 8}" font-size="11" fill="${CascaisPalette.TextSecondary}" text-anchor="middle">${escapeXmlText(edge.label)}</text>\n`;
+				svg += `      <text x="${midPoint.x}" y="${midPoint.y - (edge.expression && model.showExpressions !== false ? 20 : 8)}" font-size="11" fill="${CascaisPalette.TextSecondary}" text-anchor="middle">${escapeXmlText(edge.label)}</text>\n`;
 			}
-			svg += `    </g>\n`;
+			if (edge.expression && model.showExpressions !== false) {
+                const source = model.nodes.find(n => n.id === edge.sourceId);
+                const target = model.nodes.find(n => n.id === edge.targetId);
+                const point = edge.bendPoints[Math.floor(edge.bendPoints.length / 2)] ?? { x: ((source?.bounds.x ?? 0) + (source?.bounds.width ?? 0) / 2 + (target?.bounds.x ?? 0) + (target?.bounds.width ?? 0) / 2) / 2, y: ((source?.bounds.y ?? 0) + (source?.bounds.height ?? 0) / 2 + (target?.bounds.y ?? 0) + (target?.bounds.height ?? 0) / 2) / 2 };
+                const colors = computeExpressionPillColors(edge.expressionColor, edge.satisfied);
+                const width = Math.max(48, edge.expression.length * 7 + 16);
+                svg += `<g class="aim-expression-pill"><rect x="${point.x-width/2}" y="${point.y-10}" width="${width}" height="22" rx="8" fill="${colors.pillBg}" stroke="${colors.pillBorder}"/><text x="${point.x}" y="${point.y+4}" text-anchor="middle" font-size="10" fill="${colors.pillText}">${escapeXmlText(edge.expression)}</text></g>`;
+            }
+            svg += `    </g>\n`;
 		}
 		svg += `  </g>\n\n`;
 

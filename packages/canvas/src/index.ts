@@ -85,6 +85,7 @@ export {
   RaidCanvas,
   type RaidCanvasProps,
   type RaidCanvasState,
+  type RaidWaypointSelection,
   type RaidCanvasHandle,
 } from './RaidCanvas.js';
 

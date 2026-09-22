@@ -6,6 +6,8 @@ interface StudioToolbarProps {
   presets: DiagramPreset[];
   selectedPresetId: string;
   onSelectPreset: (id: string) => void;
+  showExpressions: boolean;
+  onShowExpressionsChange: (visible: boolean) => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -30,7 +32,7 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
   presets,
   selectedPresetId,
   onSelectPreset,
-  canUndo,
+  canUndo, showExpressions, onShowExpressionsChange,
   canRedo,
   onUndo,
   onRedo,
@@ -69,7 +71,7 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
               RaidCanvas Studio
             </h1>
             <span style={{ fontSize: 10, color: '#64748B', fontWeight: 500 }}>
-              0.8.0 • DaisyUI / Tailwind
+              0.8.1 • DaisyUI / Tailwind
             </span>
           </div>
         </div>
@@ -106,7 +108,7 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
         </div>
       </div>
 
-      <RaidCanvasToolbar routing={routingMode} readOnly={readOnly} canUndo={canUndo} canRedo={canRedo} onRoutingChange={onChangeRoutingMode} onUndo={onUndo} onRedo={onRedo} onZoomIn={onZoomIn} onZoomOut={onZoomOut} onFit={onFit} onCenter={onCenter} end={<div className="flex gap-1"><button className="btn btn-xs" onClick={onDeleteSelected} disabled={readOnly}>Delete</button><button className="btn btn-xs" onClick={onClear} disabled={readOnly}>Clear</button></div>}/>
+      <RaidCanvasToolbar showExpressions={showExpressions} onShowExpressionsChange={onShowExpressionsChange} routing={routingMode} readOnly={readOnly} canUndo={canUndo} canRedo={canRedo} onRoutingChange={onChangeRoutingMode} onUndo={onUndo} onRedo={onRedo} onZoomIn={onZoomIn} onZoomOut={onZoomOut} onFit={onFit} onCenter={onCenter} end={<div className="flex gap-1"><button className="btn btn-xs" onClick={onDeleteSelected} disabled={readOnly}>Delete</button><button className="btn btn-xs" onClick={onClear} disabled={readOnly}>Clear</button></div>}/>
 
       {/* Right: Export Suite & Modes */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

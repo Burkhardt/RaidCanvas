@@ -20,13 +20,14 @@ export function RaidPropertyTree({ value, projectedNames = [], renderValue, maxD
     if (item === null || typeof item !== 'object') {
       return <span className="max-w-[48ch] whitespace-pre-wrap wrap-anywhere text-base-content">{item === null ? 'null' : String(item)}</span>;
     }
+    if (Array.isArray(item) && item.length === 0) return <span className="text-base-content/60">{path.at(-1) === 'bendPoints' ? '(auto)' : '[]'}</span>;
     if (parents.includes(item)) return <span className="text-base-content/60">Circular reference</span>;
     if (path.length >= maxDepth) return <span className="text-base-content/60">Disclosure depth limit reached</span>;
     const nextParents = [...parents, item];
     return <ul className="menu w-full min-w-0 p-1 text-xs">{Object.entries(item).map(([name, child]) => {
       const labelClass = projectedNames.includes(name) ? 'text-[#D4AF37] font-bold' : 'text-[#23231F]';
       const nextPath = [...path, name];
-      return <li key={name} className="min-w-0">{child !== null && typeof child === 'object'
+      return <li key={name} className="min-w-0">{child !== null && typeof child === 'object' && !(Array.isArray(child) && child.length === 0)
         ? <details><summary className={labelClass}>{name}</summary>{render(child, nextPath, nextParents)}</details>
         : <div className="flex flex-wrap items-start gap-2"><span className={labelClass}>{name}</span>{render(child, nextPath, nextParents)}</div>}</li>;
     })}</ul>;

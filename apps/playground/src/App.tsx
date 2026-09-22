@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import {
   RaidCanvas, RaidPropertyTree,
   type RaidCanvasHandle,
+  type RaidWaypointSelection,
   type RaidNodeData,
   type RaidEdgeData,
   type RaidBoundaryData,
@@ -25,6 +26,8 @@ export const App: React.FC = () => {
   );
 
   const [svg, setSvg] = useState<string>(currentPreset.svg);
+  const [showExpressions, setShowExpressions] = useState(true);
+  const [waypoint, setWaypoint] = useState<RaidWaypointSelection | null>(null);
   const [isPinned, setIsPinned] = useState(false);
   const [readOnly, setReadOnly] = useState<boolean>(false);
   const [selectedEntity, setSelectedEntity] = useState<SelectedEntityData | null>(null);
@@ -47,12 +50,15 @@ export const App: React.FC = () => {
   const [history, setHistory] = useState({ canUndo: false, canRedo: false });
   const { canUndo, canRedo } = history;
 
+  const diagramSnapshots = useRef<Record<string, string>>({});
+
   const handleSelectPreset = (presetId: string) => {
+    diagramSnapshots.current[selectedPresetId] = canvasRef.current?.getSvg() ?? svg;
     setSelectedPresetId(presetId);
     const target = PRESETS.find((p) => p.id === presetId);
     if (target) {
       setRoutingMode('normal');
-      setSvg(target.svg);
+      setSvg(diagramSnapshots.current[presetId] ?? target.svg);
       setSelectedEntity(null);
 
     }
@@ -282,6 +288,7 @@ export const App: React.FC = () => {
         onCopySvg={handleCopySvg}
         copied={copied}
         routingMode={routingMode}
+        showExpressions={showExpressions} onShowExpressionsChange={value => canvasRef.current?.setShowExpressions(value)}
         onChangeRoutingMode={handleChangeRoutingMode}
         readOnly={readOnly}
         onToggleReadOnly={setReadOnly}
@@ -387,7 +394,8 @@ export const App: React.FC = () => {
               showToolbar={false}
               defaultRouting={routingMode === 'mixed' ? undefined : routingMode}
               fitOnResize
-              onCanvasStateChange={state => { setHistory({ canUndo: state.canUndo, canRedo: state.canRedo }); setRoutingMode(state.routing); }}
+              onWaypointSelect={point => { setWaypoint(point); if (point) refreshSelectedEntity(point.edgeId); }}
+              onCanvasStateChange={state => { setShowExpressions(state.showExpressions); setHistory({ canUndo: state.canUndo, canRedo: state.canRedo }); setRoutingMode(state.routing); }}
               onChange={handleCanvasChange}
               onSelectionChange={handleSelectionChange}
               onRoutingModeChange={setRoutingMode}
@@ -477,6 +485,9 @@ export const App: React.FC = () => {
               <PropertyInspector
                 archetype={currentPreset.archetype}
                 selection={selectedEntity}
+                waypoint={waypoint}
+                showExpressions={showExpressions}
+                {...(!readOnly ? { onShowExpressionsChange: (value: boolean) => canvasRef.current?.setShowExpressions(value), onUpdateWaypoints: (id: string, points: { x: number; y: number }[]) => { canvasRef.current?.updateEdge(id, { bendPoints: points }); refreshSelectedEntity(id); } } : {})}
                 isPinned={isPinned} onTogglePin={() => setIsPinned(value => !value)}
                 style={{ width: '100%', minWidth: 0 }}
                 headerActions={selectedEntity?.nodeData?.kind === 'uc' ? <button type="button" className="btn btn-xs btn-outline btn-primary" disabled={readOnly} onClick={() => {
@@ -489,10 +500,10 @@ export const App: React.FC = () => {
                   canvasRef.current?.updateNode(id, updates);
                   refreshSelectedEntity(id);
                 }}
-                onUpdateEdge={(id, updates) => {
+                {...(!readOnly ? { onUpdateEdge: (id: string, updates: Partial<RaidEdgeData>) => {
                   canvasRef.current?.updateEdge(id, updates);
                   refreshSelectedEntity(id);
-                }}
+                } } : {})}
                 onUpdateBoundary={(id, updates) => {
                   canvasRef.current?.updateBoundary(id, updates);
                   refreshSelectedEntity(id);

@@ -197,6 +197,8 @@ export interface RaidEdgeData {
 
 	/** Routing strategy for this edge ('manhattan', 'normal', 'smooth'). */
 	readonly routing?: AimRoutingMode;
+	/** Per-artifact expression capsule visibility; absent means visible. */
+	readonly showExpressions?: boolean;
 
 	/** User-editable or router-computed Manhattan bend points. */
 	readonly bendPoints: readonly SvgBendPoint[];
@@ -274,6 +276,8 @@ export interface RaidMetamodel {
 
 	/** Diagram-level edge routing mode ('manhattan', 'normal', 'smooth'). */
 	readonly routing?: AimRoutingMode;
+	/** Per-artifact expression capsule visibility; absent means visible. */
+	readonly showExpressions?: boolean;
 
 	/** Additional diagram-level metadata. */
 	readonly metadata?: Readonly<Record<string, unknown>>;
@@ -285,6 +289,7 @@ export interface RaidMetamodel {
 export const AimSvgContract = {
 	// Node marking & attributes
 	ATTR_NODE: 'aim-node',
+	ATTR_SHOW_EXPRESSIONS: 'aim-show-expressions',
 	ATTR_ID: 'aim-id',
 	ATTR_KIND: 'aim-kind',
 	ATTR_DISPLAY_NAME: 'aim-display-name',
