@@ -5,13 +5,25 @@
 > **Author & Principal Architect:** Dr. Rainer Burkhardt <Rainer@Burkhardt.com>  
 > **Lead Implementation Engineer:** Alan (7012), Visual Systems & Canvas Lead
 
-[![npm version](https://img.shields.io/badge/release-0.8.0-red.svg)](https://www.npmjs.com/package/@dr2rai/raid-canvas)
+[![npm version](https://img.shields.io/npm/v/%40dr2rai%2Fraid-canvas?color=red)](https://www.npmjs.com/package/@dr2rai/raid-canvas)
 [![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-orange.svg)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0.2-blue.svg)](https://www.typescriptlang.org/)
 [![AntV X6](https://img.shields.io/badge/AntV%20X6-2.18-indigo.svg)](https://x6.antv.vision/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 ---
+
+## Install from npm
+
+RaidCanvas is available on npm as [@dr2rai/raid-canvas](https://www.npmjs.com/package/@dr2rai/raid-canvas).
+
+```sh
+npm install @dr2rai/raid-canvas
+# or
+pnpm add @dr2rai/raid-canvas
+```
+
+The npm package provides reusable React components and styles for your application. **RaidCanvas Studio**, the standalone web preview and reference application, is maintained in [apps/playground on GitHub](https://github.com/Burkhardt/RaidCanvas/tree/main/apps/playground) and is not included in the npm package. Run Studio from a repository checkout to explore and test the components.
 
 ## 0.8.0 — reusable Living Stage UI
 
@@ -35,7 +47,7 @@ Use the imperative canvas handle for toolbar actions and the state callback for 
 
 Studio at `http://localhost:5173/` opens **Living Stage · Reusable Inspector (0.8.0)**. Select Schedule Meeting to see the shared inspector slots, projected roles and description wrapping. Studio's Duplicate Use Case is a local canvas demonstration; AIA owns authenticated blueprint specialization and persistence.
 
-Build and validate from the repository root with `pnpm build && pnpm test && pnpm lint`. Publishing remains a manual RAI operation from `packages/canvas` after these checks: `pnpm publish --access public`. Version 0.8.0 is prepared locally; this document does not assert npm publication.
+Build and validate from the repository root with `pnpm build && pnpm test && pnpm lint`. Publishing remains a manual RAI operation from `packages/canvas` after these checks: `pnpm publish --access public`. Version 0.8.0 is published on npm.
 
 ## 1. Vision & Architectural Heritage
 
