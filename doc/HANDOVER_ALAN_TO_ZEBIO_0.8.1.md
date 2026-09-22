@@ -2,6 +2,8 @@
 
 Date: 2026-09-22. Scope: Burkhardt/RaidCanvas only.
 
+**Published and verified:** npm serves `@dr2rai/raid-canvas@0.8.1`; its `latest` tag points to `0.8.1`. Implementation commit `82ad761` is pushed to `origin/main`. RAI completed npm security-key authentication.
+
 ## Component status
 
 | Component | Status |
@@ -30,4 +32,4 @@ The earlier Roles/Pre/Exec/Post/Close inspector composition is not implemented b
 
 113 package tests pass; library and Studio build/lint pass. Vite retains the bundle-size advisory. UI checks cover selected-point deletion, clear-all and undo, direct routing glyphs, and expression persistence. Studio snapshots last until page reload; exported artifacts carry persisted preferences. No Workbench or .NET gates were run because this milestone is confined to RaidCanvas.
 
-Release notes: `doc/ReleaseNotes0.8.1.md`. Publication status must be checked against npm before bumping a consumer.
+Release notes: `doc/ReleaseNotes0.8.1.md`. Zébio can now consume the published version.

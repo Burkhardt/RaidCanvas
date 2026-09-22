@@ -2,6 +2,8 @@
 
 Date: 2026-09-22 · Package: `@dr2rai/raid-canvas@0.8.1`
 
+Published to npm and verified as `latest`. Source commit: `82ad761`.
+
 ## Changes
 
 - Direct canvas waypoint selection with larger, stationary hover targets, a persistent selected highlight, and keyboard focus/Enter/Space selection.
