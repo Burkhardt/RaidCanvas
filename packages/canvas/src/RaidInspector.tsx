@@ -18,6 +18,7 @@ import type {
 	SpeechActStatement,
 } from './types.js';
 import { STATEMENT_KEY_PATTERN } from './types.js';
+import { RaidPropertyTree } from './RaidPropertyTree.js';
 import { computeExpressionPillColors } from './X6Shapes.js';
 
 export interface RaidInspectorSelection {
@@ -49,6 +50,14 @@ export interface RaidInspectorProps {
 	isPinned?: boolean;
 	/** Toggle pinned state */
 	onTogglePin?: () => void;
+	/** Consumer actions, rendered beside the built-in Pin control. */
+    headerActions?: React.ReactNode;
+    /** Domain context before the standard property fields; the inspector owns layout/scrolling. */
+    contextPanel?: React.ReactNode;
+    /** Optional status/expression content after the standard inspector. */
+    footer?: React.ReactNode;
+    /** Gold typography for attributes projected in the active diagram. */
+    projectedProperties?: readonly string[];
 	/** Optional CSS class name */
 	className?: string;
 	/** Optional inline styles */
@@ -229,6 +238,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 	onNavigatePortal,
 	isPinned = false,
 	onTogglePin,
+    headerActions, contextPanel, footer, projectedProperties,
 	className,
 	style,
 }) => {
@@ -237,7 +247,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 	if (!selection) {
 		return (
 			<aside
-				className={className}
+				className={`raid-ui card bg-base-100 text-base-content ${className ?? ''}`}
 				style={{
 					width: 320,
 					background: '#F9F9F6',
@@ -258,10 +268,11 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						Studio Inspector
 					</span>
 					{onTogglePin && (
-						<button
+						<button className="btn btn-xs"
 							type="button"
 							onClick={onTogglePin}
-							title={isPinned ? 'Unpin Inspector' : 'Pin Inspector (keep open)'}
+							aria-label={isPinned ? 'Unpin Inspector' : 'Pin Inspector'} aria-pressed={isPinned}
+                            title={isPinned ? 'Unpin Inspector' : 'Pin Inspector (keep open)'}
 							style={{
 								background: isPinned ? '#C59B2720' : 'transparent',
 								border: `1px solid ${isPinned ? '#C59B27' : '#D1D5DB'}`,
@@ -330,7 +341,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 
 	return (
 		<aside
-			className={className}
+			className={`raid-ui card bg-base-100 text-base-content ${className ?? ''}`}
 			style={{
 				width: 320,
 				background: '#F9F9F6',
@@ -349,9 +360,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 			}}
 		>
 			{/* Top Bar: Title, Badge, and Pin Button */}
-			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-				<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-					<span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
+			<div className="raid-inspector-header flex shrink-0 items-center justify-between gap-2">
+				<div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+					<span className="truncate text-xs font-bold" title={getEntityTitle()}>
 						{getEntityTitle()}
 					</span>
 					<span
@@ -367,11 +378,13 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						{badge.text}
 					</span>
 				</div>
+                <div className="flex shrink-0 items-center gap-1">{headerActions}
 				{onTogglePin && (
-					<button
+					<button className="btn btn-xs"
 						type="button"
 						onClick={onTogglePin}
-						title={isPinned ? 'Unpin Inspector' : 'Pin Inspector (keep open)'}
+						aria-label={isPinned ? 'Unpin Inspector' : 'Pin Inspector'} aria-pressed={isPinned}
+                            title={isPinned ? 'Unpin Inspector' : 'Pin Inspector (keep open)'}
 						style={{
 							background: isPinned ? '#C59B2720' : 'transparent',
 							border: `1px solid ${isPinned ? '#C59B27' : '#D1D5DB'}`,
@@ -385,11 +398,12 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						📌
 					</button>
 				)}
+                </div>
 			</div>
 
 			{/* Tab Bar — shown for all entity types */}
 			<div style={{ display: 'flex', borderBottom: '1px solid #E5E5DF', paddingBottom: 4, gap: 8 }}>
-				<button
+				<button className="btn btn-xs"
 					type="button"
 					onClick={() => setActiveTab('properties')}
 					style={{
@@ -406,7 +420,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					Properties
 				</button>
 				{isEdge && (
-					<button
+					<button className="btn btn-xs"
 						type="button"
 						onClick={() => setActiveTab('ast')}
 						style={{
@@ -423,7 +437,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						AST Expression
 					</button>
 				)}
-				<button
+				<button className="btn btn-xs"
 					type="button"
 					onClick={() => setActiveTab('provenance')}
 					style={{
@@ -441,6 +455,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 				</button>
 			</div>
 
+            {activeTab === 'properties' && contextPanel}
+
+            {activeTab === 'properties' && !contextPanel && node?.properties && <RaidPropertyTree value={node.properties} {...(projectedProperties ? { projectedNames: projectedProperties } : {})}/>}
 			{/* ═══ PROVENANCE TAB ═══ */}
 			{activeTab === 'provenance' && (
 				<ProvenancePanel
@@ -459,7 +476,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 			{/* Identifier */}
 			<div>
 				<label style={labelStyle}>Identifier (id)</label>
-				<input
+				<input className="input input-sm w-full"
 					type="text"
 					value={selection.id}
 					readOnly
@@ -472,7 +489,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 				<>
 					<div>
 						<label style={labelStyle}>Boundary Type</label>
-						<select
+						<select className="select select-sm w-full"
 							value={boundary.kind ?? 'Class'}
 							onChange={(e) => onUpdateBoundary?.(selection.id, { kind: e.target.value as 'Class' | 'Package' })}
 							style={selectStyle}
@@ -484,7 +501,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 
 					<div>
 						<label style={labelStyle}>Scope Name</label>
-						<input
+						<input className="input input-sm w-full"
 							type="text"
 							value={boundary.name ?? ''}
 							onChange={(e) => onUpdateBoundary?.(selection.id, { name: e.target.value })}
@@ -495,7 +512,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 
 					<div>
 						<label style={labelStyle}>Package Namespace (optional)</label>
-						<input
+						<input className="input input-sm w-full"
 							type="text"
 							value={boundary.package ?? ''}
 							onChange={(e) => onUpdateBoundary?.(selection.id, { package: e.target.value })}
@@ -522,7 +539,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							</span>
 						</div>
 
-						<input
+						<input className="input input-sm w-full"
 							type="text"
 							value={boundary.href ?? ''}
 							onChange={(e) => onUpdateBoundary?.(selection.id, { href: e.target.value })}
@@ -539,7 +556,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 									• <em>Tap 2 (Right / ›):</em> Steps through to Class Browser.
 								</div>
 								<div style={{ display: 'flex', gap: 6 }}>
-									<button
+									<button className="btn btn-xs"
 										type="button"
 										onClick={() => onAwakenDuality?.(selection.id)}
 										style={{
@@ -556,7 +573,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 									>
 										⚡ Awaken Duality
 									</button>
-									<button
+									<button className="btn btn-xs"
 										type="button"
 										onClick={() => onNavigatePortal?.(boundary.href!)}
 										style={{
@@ -577,7 +594,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							</div>
 						) : (
 							<div style={{ marginTop: 8 }}>
-								<button
+								<button className="btn btn-xs"
 									type="button"
 									onClick={() => {
 										const generatedHref = `/classes?select=${encodeURIComponent(boundary.name || boundary.id || 'Contract')}`;
@@ -612,7 +629,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
 							<div>
 								<label style={{ ...labelStyle, fontSize: 10 }}>Width (px)</label>
-								<input
+								<input className="input input-sm w-full"
 									type="number"
 									value={boundary.bounds?.width ?? 320}
 									onChange={(e) => onUpdateBoundary?.(selection.id, {
@@ -623,7 +640,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							</div>
 							<div>
 								<label style={{ ...labelStyle, fontSize: 10 }}>Height (px)</label>
-								<input
+								<input className="input input-sm w-full"
 									type="number"
 									value={boundary.bounds?.height ?? 220}
 									onChange={(e) => onUpdateBoundary?.(selection.id, {
@@ -634,7 +651,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							</div>
 							<div>
 								<label style={{ ...labelStyle, fontSize: 10 }}>Position X</label>
-								<input
+								<input className="input input-sm w-full"
 									type="number"
 									value={boundary.bounds?.x ?? 0}
 									onChange={(e) => onUpdateBoundary?.(selection.id, {
@@ -645,7 +662,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							</div>
 							<div>
 								<label style={{ ...labelStyle, fontSize: 10 }}>Position Y</label>
-								<input
+								<input className="input input-sm w-full"
 									type="number"
 									value={boundary.bounds?.y ?? 0}
 									onChange={(e) => onUpdateBoundary?.(selection.id, {
@@ -698,7 +715,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					{/* Display Name */}
 					<div>
 						<label style={labelStyle}>Display Name / Label</label>
-						<input
+						<input className="input input-sm w-full"
 							type="text"
 							value={node.displayName ?? ''}
 							onChange={(e) => onUpdateNode?.(selection.id, { displayName: e.target.value })}
@@ -710,7 +727,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					{/* Archetype Kind */}
 					<div>
 						<label style={labelStyle}>Ontological Archetype</label>
-						<select
+						<select className="select select-sm w-full"
 							value={node.kind ?? 'act'}
 							onChange={(e) => onUpdateNode?.(selection.id, { kind: e.target.value as AimOntologyKind })}
 							style={selectStyle}
@@ -729,7 +746,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					{/* Unbound Role Slot Toggle (Rule 2: No Coining) */}
 					<div style={{ background: node.unbound ? '#FEF3C7' : '#ECECE6', border: `1px solid ${node.unbound ? '#F59E0B' : '#DCDCD4'}`, borderRadius: 6, padding: '8px 10px' }}>
 						<label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: 0 }}>
-							<input
+							<input className="checkbox checkbox-sm"
 								type="checkbox"
 								checked={Boolean(node.unbound)}
 								onChange={(e) => onUpdateNode?.(selection.id, { unbound: e.target.checked })}
@@ -769,7 +786,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 								</span>
 							</div>
 
-							<input
+							<input className="input input-sm w-full"
 								type="text"
 								value={node.href ?? ''}
 								onChange={(e) => onUpdateNode?.(selection.id, { href: e.target.value })}
@@ -780,7 +797,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							{node.href && node.href.trim().length > 0 ? (
 								<div style={{ marginTop: 8 }}>
 									<div style={{ display: 'flex', gap: 6 }}>
-										<button
+										<button className="btn btn-xs"
 											type="button"
 											onClick={() => onAwakenDuality?.(selection.id)}
 											style={{
@@ -797,7 +814,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 										>
 											⚡ Awaken Duality
 										</button>
-										<button
+										<button className="btn btn-xs"
 											type="button"
 											onClick={() => onNavigatePortal?.(node.href!)}
 											style={{
@@ -823,7 +840,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					{/* Stereotype Icons */}
 					<div>
 						<label style={labelStyle}>Stereotype / Facet</label>
-						<input
+						<input className="input input-sm w-full"
 							type="text"
 							value={Array.isArray(node.stereotype) ? node.stereotype.join(', ') : (node.stereotype ?? '')}
 							onChange={(e) => onUpdateNode?.(selection.id, { stereotype: e.target.value })}
@@ -842,7 +859,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 								{ id: 'Bar', label: '🍸 Bar' },
 								{ id: 'initiates', label: '⚡ Initiates' },
 							].map((st) => (
-								<button
+								<button className="btn btn-xs"
 									key={st.id}
 									type="button"
 									onClick={() => {
@@ -870,7 +887,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					{/* Instance Underline */}
 					{node.kind !== 'cls' && node.kind !== 'uc' && node.kind !== 'rol' && (
 						<label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-							<input
+							<input className="checkbox checkbox-sm"
 								type="checkbox"
 								checked={Boolean(node.instance)}
 								onChange={(e) => onUpdateNode?.(selection.id, { instance: e.target.checked })}
@@ -889,7 +906,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 
 							<div>
 								<label style={{ ...labelStyle, fontSize: 10, color: '#374151' }}>Preconditions (1 per line)</label>
-								<textarea
+								<textarea className="textarea textarea-sm w-full"
 									rows={2}
 									value={
 										Array.isArray(node.properties?.preconditions)
@@ -909,7 +926,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 
 							<div>
 								<label style={{ ...labelStyle, fontSize: 10, color: '#374151' }}>Postconditions / DoD (1 per line)</label>
-								<textarea
+								<textarea className="textarea textarea-sm w-full"
 									rows={2}
 									value={
 										Array.isArray(node.properties?.postconditions)
@@ -938,7 +955,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						<>
 							<div>
 								<label style={labelStyle}>Relationship Kind</label>
-								<select
+								<select className="select select-sm w-full"
 									value={edge.kind ?? 'association'}
 									onChange={(e) => onUpdateEdge?.(selection.id, { kind: e.target.value as AimEdgeKind })}
 									style={selectStyle}
@@ -954,7 +971,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							<div>
 								<label style={labelStyle}>Edge Directionality</label>
 								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-									<button
+									<button className="btn btn-xs"
 										type="button"
 										onClick={() => onUpdateEdge?.(selection.id, { directed: false })}
 										style={{
@@ -967,7 +984,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 									>
 										— Undirected
 									</button>
-									<button
+									<button className="btn btn-xs"
 										type="button"
 										onClick={() => onUpdateEdge?.(selection.id, { directed: true })}
 										style={{
@@ -985,7 +1002,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 
 							<div>
 								<label style={labelStyle}>Edge Label / Stereotype</label>
-								<input
+								<input className="input input-sm w-full"
 									type="text"
 									value={edge.label ?? edge.stereotype ?? ''}
 									onChange={(e) => onUpdateEdge?.(selection.id, { label: e.target.value, stereotype: e.target.value })}
@@ -998,7 +1015,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 								<label style={labelStyle}>Routing Mode</label>
 								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
 									{(['manhattan', 'normal', 'smooth'] as AimRoutingMode[]).map((mode) => (
-										<button
+										<button className="btn btn-xs"
 											key={mode}
 											type="button"
 											onClick={() => onUpdateEdge?.(selection.id, { routing: mode })}
@@ -1022,7 +1039,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 							<div>
 								<label style={labelStyle}>Edge AST Infix Expression (aim-expression)</label>
-								<input
+								<input className="input input-sm w-full"
 									type="text"
 									value={edge.expression ?? ''}
 									onChange={(e) => onUpdateEdge?.(selection.id, { expression: e.target.value })}
@@ -1048,7 +1065,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 											? !edge.expressionColor || edge.expressionColor === 'auto'
 											: edge.expressionColor?.toLowerCase() === opt.id;
 										return (
-											<button
+											<button className="btn btn-xs"
 												key={opt.id}
 												type="button"
 												title={opt.desc}
@@ -1074,7 +1091,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							<div>
 								<label style={labelStyle}>Live AST Evaluation State (aim-satisfied)</label>
 								<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
-									<button
+									<button className="btn btn-xs"
 										type="button"
 										onClick={() => onUpdateEdge?.(selection.id, { satisfied: true })}
 										style={{
@@ -1087,7 +1104,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 									>
 										🟢 True
 									</button>
-									<button
+									<button className="btn btn-xs"
 										type="button"
 										onClick={() => onUpdateEdge?.(selection.id, { satisfied: false })}
 										style={{
@@ -1100,7 +1117,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 									>
 										🟡 False
 									</button>
-									<button
+									<button className="btn btn-xs"
 										type="button"
 										onClick={() => onUpdateEdge?.(selection.id, { satisfied: null })}
 										style={{
@@ -1158,7 +1175,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 
 			{/* Delete Cell Button */}
 			{onDeleteSelected && (
-				<button
+				<button className="btn btn-xs"
 					type="button"
 					onClick={onDeleteSelected}
 					style={{
@@ -1176,6 +1193,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					🗑 Delete {isBoundary ? 'Boundary' : isNode ? 'Node' : 'Edge'}
 				</button>
 			)}
+            {footer}
 		</aside>
 	);
 };

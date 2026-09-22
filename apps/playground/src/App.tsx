@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import {
-  RaidCanvas,
+  RaidCanvas, RaidPropertyTree,
   type RaidCanvasHandle,
   type RaidNodeData,
   type RaidEdgeData,
@@ -25,12 +25,13 @@ export const App: React.FC = () => {
   );
 
   const [svg, setSvg] = useState<string>(currentPreset.svg);
+  const [isPinned, setIsPinned] = useState(false);
   const [readOnly, setReadOnly] = useState<boolean>(false);
   const [selectedEntity, setSelectedEntity] = useState<SelectedEntityData | null>(null);
   const [activeTab, setActiveTab] = useState<'inspector' | 'svg' | 'metamodel'>('inspector');
   const [copied, setCopied] = useState<boolean>(false);
   const [stencilCollapsed, setStencilCollapsed] = useState<boolean>(false);
-  const [routingMode, setRoutingMode] = useState<'manhattan' | 'normal' | 'smooth'>('normal');
+  const [routingMode, setRoutingMode] = useState<'manhattan' | 'normal' | 'smooth' | 'mixed'>('normal');
   const [portalToast, setPortalToast] = useState<{ entityName: string; href: string } | null>(null);
 
   const handlePortalNavigate = useCallback((nodeOrHref: string | Partial<RaidNodeData>) => {
@@ -43,12 +44,8 @@ export const App: React.FC = () => {
     }, 4000);
   }, []);
 
-  // Undo / Redo SVG Snapshot History
-  const [history, setHistory] = useState<string[]>([currentPreset.svg]);
-  const [historyIndex, setHistoryIndex] = useState<number>(0);
-
-  const canUndo = historyIndex > 0;
-  const canRedo = historyIndex < history.length - 1;
+  const [history, setHistory] = useState({ canUndo: false, canRedo: false });
+  const { canUndo, canRedo } = history;
 
   const handleSelectPreset = (presetId: string) => {
     setSelectedPresetId(presetId);
@@ -57,8 +54,7 @@ export const App: React.FC = () => {
       setRoutingMode('normal');
       setSvg(target.svg);
       setSelectedEntity(null);
-      setHistory([target.svg]);
-      setHistoryIndex(0);
+
     }
   };
 
@@ -66,35 +62,14 @@ export const App: React.FC = () => {
     if (updatedSvg === svg) return;
     setSvg(updatedSvg);
 
-    setHistory((prev) => {
-      const truncated = prev.slice(0, historyIndex + 1);
-      return [...truncated, updatedSvg];
-    });
-    setHistoryIndex((prev) => prev + 1);
-
     // Refresh selected entity data if active
     if (selectedEntity) {
       refreshSelectedEntity(selectedEntity.id);
     }
   };
 
-  const handleUndo = useCallback(() => {
-    if (!canUndo) return;
-    const targetIndex = historyIndex - 1;
-    const targetSvg = history[targetIndex]!;
-    setHistoryIndex(targetIndex);
-    setSvg(targetSvg);
-    setSelectedEntity(null);
-  }, [canUndo, history, historyIndex]);
-
-  const handleRedo = useCallback(() => {
-    if (!canRedo) return;
-    const targetIndex = historyIndex + 1;
-    const targetSvg = history[targetIndex]!;
-    setHistoryIndex(targetIndex);
-    setSvg(targetSvg);
-    setSelectedEntity(null);
-  }, [canRedo, history, historyIndex]);
+  const handleUndo = () => canvasRef.current?.undo();
+  const handleRedo = () => canvasRef.current?.redo();
 
   const refreshSelectedEntity = (id: string) => {
     const graph = canvasRef.current?.getGraph();
@@ -199,7 +174,7 @@ export const App: React.FC = () => {
 
   const handleSelectionChange = (selectedIds: string[]) => {
     if (selectedIds.length === 0 || !selectedIds[0]) {
-      setSelectedEntity(null);
+      if (!isPinned) setSelectedEntity(null);
       return;
     }
     const id = selectedIds[0];
@@ -300,6 +275,8 @@ export const App: React.FC = () => {
         onClear={() => canvasRef.current?.clear()}
         onCenter={() => canvasRef.current?.center()}
         onFit={() => canvasRef.current?.zoomToFit()}
+        onZoomIn={() => canvasRef.current?.zoomIn()}
+        onZoomOut={() => canvasRef.current?.zoomOut()}
         onDownloadSvg={handleDownloadSvg}
         onExportPng={handleExportPng}
         onCopySvg={handleCopySvg}
@@ -407,7 +384,10 @@ export const App: React.FC = () => {
               ref={canvasRef}
               svg={svg}
               readOnly={readOnly}
-              defaultRouting={routingMode}
+              showToolbar={false}
+              defaultRouting={routingMode === 'mixed' ? undefined : routingMode}
+              fitOnResize
+              onCanvasStateChange={state => { setHistory({ canUndo: state.canUndo, canRedo: state.canRedo }); setRoutingMode(state.routing); }}
               onChange={handleCanvasChange}
               onSelectionChange={handleSelectionChange}
               onRoutingModeChange={setRoutingMode}
@@ -427,8 +407,8 @@ export const App: React.FC = () => {
             width: 360,
             display: 'flex',
             flexDirection: 'column',
-            background: '#0F172A',
-            color: '#F8FAFC',
+            background: '#FAF9F6',
+            color: '#23231F',
             borderLeft: '1px solid #1E293B',
           }}
         >
@@ -497,6 +477,14 @@ export const App: React.FC = () => {
               <PropertyInspector
                 archetype={currentPreset.archetype}
                 selection={selectedEntity}
+                isPinned={isPinned} onTogglePin={() => setIsPinned(value => !value)}
+                style={{ width: '100%', minWidth: 0 }}
+                headerActions={selectedEntity?.nodeData?.kind === 'uc' ? <button type="button" className="btn btn-xs btn-outline btn-primary" disabled={readOnly} onClick={() => {
+                  const original = selectedEntity.nodeData!;
+                  const id = canvasRef.current?.addNode('uc', (original.bounds?.x ?? 100) + 220, original.bounds?.y ?? 100, { ...original, displayName: `${original.displayName ?? 'UseCase'} (copy)`, properties: structuredClone(original.properties ?? {}) });
+                  if (id) { canvasRef.current?.selectNode(id); refreshSelectedEntity(id); }
+                }}>Duplicate Use Case</button> : null}
+                contextPanel={currentPreset.id === 'living-stage-inspector' && selectedEntity ? <section aria-label="Context disclosure"><h3 className="text-xs font-bold text-primary">Context & projected attributes</h3><RaidPropertyTree value={selectedEntity.nodeData?.properties ?? { Class: 'Meeting', Attributes: { Host: 'Person', Owner: 'Person', Auditor: 'Person' }, Methods: { Schedule: 'UseCase' } }} projectedNames={['Meeting', 'Host', 'Owner']}/></section> : undefined}
                 onUpdateNode={(id, updates) => {
                   canvasRef.current?.updateNode(id, updates);
                   refreshSelectedEntity(id);

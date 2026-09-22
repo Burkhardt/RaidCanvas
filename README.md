@@ -5,13 +5,37 @@
 > **Author & Principal Architect:** Dr. Rainer Burkhardt <Rainer@Burkhardt.com>  
 > **Lead Implementation Engineer:** Alan (7012), Visual Systems & Canvas Lead
 
-[![npm version](https://img.shields.io/badge/npm-0.6.0-red.svg)](https://www.npmjs.com/package/@dr2rai/raid-canvas)
+[![npm version](https://img.shields.io/badge/release-0.8.0-red.svg)](https://www.npmjs.com/package/@dr2rai/raid-canvas)
 [![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-orange.svg)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0.2-blue.svg)](https://www.typescriptlang.org/)
 [![AntV X6](https://img.shields.io/badge/AntV%20X6-2.18-indigo.svg)](https://x6.antv.vision/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 ---
+
+## 0.8.0 — reusable Living Stage UI
+
+This release makes DaisyUI 5 and Tailwind CSS 4 package dependencies. Studio and application consumers use the same Inspector, Palette, toolbar, property tree, history, and portal interaction.
+
+Import the compiled UI stylesheet once in the application entry point (or Next.js global stylesheet):
+
+```ts
+import '@dr2rai/raid-canvas/ui.css';
+import { RaidCanvas, RaidInspector, RaidPalette, RaidCanvasToolbar, RaidPropertyTree } from '@dr2rai/raid-canvas';
+```
+
+The stylesheet includes the required DaisyUI components and Tailwind utilities, without Tailwind preflight. The Cascais theme variables are scoped to `.raid-ui`. Consumers do not need to scan package source files or run the package's PostCSS build. Existing `@dr2rai/raid-canvas/styles` remains available for semantic diagram styling.
+
+- **RaidInspector**: `headerActions` beside native Pin, `contextPanel` before property fields, `footer` for application status, and `projectedProperties` for the default property tree. Existing Properties, AST, and `s<timestamp>` Provenance remain supported. Domain data loading and persistence belong to the consumer.
+- **RaidPropertyTree**: open-world values, recursive DaisyUI disclosures, gold projected attribute names, anthracite unprojected names, text wrapping at up to 48ch, cycle/depth limits, and optional `renderValue(value, path)` reference rendering (return `undefined` for the default).
+- **RaidCanvasToolbar**: one row of routing/history/viewport controls with `start` and `end` slots for projection controls and status. Read-only disables mutations while preserving viewport controls.
+- **RaidCanvas**: `onCanvasStateChange({canUndo, canRedo, routing})` synchronizes controls from graph events; routing can be `mixed`. `fitOnResize` opts into fitting after pane resizes. `initialSelectionId` selects after hydration without graph polling and ignores echoed SVG edits. Right-click on a heraldic portal door emits the existing `onNodePortalClick` callback.
+
+Use the imperative canvas handle for toolbar actions and the state callback for availability. Undo/redo and routing synchronization belong to the canvas; applications should not maintain a parallel SVG history or poll the graph.
+
+Studio at `http://localhost:5173/` opens **Living Stage · Reusable Inspector (0.8.0)**. Select Schedule Meeting to see the shared inspector slots, projected roles and description wrapping. Studio's Duplicate Use Case is a local canvas demonstration; AIA owns authenticated blueprint specialization and persistence.
+
+Build and validate from the repository root with `pnpm build && pnpm test && pnpm lint`. Publishing remains a manual RAI operation from `packages/canvas` after these checks: `pnpm publish --access public`. Version 0.8.0 is prepared locally; this document does not assert npm publication.
 
 ## 1. Vision & Architectural Heritage
 

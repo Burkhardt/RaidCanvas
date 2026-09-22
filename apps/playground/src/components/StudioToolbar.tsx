@@ -1,4 +1,5 @@
 import React from 'react';
+import { RaidCanvasToolbar } from '@dr2rai/raid-canvas';
 import type { DiagramPreset } from '../presets';
 
 interface StudioToolbarProps {
@@ -13,11 +14,13 @@ interface StudioToolbarProps {
   onClear: () => void;
   onCenter: () => void;
   onFit: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
   onDownloadSvg: () => void;
   onExportPng: () => void;
   onCopySvg: () => void;
   copied: boolean;
-  routingMode: 'manhattan' | 'normal' | 'smooth';
+  routingMode: 'manhattan' | 'normal' | 'smooth' | 'mixed';
   onChangeRoutingMode: (mode: 'manhattan' | 'normal' | 'smooth') => void;
   readOnly: boolean;
   onToggleReadOnly: (val: boolean) => void;
@@ -34,7 +37,7 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
   onDeleteSelected,
   onClear,
   onCenter,
-  onFit,
+  onFit, onZoomIn, onZoomOut,
   onDownloadSvg,
   onExportPng,
   onCopySvg,
@@ -45,9 +48,9 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
   onToggleReadOnly,
 }) => {
   return (
-    <header
+    <header className="raid-ui navbar"
       style={{
-        display: 'flex',
+        display: 'flex', flexWrap: 'wrap', gap: 8,
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '8px 16px',
@@ -66,7 +69,7 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
               RaidCanvas Studio
             </h1>
             <span style={{ fontSize: 10, color: '#64748B', fontWeight: 500 }}>
-              AOAIM • Dynabook Visual Engine
+              0.8.0 • DaisyUI / Tailwind
             </span>
           </div>
         </div>
@@ -78,7 +81,7 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
           <label htmlFor="preset-select" style={{ fontSize: 12, fontWeight: 500, color: '#64748B' }}>
             Preset:
           </label>
-          <select
+          <select className="select select-sm"
             id="preset-select"
             value={selectedPresetId}
             onChange={(e) => onSelectPreset(e.target.value)}
@@ -103,127 +106,11 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
         </div>
       </div>
 
-      {/* Center: Canvas History & Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <button
-          type="button"
-          onClick={onUndo}
-          disabled={!canUndo}
-          title="Undo (Ctrl+Z)"
-          style={{ ...btnStyle, opacity: canUndo ? 1 : 0.4, cursor: canUndo ? 'pointer' : 'not-allowed' }}
-        >
-          ↶ Undo
-        </button>
-        <button
-          type="button"
-          onClick={onRedo}
-          disabled={!canRedo}
-          title="Redo (Ctrl+Y)"
-          style={{ ...btnStyle, opacity: canRedo ? 1 : 0.4, cursor: canRedo ? 'pointer' : 'not-allowed' }}
-        >
-          ↷ Redo
-        </button>
-
-        <div style={{ width: 1, height: 16, background: '#E2E8F0', margin: '0 4px' }} />
-
-        <button
-          type="button"
-          onClick={onDeleteSelected}
-          title="Delete Selected Entity (Del / Backspace)"
-          style={btnStyle}
-        >
-          🗑 Delete
-        </button>
-        <button
-          type="button"
-          onClick={onClear}
-          title="Clear Canvas"
-          style={btnStyle}
-        >
-          🧹 Clear
-        </button>
-
-        <div style={{ width: 1, height: 16, background: '#E2E8F0', margin: '0 4px' }} />
-
-        <button
-          type="button"
-          onClick={onCenter}
-          title="Center Canvas View"
-          style={btnStyle}
-        >
-          🎯 Center
-        </button>
-        <button
-          type="button"
-          onClick={onFit}
-          title="Fit All Content into View"
-          style={btnStyle}
-        >
-          ⛶ Fit
-        </button>
-
-        <div style={{ width: 1, height: 16, background: '#E2E8F0', margin: '0 4px' }} />
-
-        {/* Routing Mode Switch */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            background: '#F1F5F9',
-            padding: '2px',
-            borderRadius: 6,
-            border: '1px solid #E2E8F0',
-            gap: 2,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => onChangeRoutingMode('manhattan')}
-            title="Manhattan Routing: Obstacle-avoiding 90° orthogonal bends"
-            style={{
-              ...routingBtnStyle,
-              background: routingMode === 'manhattan' ? '#FFFFFF' : 'transparent',
-              color: routingMode === 'manhattan' ? '#0F172A' : '#64748B',
-              boxShadow: routingMode === 'manhattan' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-              fontWeight: routingMode === 'manhattan' ? 700 : 500,
-            }}
-          >
-            ⮡ Manhattan
-          </button>
-          <button
-            type="button"
-            onClick={() => onChangeRoutingMode('normal')}
-            title="Straight Routing: Direct point-to-point lines"
-            style={{
-              ...routingBtnStyle,
-              background: routingMode === 'normal' ? '#FFFFFF' : 'transparent',
-              color: routingMode === 'normal' ? '#0F172A' : '#64748B',
-              boxShadow: routingMode === 'normal' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-              fontWeight: routingMode === 'normal' ? 700 : 500,
-            }}
-          >
-            ╲ Straight
-          </button>
-          <button
-            type="button"
-            onClick={() => onChangeRoutingMode('smooth')}
-            title="Curved Routing: Smooth cubic bezier splines"
-            style={{
-              ...routingBtnStyle,
-              background: routingMode === 'smooth' ? '#FFFFFF' : 'transparent',
-              color: routingMode === 'smooth' ? '#0F172A' : '#64748B',
-              boxShadow: routingMode === 'smooth' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-              fontWeight: routingMode === 'smooth' ? 700 : 500,
-            }}
-          >
-            ∿ Curved
-          </button>
-        </div>
-      </div>
+      <RaidCanvasToolbar routing={routingMode} readOnly={readOnly} canUndo={canUndo} canRedo={canRedo} onRoutingChange={onChangeRoutingMode} onUndo={onUndo} onRedo={onRedo} onZoomIn={onZoomIn} onZoomOut={onZoomOut} onFit={onFit} onCenter={onCenter} end={<div className="flex gap-1"><button className="btn btn-xs" onClick={onDeleteSelected} disabled={readOnly}>Delete</button><button className="btn btn-xs" onClick={onClear} disabled={readOnly}>Clear</button></div>}/>
 
       {/* Right: Export Suite & Modes */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button
+        <button className="btn btn-sm"
           type="button"
           onClick={onCopySvg}
           title="Copy SVG XML to Clipboard"
@@ -237,7 +124,7 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
           {copied ? '✓ Copied' : '📋 Copy SVG'}
         </button>
 
-        <button
+        <button className="btn btn-sm"
           type="button"
           onClick={onDownloadSvg}
           title="Download .svg Document"
@@ -246,7 +133,7 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
           ⬇ .SVG
         </button>
 
-        <button
+        <button className="btn btn-sm"
           type="button"
           onClick={onExportPng}
           title="Export high-resolution .png image"
@@ -269,7 +156,7 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
             cursor: 'pointer',
           }}
         >
-          <input
+          <input className="checkbox checkbox-sm"
             type="checkbox"
             checked={readOnly}
             onChange={(e) => onToggleReadOnly(e.target.checked)}
@@ -293,15 +180,6 @@ const btnStyle: React.CSSProperties = {
   border: '1px solid #E2E8F0',
   background: '#F8FAFC',
   color: '#334155',
-  cursor: 'pointer',
-  transition: 'all 0.15s ease',
-};
-
-const routingBtnStyle: React.CSSProperties = {
-  border: 'none',
-  padding: '4px 8px',
-  fontSize: 11,
-  borderRadius: 4,
   cursor: 'pointer',
   transition: 'all 0.15s ease',
 };

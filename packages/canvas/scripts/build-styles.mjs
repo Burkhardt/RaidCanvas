@@ -1,0 +1,10 @@
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import postcss from 'postcss';
+import tailwind from '@tailwindcss/postcss';
+const input = fileURLToPath(new URL('../src/styles/raid-ui.css', import.meta.url));
+const output = fileURLToPath(new URL('../dist/ui.css', import.meta.url));
+const css = await readFile(input, 'utf8');
+const result = await postcss([tailwind({ optimize: true })]).process(css, { from: input, to: output });
+await mkdir(new URL('../dist/', import.meta.url), { recursive: true });
+await writeFile(output, result.css);

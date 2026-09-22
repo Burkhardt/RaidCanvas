@@ -1,59 +1,64 @@
 {
-	"name": "@dr2rai/raid-canvas",
-	"version": "0.7.1",
-	"description": "Interactive AntV X6 diagram canvas for AOAIM (.raid) models and ontological SVG contracts",
-	"author": "Dr. Rainer Burkhardt <Rainer@Burkhardt.com> (https://github.com/Burkhardt)",
-	"contributors": [
-		"Alan (7012) <Visual Systems & Canvas Lead>"
-	],
-	"type": "module",
-	"main": "./dist/index.js",
-	"module": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
-		},
-		"./styles": "./src/styles/aoaim-theme.css",
-		"./styles/*": "./src/styles/*"
-	},
-	"files": [
-		"dist",
-		"src",
-		"README.md",
-		"LICENSE",
-		"NOTICE"
-	],
-	"scripts": {
-		"build": "tsc -b --force",
-		"typecheck": "tsc --noEmit",
-		"lint": "tsc --noEmit",
-		"test": "node --test test/canvas.test.mjs test/RaidCanvas.test.mjs test/semanticRules.test.mjs"
-	},
-	"dependencies": {
-		"@antv/x6": "^2.18.1",
-		"@antv/x6-plugin-history": "^2.2.4",
-		"@antv/x6-plugin-transform": "^2.1.8"
-	},
-	"peerDependencies": {
-		"react": "^18.0.0 || ^19.0.0",
-		"react-dom": "^18.0.0 || ^19.0.0"
-	},
-	"devDependencies": {
-		"@types/jsdom": "^30.0.0",
-		"@types/node": "^22.5.5",
-		"@types/react": "^19.0.0",
-		"@types/react-dom": "^19.0.0",
-		"jsdom": "^30.0.1",
-		"react": "^19.0.0",
-		"react-dom": "^19.0.0",
-		"typescript": "^7.0.2"
-	},
-	"publishConfig": {
-		"access": "public"
-	},
-	"license": "Apache-2.0",
-	"copyright": "© Rainer Burkhardt. All rights reserved."
+  "name": "@dr2rai/raid-canvas",
+  "version": "0.8.0",
+  "description": "Interactive AntV X6 diagram canvas for AOAIM (.raid) models and ontological SVG contracts",
+  "author": "Dr. Rainer Burkhardt <Rainer@Burkhardt.com> (https://github.com/Burkhardt)",
+  "contributors": [
+    "Alan (7012) <Visual Systems & Canvas Lead>"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles": "./src/styles/aoaim-theme.css",
+    "./styles/*": "./src/styles/*",
+    "./ui.css": "./dist/ui.css"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsc -b --force && node scripts/build-styles.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "node --test test/canvas.test.mjs test/RaidCanvas.test.mjs test/semanticRules.test.mjs test/Inspector.test.mjs"
+  },
+  "dependencies": {
+    "@antv/x6": "^2.18.1",
+    "@antv/x6-plugin-history": "^2.2.4",
+    "@antv/x6-plugin-transform": "^2.1.8",
+    "daisyui": "5.7.32",
+    "tailwindcss": "4.3.3"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^22.5.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^30.0.1",
+    "postcss": "^8.5.28",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "Apache-2.0",
+  "copyright": "\u00a9 Rainer Burkhardt. All rights reserved."
 }

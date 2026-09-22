@@ -8,6 +8,16 @@ export interface DiagramPreset {
 }
 
 export const PRESETS: DiagramPreset[] = [
+  {
+    id: 'living-stage-inspector', name: 'Living Stage · Reusable Inspector (0.8.0)', archetype: 'OneUseCaseDiagram',
+    description: 'Published DaisyUI inspector, projected attribute tree, Pin, header actions and right-click portal. Duplicate is a local Studio canvas demonstration; application persistence belongs to the consumer.',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" id="LivingStage_UCC" aim-archetype="OneUseCaseDiagram">
+      <g aim-boundary="Class" aim-id="MeetingClass" aim-name="Meeting" aim-elements="ScheduleMeeting" transform="translate(350,80)"><rect width="300" height="220"/></g>
+      <g aim-node="true" aim-id="ScheduleMeeting" aim-kind="uc" aim-href="/usecases?select=ScheduleMeeting" aim-properties='{&quot;Meeting&quot;:{&quot;Attributes&quot;:{&quot;Host&quot;:&quot;Person&quot;,&quot;Owner&quot;:&quot;Person&quot;,&quot;Auditor&quot;:&quot;Person&quot;},&quot;Methods&quot;:{&quot;Schedule&quot;:&quot;UseCase&quot;}},&quot;Who&quot;:{&quot;Host&quot;:{&quot;ValueRestriction&quot;:&quot;Person&quot;},&quot;Owner&quot;:{&quot;ValueRestriction&quot;:&quot;Person&quot;}},&quot;Description&quot;:&quot;A reusable inspector presents rich nested properties without stretching the canvas. Descriptions wrap at a readable width and projected roles appear in Cascais Gold.&quot;}' transform="translate(400,160)"><ellipse cx="90" cy="45" rx="90" ry="45"/><text>Schedule Meeting</text></g>
+      <g aim-node="true" aim-id="Host" aim-kind="per" transform="translate(100,140)"><rect width="100" height="90"/><text>Host</text></g>
+      <g aim-edge="true" aim-id="initiates" aim-source="Host" aim-target="ScheduleMeeting" aim-edge-kind="association" aim-directed="true"><path d="M200 185 L400 205"/><text>initiates</text></g>
+    </svg>`,
+  },
   ...ROLE_PRESETS,
   {
     id: 'heraldic-duality',

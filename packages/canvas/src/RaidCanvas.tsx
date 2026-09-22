@@ -44,6 +44,12 @@ import {
 } from './semanticRules.js';
 import type { AimOntologyKind, AimRoutingMode, RaidNodeData, RaidEdgeData, RaidBoundaryData } from './types.js';
 
+export interface RaidCanvasState {
+    canUndo: boolean;
+    canRedo: boolean;
+    routing: AimRoutingMode | 'mixed';
+}
+
 export interface RaidCanvasProps {
 	/** The raw SVG string carrying aim-* ontological attributes (preferred) */
 	svg?: string;
@@ -69,12 +75,18 @@ export interface RaidCanvasProps {
 	onDropStencil?: (kind: AimOntologyKind, point: { x: number; y: number }) => void;
 	/** Callback fired when the active routing mode changes (e.g. hydrated from SVG or switched by user) */
 	onRoutingModeChange?: (mode: AimRoutingMode) => void;
+    /** Event-driven toolbar state, including mixed routing and undo/redo. */
+    onCanvasStateChange?: (state: RaidCanvasState) => void;
+    /** Refit after host layout changes. Opt in for responsive multi-pane workstations. */
+    fitOnResize?: boolean;
 	/** Callback fired when the left hemisphere (Persona / Anchor) of a node is tapped */
 	onNodeClick?: (node: RaidNodeData, event: MouseEvent) => void;
 	/** Callback fired when the right hemisphere (Portal Door) of a node is tapped */
 	onNodePortalClick?: (node: RaidNodeData, event: MouseEvent) => void;
 	/** Deprecated desktop double-click fallback */
 	onNodeDblClick?: (node: RaidNodeData, event: MouseEvent) => void;
+	/** Select this node after the incoming SVG is hydrated, without polling the graph. */
+    initialSelectionId?: string;
 	/** Whether to render built-in navigation controls (Zoom In/Out, Fit, Center, Reset). Default: true */
 	showToolbar?: boolean;
 }
@@ -168,7 +180,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			onNodeClick,
 			onNodePortalClick,
 			onNodeDblClick,
-			showToolbar = true,
+			showToolbar = true, initialSelectionId, onCanvasStateChange, fitOnResize = false,
 		},
 		ref,
 	) {
@@ -178,6 +190,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 		const bridgeRef = useRef<RaiBridge>(new RaiBridge());
 		const lastSerializedSvgRef = useRef<string>('');
 		const isHydratingRef = useRef<boolean>(false);
+        const hydrationVersionRef = useRef(0);
+        const initialSelectionRef = useRef({ version: -1, id: '' });
 		const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 		const selectedCellIdRef = useRef<string | null>(null);
 		const clearEdgeToolsRef = useRef<(() => void) | null>(null);
@@ -205,6 +219,23 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 		const onDropStencilRef = useRef(onDropStencil);
 		onDropStencilRef.current = onDropStencil;
+
+        const onCanvasStateChangeRef = useRef(onCanvasStateChange);
+        onCanvasStateChangeRef.current = onCanvasStateChange;
+        const fitOnResizeRef = useRef(fitOnResize);
+        fitOnResizeRef.current = fitOnResize;
+        const emitCanvasState = useCallback(() => {
+            const graph = graphRef.current;
+            if (!graph || isHydratingRef.current) return;
+            const modes = new Set(graph.getEdges().map(edge => edge.getRouter()?.name === 'manhattan' ? 'manhattan' : edge.getConnector()?.name === 'smooth' ? 'smooth' : 'normal'));
+            const routing = modes.size > 1 ? 'mixed' : [...modes][0] ?? routingModeRef.current;
+            if (routing !== 'mixed') {
+                routingModeRef.current = routing;
+                (graph as Graph & { _aimRoutingMode?: AimRoutingMode })._aimRoutingMode = routing;
+            }
+            const history = graph as Graph & { canUndo?: () => boolean; canRedo?: () => boolean };
+            onCanvasStateChangeRef.current?.({ routing, canUndo: !readOnly && (history.canUndo?.() ?? false), canRedo: !readOnly && (history.canRedo?.() ?? false) });
+        }, [readOnly]);
 
 		const onRoutingModeChangeRef = useRef(onRoutingModeChange);
 		onRoutingModeChangeRef.current = onRoutingModeChange;
@@ -1078,6 +1109,19 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			}
 
 			graphRef.current = graph;
+            let stateQueued = false;
+            let disposed = false;
+            const queueCanvasState = () => {
+                if (stateQueued) return;
+                stateQueued = true;
+                queueMicrotask(() => { stateQueued = false; if (!disposed) emitCanvasState(); });
+            };
+            graph.on('history:change', queueCanvasState);
+            graph.on('edge:change:router', queueCanvasState);
+            graph.on('edge:change:connector', queueCanvasState);
+            graph.on('cell:added', queueCanvasState);
+            graph.on('cell:removed', queueCanvasState);
+            queueCanvasState();
 
 			let activeToolEdge: Edge | null = null;
 
@@ -1459,6 +1503,18 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				}
 			});
 
+            // A secondary click on the heraldic door has the same public navigation contract.
+            graph.on('node:contextmenu', ({ node, e }) => {
+                const event = ((e as any).originalEvent ?? e) as MouseEvent;
+                const target = event.target as Element | null;
+                if (!target?.closest?.('.aim-portal-door, .aim-portal-chevron')) return;
+                const data = extractNodeData(node);
+                if (!data.href || !onNodePortalClickRef.current) return;
+                event.preventDefault();
+                event.stopPropagation();
+                onNodePortalClickRef.current(data, event);
+            });
+
 			graph.on('node:dblclick', ({ node, e }) => {
 				if (onNodeDblClickRef.current) {
 					const nodeData = extractNodeData(node);
@@ -1512,6 +1568,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					const { width, height } = entry.contentRect;
 					if (width > 0 && height > 0 && graphRef.current) {
 						graphRef.current.resize(width, height);
+                        if (fitOnResizeRef.current && graphRef.current.getCells().length) graphRef.current.zoomToFit({ padding: 40, maxScale: 1 });
 					}
 				}
 			});
@@ -1526,7 +1583,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			if (svgPropRef.current) {
 				isHydratingRef.current = true;
 				try {
-					const metamodel = bridgeRef.current.hydrateFromSvg(svgPropRef.current, graph, { inferPorts: false });
+					hydrationVersionRef.current += 1;
+                const metamodel = bridgeRef.current.hydrateFromSvg(svgPropRef.current, graph, { inferPorts: false });
 					lastSerializedSvgRef.current = svgPropRef.current;
 					if (metamodel.routing) {
 						routingModeRef.current = metamodel.routing;
@@ -1545,6 +1603,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 			// Cleanup
 			return () => {
+                disposed = true;
 				if (debounceTimerRef.current) {
 					clearTimeout(debounceTimerRef.current);
 				}
@@ -1554,7 +1613,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				graph.dispose();
 				graphRef.current = null;
 			};
-		}, [readOnly, triggerDebouncedChange]);
+		}, [readOnly, triggerDebouncedChange, emitCanvasState]);
 
 		// --------------------------------------------------------------------------
 		// 2. React to External SVG Changes
@@ -1570,7 +1629,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 			isHydratingRef.current = true;
 			try {
-				const metamodel = bridgeRef.current.hydrateFromSvg(activeSvg, graph, { inferPorts: false });
+				hydrationVersionRef.current += 1;
+                const metamodel = bridgeRef.current.hydrateFromSvg(activeSvg, graph, { inferPorts: false });
 				lastSerializedSvgRef.current = activeSvg;
 				if (metamodel.routing) {
 					routingModeRef.current = metamodel.routing;
@@ -1586,6 +1646,19 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				(graph as unknown as { cleanHistory?: () => void }).cleanHistory?.();
 			}
 		}, [activeSvg]);
+
+        useEffect(() => {
+            const graph = graphRef.current;
+            if (!graph || !initialSelectionId) return;
+            if (initialSelectionRef.current.id === initialSelectionId && initialSelectionRef.current.version === hydrationVersionRef.current) return;
+            initialSelectionRef.current = { id: initialSelectionId, version: hydrationVersionRef.current };
+            const cell = graph.getCellById(initialSelectionId);
+            if (!cell?.isNode()) return;
+            selectedCellIdRef.current = initialSelectionId;
+            const data = cell.getData() as Partial<RaidNodeData>;
+            onSelectRef.current?.({ id: initialSelectionId, kind: data.kind ?? 'obj', label: data.displayName ?? initialSelectionId });
+            onSelectionChangeRef.current?.([initialSelectionId]);
+        }, [initialSelectionId, activeSvg, readOnly]);
 
 		// --------------------------------------------------------------------------
 		// 3. HTML5 Drag-and-Drop Stencil Dropzone
@@ -1767,7 +1840,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				{/* Built-in Navigation & Zoom Controls */}
 				{showToolbar && (
 					<div
-						className="raid-canvas-toolbar"
+						className="raid-ui raid-canvas-toolbar join"
 						style={{
 							position: 'absolute',
 							bottom: 16,
@@ -1791,7 +1864,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							title="Zoom In"
 							aria-label="Zoom In"
 							onClick={handleZoomIn}
-							style={toolbarBtnStyle}
+							className="btn btn-xs btn-ghost btn-square"
+                            style={toolbarBtnStyle}
 						>
 							➕
 						</button>
@@ -1800,7 +1874,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							title="Zoom Out"
 							aria-label="Zoom Out"
 							onClick={handleZoomOut}
-							style={toolbarBtnStyle}
+							className="btn btn-xs btn-ghost btn-square"
+                            style={toolbarBtnStyle}
 						>
 							➖
 						</button>
@@ -1829,7 +1904,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							title="Fit to Content"
 							aria-label="Fit to Content"
 							onClick={handleFitToContent}
-							style={toolbarBtnStyle}
+							className="btn btn-xs btn-ghost btn-square"
+                            style={toolbarBtnStyle}
 						>
 							⛶
 						</button>
@@ -1838,7 +1914,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							title="Center Content"
 							aria-label="Center Content"
 							onClick={handleCenter}
-							style={toolbarBtnStyle}
+							className="btn btn-xs btn-ghost btn-square"
+                            style={toolbarBtnStyle}
 						>
 							🎯
 						</button>
@@ -1847,7 +1924,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							title="Reset View (100%)"
 							aria-label="Reset View"
 							onClick={handleResetView}
-							style={toolbarBtnStyle}
+							className="btn btn-xs btn-ghost btn-square"
+                            style={toolbarBtnStyle}
 						>
 							↺
 						</button>

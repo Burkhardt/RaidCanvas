@@ -84,6 +84,7 @@ export { RaiBridge, escapeXmlText, escapeXmlAttr } from './RaiBridge.js';
 export {
   RaidCanvas,
   type RaidCanvasProps,
+  type RaidCanvasState,
   type RaidCanvasHandle,
 } from './RaidCanvas.js';
 
@@ -106,3 +107,6 @@ export { isNodeAllowedInDiagram, validateDiagramConnection } from './semanticRul
 export { projectRoleAttributes, classAttributeLines } from './RoleModel.js';
 
 export { wrapDescription, layoutDescription } from './X6Shapes.js';
+
+export { RaidPropertyTree, type RaidPropertyTreeProps } from './RaidPropertyTree.js';
+export { RaidCanvasToolbar, type RaidCanvasToolbarProps } from './RaidCanvasToolbar.js';

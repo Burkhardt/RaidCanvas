@@ -428,7 +428,7 @@ export const RaidPalette: React.FC<RaidPaletteProps> = ({
 	if (isCollapsed) {
 		return (
 			<aside
-				className={className}
+				className={`raid-ui bg-base-100 text-base-content ${className ?? ""}`}
 				style={{
 					width: 44,
 					background: '#F9F9F6',
@@ -443,7 +443,7 @@ export const RaidPalette: React.FC<RaidPaletteProps> = ({
 					...style,
 				}}
 			>
-				<button
+				<button className="btn btn-xs btn-ghost"
 					type="button"
 					onClick={toggleCollapse}
 					title="Expand Stencil Palette"
@@ -494,7 +494,7 @@ export const RaidPalette: React.FC<RaidPaletteProps> = ({
 
 	return (
 		<aside
-			className={className}
+			className={`raid-ui bg-base-100 text-base-content ${className ?? ""}`}
 			style={{
 				width: 175,
 				background: '#F9F9F6',
@@ -515,7 +515,7 @@ export const RaidPalette: React.FC<RaidPaletteProps> = ({
 				<span style={{ fontSize: 11, fontWeight: 700, color: '#4B5563', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
 					Stencils
 				</span>
-				<button
+				<button className="btn btn-xs btn-ghost"
 					type="button"
 					onClick={toggleCollapse}
 					title="Fold Stencil Palette"
