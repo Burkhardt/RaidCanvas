@@ -16,9 +16,7 @@ import React, {
 	useCallback,
 	useImperativeHandle,
 } from 'react';
-import { Graph, Shape, Node as X6Node, Edge } from '@antv/x6';
-import { History } from '@antv/x6-plugin-history';
-import { Transform } from '@antv/x6-plugin-transform';
+import { Graph, Shape, Node as X6Node, Edge, History, Transform } from '@antv/x6';
 import { RaiBridge } from './RaiBridge.js';
 import {
 	registerAimShapes,

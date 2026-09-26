@@ -95,3 +95,12 @@ test('waypoint controls delete the selected point, individual points, or all poi
   delete globalThis.document;
   delete globalThis.IS_REACT_ACT_ENVIRONMENT;
 });
+
+test('inspector sanitizes <wbr> tags from display name input field', () => {
+  const document = dom(React.createElement(RaidInspector, {
+    selection: { id: 'node-1', type: 'node', nodeData: { kind: 'obj', displayName: 'Samstag<wbr>26' } },
+  }));
+  const input = document.querySelector('input[placeholder="e.g. Schedule Meeting"]');
+  assert.ok(input, 'Display name input should exist');
+  assert.equal(input.value, 'Samstag26');
+});

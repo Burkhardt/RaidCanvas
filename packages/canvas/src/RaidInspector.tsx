@@ -740,8 +740,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						<label style={labelStyle}>Display Name / Label</label>
 						<input className="input input-sm w-full"
 							type="text"
-							value={node.displayName ?? ''}
-							onChange={(e) => onUpdateNode?.(selection.id, { displayName: e.target.value })}
+							value={(node.displayName ?? '').replace(/<wbr\s*\/?>/gi, '')}
+							onChange={(e) => onUpdateNode?.(selection.id, { displayName: e.target.value.replace(/<wbr\s*\/?>/gi, '') })}
 							style={inputStyle}
 							placeholder="e.g. Schedule Meeting"
 						/>
@@ -1027,8 +1027,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 								<label style={labelStyle}>Edge Label / Stereotype</label>
 								<input className="input input-sm w-full"
 									type="text"
-									value={edge.label ?? edge.stereotype ?? ''}
-									onChange={(e) => onUpdateEdge?.(selection.id, { label: e.target.value, stereotype: e.target.value })}
+									value={(edge.label ?? edge.stereotype ?? '').replace(/<wbr\s*\/?>/gi, '')}
+									onChange={(e) => onUpdateEdge?.(selection.id, { label: e.target.value.replace(/<wbr\s*\/?>/gi, ''), stereotype: e.target.value.replace(/<wbr\s*\/?>/gi, '') })}
 									style={inputStyle}
 									placeholder="e.g. «initiates», «owns», «participates»"
 								/>

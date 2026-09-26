@@ -10,7 +10,7 @@ import { classAttributeLines } from './RoleModel.js';
  * - Cascais Heraldry design tokens.
  */
 
-import { Graph, Shape, Node, Edge } from '@antv/x6';
+import { Graph, Shape, Node, Edge, type NodeMetadata, type EdgeMetadata } from '@antv/x6';
 import type {
   AimOntologyKind,
   AimEdgeKind,
@@ -2055,7 +2055,7 @@ export function layoutDescription(data: RaidNodeData): RaidNodeData {
 /**
  * Factory creating an AntV X6 Node model representing a UML Subject / Scope Boundary Box.
  */
-export function createAimBoundary(data: RaidBoundaryData): Node.Metadata {
+export function createAimBoundary(data: RaidBoundaryData): NodeMetadata {
   registerAimShapes();
   const isPackage = (data.kind ?? '').toLowerCase() === 'package';
   const shapeName = isPackage ? 'aim-boundary-package' : 'aim-boundary-class';
@@ -2150,7 +2150,7 @@ export function createAimBoundary(data: RaidBoundaryData): Node.Metadata {
   };
 }
 
-export function createAimNode(data: RaidNodeData): Node.Metadata {
+export function createAimNode(data: RaidNodeData): NodeMetadata {
   registerAimShapes();
   data = layoutDescription(data);
 
@@ -2168,7 +2168,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
     : data.bounds.height;
 
   const shapeName = `aim-${data.kind}`;
-  const baseMetadata: Node.Metadata = {
+  const baseMetadata: NodeMetadata = {
     id: data.id,
     shape: shapeName,
     x: data.bounds.x,
@@ -2203,7 +2203,7 @@ export function createAimNode(data: RaidNodeData): Node.Metadata {
   const labelText = wrappedName;
 
   // Archetype-specific customization
-  const resultMetadata: Node.Metadata = (() => {
+  const resultMetadata: NodeMetadata = (() => {
     switch (data.kind) {
       case 'uc': {
       return {
@@ -2608,14 +2608,14 @@ export function computeExpressionPillColors(
 /**
  * Factory creating an AntV X6 Edge model from a RaidEdgeData specification.
  */
-export function createAimEdge(data: RaidEdgeData, showExpressions = true): Edge.Metadata {
+export function createAimEdge(data: RaidEdgeData, showExpressions = true): EdgeMetadata {
   registerAimShapes();
 
   const isDirected = data.directed !== false;
   const edgeAttrs = { ...getEdgeStyling(data.kind), ...(isDirected ? {} : { targetMarker: null }) };
   const routing = data.routing ?? 'manhattan';
 
-  let routerConfig: Edge.Metadata['router'] = {
+  let routerConfig: EdgeMetadata['router'] = {
     name: 'manhattan',
     args: {
       padding: 20,
@@ -2623,7 +2623,7 @@ export function createAimEdge(data: RaidEdgeData, showExpressions = true): Edge.
       endDirections: ['top', 'right', 'bottom', 'left'],
     },
   };
-  let connectorConfig: Edge.Metadata['connector'] = {
+  let connectorConfig: EdgeMetadata['connector'] = {
     name: 'rounded',
     args: { radius: 8 },
   };
