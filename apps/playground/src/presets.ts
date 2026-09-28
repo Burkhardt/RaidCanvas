@@ -30,6 +30,38 @@ export const PRESETS: DiagramPreset[] = [
       <g aim-edge="true" aim-id="initiates" aim-source="Host" aim-target="ScheduleMeeting" aim-edge-kind="association" aim-directed="true"><path d="M200 185 L400 205"/><text>initiates</text></g>
     </svg>`,
   },
+  {
+    id: 'lead-helmsman',
+    name: 'The Helmsman · Lead Role Stereotype (Concept 1)',
+    archetype: 'OneUseCaseDiagram',
+    description: 'Calibrated Lead Helmsman stereotype: Actor holding the maritime ship wheel with solid clasping hands, 18px typographic buffer, and Two-Tap Duality.',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" id="LeadHelmsman_Studio" aim-archetype="OneUseCaseDiagram">
+      <g aim-node="true" aim-id="LeadCaptain_Actor" aim-kind="per" aim-display-name="Captain" aim-qualifier="Interaction Lead" aim-href="/actors?select=lead-captain" aim-stereotype="Lead, initiates" transform="translate(60, 140)">
+        <rect width="120" height="110" />
+      </g>
+      <g aim-node="true" aim-id="SteerNegotiation_UC" aim-kind="uc" aim-display-name="Steer Gig Terms" aim-qualifier="Orchestration" aim-href="/usecases?select=steer-terms" transform="translate(280, 155)">
+        <ellipse cx="80" cy="40" rx="80" ry="40" />
+      </g>
+      <g aim-node="true" aim-id="Customer_Actor" aim-kind="per" aim-display-name="Dr. Rainer Burkhardt" aim-qualifier="Project Director" aim-href="/actors?select=7010" aim-stereotype="Customer" transform="translate(560, 60)">
+        <rect width="120" height="110" />
+      </g>
+      <g aim-node="true" aim-id="Headliner_Actor" aim-kind="per" aim-display-name="Amália" aim-qualifier="Artist Headliner" aim-href="/actors?select=amalia" aim-stereotype="Headliner" transform="translate(560, 240)">
+        <rect width="120" height="110" />
+      </g>
+      <g aim-edge="true" aim-id="edge-lead-steers" aim-source="LeadCaptain_Actor" aim-target="SteerNegotiation_UC" aim-edge-kind="association" aim-directed="true">
+        <path d="M 180 195 L 280 195" />
+        <text>«initiates»</text>
+      </g>
+      <g aim-edge="true" aim-id="edge-buyer-participates" aim-source="Customer_Actor" aim-target="SteerNegotiation_UC" aim-edge-kind="association">
+        <path d="M 560 115 L 440 195" />
+        <text>«participates»</text>
+      </g>
+      <g aim-edge="true" aim-id="edge-artist-participates" aim-source="Headliner_Actor" aim-target="SteerNegotiation_UC" aim-edge-kind="association">
+        <path d="M 560 295 L 440 195" />
+        <text>«participates»</text>
+      </g>
+    </svg>`,
+  },
   ...ROLE_PRESETS,
   {
     id: 'heraldic-duality',
