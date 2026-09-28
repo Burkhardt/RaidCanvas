@@ -158,6 +158,13 @@ export function hasStereotype(rawStereotype: string | readonly string[] | undefi
 export function resolveStereotype(rawStereotype?: string | readonly string[]): StereotypeId | undefined {
   if (!rawStereotype) return undefined;
 
+  // Dual-Stereotype Persona Rule:
+  // If an actor carries both Lead and Headliner (in any order, e.g. "Headliner, Lead" or "Lead, Headliner"),
+  // it must resolve to 'lead' so that the Helmsman wheel is rendered and the Headliner star medal is displayed.
+  if (hasStereotype(rawStereotype, 'lead') && hasStereotype(rawStereotype, 'headliner')) {
+    return 'lead';
+  }
+
   const items = Array.isArray(rawStereotype) ? rawStereotype : [String(rawStereotype)];
   let foundInitiates = false;
 

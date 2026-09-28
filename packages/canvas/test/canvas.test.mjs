@@ -1665,6 +1665,13 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(resolveStereotype(['Lead', 'initiates']), 'lead');
     assert.equal(resolveStereotype(['Bar']), 'bar');
     assert.equal(resolveStereotype([]), undefined);
+
+    // Dual-Stereotype Persona Rule: Lead + Headliner resolves to 'lead' regardless of order or format
+    assert.equal(resolveStereotype(['Headliner', 'Lead']), 'lead');
+    assert.equal(resolveStereotype(['Lead', 'Headliner']), 'lead');
+    assert.equal(resolveStereotype('Headliner, Lead'), 'lead');
+    assert.equal(resolveStereotype('Lead, Headliner'), 'lead');
+    assert.equal(resolveStereotype('«Headliner», «Lead»'), 'lead');
   });
 
   test('Test 2: getStereotypePaths generates valid geometry for the seed stereotypes', () => {
@@ -2054,6 +2061,35 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(attrs.iconAccent?.fill, CascaisPalette.ChalkWhite, 'Lapel star fill is ChalkWhite');
     assert.equal(attrs.iconAccent?.transform, 'translate(48, 58)', 'Lapel star shares transform with hub');
     assert.ok(attrs.iconAccent?.class?.includes('aim-lead-lapel-star'), 'Class indicates lead lapel star');
+
+    // String stereotype "Headliner, Lead" (e.g. typed into Inspector)
+    const stringNode = createAimNode({
+      id: 'Star_Helmsman_String',
+      kind: 'per',
+      displayName: 'Star Helmsman',
+      stereotype: 'Headliner, Lead',
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    });
+    const strAttrs = stringNode.attrs;
+    assert.equal(strAttrs.iconStroke?.display, 'block', 'Wheel stroke must be displayed for "Headliner, Lead"');
+    assert.equal(strAttrs.iconStroke?.strokeWidth, 2.0, 'Wheel strokeWidth is 2.0');
+    assert.equal(strAttrs.iconFill?.display, 'block', 'Wheel pegs must be displayed for "Headliner, Lead"');
+    assert.equal(strAttrs.iconAccent?.display, 'block', 'Lapel Star must be displayed for "Headliner, Lead"');
+    assert.equal(strAttrs.iconAccent?.stroke, CascaisPalette.NetGold, 'Star stroke is NetGold');
+    assert.ok(strAttrs.torso?.d.includes('L 68 47'), 'Torso has steering right arm for "Headliner, Lead"');
+
+    // computeStereotypeIconAttrs helper returns lapel star for "Headliner, Lead"
+    const stereo = computeStereotypeIconAttrs({
+      id: 'Star_Attrs',
+      kind: 'per',
+      displayName: 'Star',
+      stereotype: 'Headliner, Lead',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    });
+    assert.equal(stereo.iconStroke.display, 'block');
+    assert.equal(stereo.iconFill.display, 'block');
+    assert.equal(stereo.iconAccent.display, 'block');
+    assert.equal(stereo.iconAccent.stroke, CascaisPalette.NetGold);
   });
 
   test('Test 5: RaiBridge.renderNodeInnerSvg produces valid vector SVG with aim-stereotype-icon', () => {

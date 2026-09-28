@@ -21,6 +21,7 @@ import { STATEMENT_KEY_PATTERN } from './types.js';
 import type { RaidWaypointSelection } from './RaidCanvas.js';
 import { RaidPropertyTree } from './RaidPropertyTree.js';
 import { computeExpressionPillColors } from './X6Shapes.js';
+import { hasStereotype, type StereotypeId } from './StereotypeIcons.js';
 
 export interface RaidInspectorSelection {
 	id: string;
@@ -873,38 +874,62 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						{/* Preset Quick Badges */}
 						<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
 							{[
-								{ id: 'Lead', label: '☸️ Lead' },
-								{ id: 'Customer', label: '👑 Customer' },
-								{ id: 'Headliner', label: '⭐ Headliner' },
-								{ id: 'AI', label: '🤖 AI' },
-								{ id: 'System', label: '🖥️ System' },
-								{ id: 'Stage', label: '🎪 Stage' },
-								{ id: 'Venue', label: '📍 Venue' },
-								{ id: 'Bar', label: '🍸 Bar' },
-								{ id: 'initiates', label: '⚡ Initiates' },
-							].map((st) => (
-								<button className="btn btn-xs"
-									key={st.id}
-									type="button"
-									onClick={() => {
-										const current = Array.isArray(node.stereotype) ? node.stereotype : (node.stereotype ? [node.stereotype] : []);
-										const exists = current.includes(st.id);
-										const next = exists ? current.filter((s) => s !== st.id) : [...current, st.id];
-										onUpdateNode?.(selection.id, { stereotype: next });
-									}}
-									style={{
-										padding: '2px 6px',
-										fontSize: 10,
-										borderRadius: 4,
-										border: '1px solid #D1D5DB',
-										background: '#FFFFFF',
-										color: '#374151',
-										cursor: 'pointer',
-									}}
-								>
-									{st.label}
-								</button>
-							))}
+								{ id: 'Lead', label: '☸️ Lead', stereoId: 'lead' as StereotypeId },
+								{ id: 'Customer', label: '👑 Customer', stereoId: 'customer' as StereotypeId },
+								{ id: 'Headliner', label: '⭐ Headliner', stereoId: 'headliner' as StereotypeId },
+								{ id: 'AI', label: '🤖 AI', stereoId: 'ai' as StereotypeId },
+								{ id: 'System', label: '🖥️ System', stereoId: 'system' as StereotypeId },
+								{ id: 'Stage', label: '🎪 Stage', stereoId: 'stage' as StereotypeId },
+								{ id: 'Venue', label: '📍 Venue', stereoId: 'venue' as StereotypeId },
+								{ id: 'Bar', label: '🍸 Bar', stereoId: 'bar' as StereotypeId },
+								{ id: 'initiates', label: '⚡ Initiates', stereoId: 'initiates' as StereotypeId },
+							].map((st) => {
+								const isActive = hasStereotype(node.stereotype, st.stereoId);
+								return (
+									<button className="btn btn-xs"
+										key={st.id}
+										type="button"
+										onClick={() => {
+											const raw = node.stereotype;
+											const items = Array.isArray(raw)
+												? raw.map(String)
+												: (raw ? String(raw).split(/[,\s]+/).map((s) => s.trim()).filter(Boolean) : []);
+											let next: string[];
+											if (isActive) {
+												next = items.filter((s) => {
+													const cleaned = s.replace(/[«»"]/g, '').toLowerCase().trim();
+													if (st.stereoId === 'lead') return !['lead', 'leader', 'helm', 'helmsman', 'rudder', 'captain'].includes(cleaned);
+													if (st.stereoId === 'headliner') return !['headliner', 'artist', 'star'].includes(cleaned);
+													if (st.stereoId === 'customer') return !['customer', 'client', 'buyer', 'patron'].includes(cleaned);
+													if (st.stereoId === 'stage') return cleaned !== 'stage';
+													if (st.stereoId === 'venue') return !['venue', 'place', 'pin'].includes(cleaned);
+													if (st.stereoId === 'bar') return !['bar', 'hospitality'].includes(cleaned);
+													if (st.stereoId === 'ai') return !['ai', 'agent', 'bot'].includes(cleaned);
+													if (st.stereoId === 'system') return !['system', 'server', 'service', 'daemon', 'backend'].includes(cleaned);
+													if (st.stereoId === 'initiates') return !['initiates', 'initiator'].includes(cleaned);
+													return cleaned !== st.id.toLowerCase();
+												});
+											} else {
+												next = [...items, st.id];
+											}
+											onUpdateNode?.(selection.id, { stereotype: next });
+										}}
+										style={{
+											padding: '2px 8px',
+											fontSize: 11,
+											borderRadius: 4,
+											border: isActive ? '1.5px solid #F59E0B' : '1px solid #D1D5DB',
+											background: isActive ? '#FEF3C7' : '#FFFFFF',
+											color: isActive ? '#92400E' : '#374151',
+											fontWeight: isActive ? 600 : 400,
+											cursor: 'pointer',
+											transition: 'all 0.15s ease',
+										}}
+									>
+										{st.label}
+									</button>
+								);
+							})}
 						</div>
 					</div>
 

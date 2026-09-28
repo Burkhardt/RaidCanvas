@@ -1403,14 +1403,14 @@ export class RaiBridge {
 			svg += this.renderSvgText(rawDisplayName, cardTextCx, height / 2, 12, 'normal', textColor, isInstance, node.qualifier, cardTextWidth);
 		} else if (node.kind === 'per') {
 			const isInitiating = isInitiatingStereotype(node.stereotype);
-			const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+			const isLead = resolvedStereo === 'lead';
+			const strokeColor = (isInitiating && !isLead) ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
 			const cx = Math.round(width / 2);
 			svg += `      <rect width="${width}" height="${height}" fill="none" stroke="none" />\n`;
 			if (resolvedStereo === 'system') {
 				const sysColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
 				svg += renderStereotypeIconSvg('system', cx - 22, 8, sysColor, sysColor);
 			} else {
-				const isLead = resolvedStereo === 'lead';
 				const torsoD = isLead
 					? `M ${cx - 21} 54 v -6 a 10 10 0 0 1 10 -10 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 L ${cx + 8} 47`
 					: `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`;

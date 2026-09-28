@@ -511,20 +511,36 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 					// Update stereotype icon paths and attributes
 					const stereoAttrs = computeStereotypeIconAttrs(nextData);
-					node.setAttrByPath('iconFill/d', stereoAttrs.iconFill.d);
-					node.setAttrByPath('iconFill/display', stereoAttrs.iconFill.display);
-					node.setAttrByPath('iconFill/transform', (stereoAttrs.iconFill as any).transform ?? '');
-					node.setAttrByPath('iconFill/fill', (stereoAttrs.iconFill as any).fill ?? '');
+					node.setAttrByPath('iconFill/d', stereoAttrs.iconFill?.d ?? '');
+					node.setAttrByPath('iconFill/display', stereoAttrs.iconFill?.display ?? 'none');
+					node.setAttrByPath('iconFill/transform', (stereoAttrs.iconFill as any)?.transform ?? '');
+					node.setAttrByPath('iconFill/fill', (stereoAttrs.iconFill as any)?.fill ?? '');
 
-					node.setAttrByPath('iconStroke/d', stereoAttrs.iconStroke.d);
-					node.setAttrByPath('iconStroke/display', stereoAttrs.iconStroke.display);
-					node.setAttrByPath('iconStroke/transform', (stereoAttrs.iconStroke as any).transform ?? '');
-					node.setAttrByPath('iconStroke/stroke', (stereoAttrs.iconStroke as any).stroke ?? '');
+					node.setAttrByPath('iconStroke/d', stereoAttrs.iconStroke?.d ?? '');
+					node.setAttrByPath('iconStroke/display', stereoAttrs.iconStroke?.display ?? 'none');
+					node.setAttrByPath('iconStroke/transform', (stereoAttrs.iconStroke as any)?.transform ?? '');
+					node.setAttrByPath('iconStroke/stroke', (stereoAttrs.iconStroke as any)?.stroke ?? '');
+					node.setAttrByPath('iconStroke/strokeWidth', (stereoAttrs.iconStroke as any)?.strokeWidth ?? 1.3);
+					node.setAttrByPath('iconStroke/strokeLinecap', (stereoAttrs.iconStroke as any)?.strokeLinecap ?? 'round');
+					node.setAttrByPath('iconStroke/strokeLinejoin', (stereoAttrs.iconStroke as any)?.strokeLinejoin ?? 'round');
 
-					node.setAttrByPath('iconAccent/d', stereoAttrs.iconAccent.d);
-					node.setAttrByPath('iconAccent/display', stereoAttrs.iconAccent.display);
-					node.setAttrByPath('iconAccent/transform', (stereoAttrs.iconAccent as any).transform ?? '');
-					node.setAttrByPath('iconAccent/fill', (stereoAttrs.iconAccent as any).fill ?? '');
+					if (stereoAttrs.iconPin) {
+						node.setAttrByPath('iconPin/d', stereoAttrs.iconPin.d ?? '');
+						node.setAttrByPath('iconPin/display', stereoAttrs.iconPin.display ?? 'none');
+						node.setAttrByPath('iconPin/transform', (stereoAttrs.iconPin as any)?.transform ?? '');
+						node.setAttrByPath('iconPin/fill', (stereoAttrs.iconPin as any)?.fill ?? '');
+						node.setAttrByPath('iconPin/stroke', (stereoAttrs.iconPin as any)?.stroke ?? '');
+					}
+
+					node.setAttrByPath('iconAccent/d', stereoAttrs.iconAccent?.d ?? '');
+					node.setAttrByPath('iconAccent/display', stereoAttrs.iconAccent?.display ?? 'none');
+					node.setAttrByPath('iconAccent/transform', (stereoAttrs.iconAccent as any)?.transform ?? '');
+					node.setAttrByPath('iconAccent/fill', (stereoAttrs.iconAccent as any)?.fill ?? '');
+					node.setAttrByPath('iconAccent/stroke', (stereoAttrs.iconAccent as any)?.stroke ?? 'none');
+					node.setAttrByPath('iconAccent/strokeWidth', (stereoAttrs.iconAccent as any)?.strokeWidth ?? 1);
+					node.setAttrByPath('iconAccent/strokeLinecap', (stereoAttrs.iconAccent as any)?.strokeLinecap ?? 'round');
+					node.setAttrByPath('iconAccent/strokeLinejoin', (stereoAttrs.iconAccent as any)?.strokeLinejoin ?? 'round');
+					node.setAttrByPath('iconAccent/class', (stereoAttrs.iconAccent as any)?.class ?? 'aim-stereotype-icon-accent');
 
 					if (nextData.kind === 'cls') {
 						node.setAttrByPath('title/text', displayName);
@@ -538,9 +554,13 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					} else if (nextData.kind === 'per') {
 						const isInitiating = isInitiatingStereotype(nextData.stereotype);
 						const isSystem = resolvedStereotype === 'system';
-						const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+						const isLead = resolvedStereotype === 'lead';
+						const strokeColor = (isInitiating && !isLead) ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
 						const cx = Math.round(boxWidth / 2);
-						node.setAttrByPath('torso/d', `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`);
+						const torsoD = isLead
+							? `M ${cx - 21} 54 v -6 a 10 10 0 0 1 10 -10 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 L ${cx + 8} 47`
+							: `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`;
+						node.setAttrByPath('torso/d', torsoD);
 						node.setAttrByPath('torso/stroke', strokeColor);
 						node.setAttrByPath('torso/display', isSystem ? 'none' : 'block');
 						node.setAttrByPath('head/cx', cx);
