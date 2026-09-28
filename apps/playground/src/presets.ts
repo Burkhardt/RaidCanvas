@@ -32,9 +32,9 @@ export const PRESETS: DiagramPreset[] = [
   },
   {
     id: 'lead-helmsman',
-    name: 'The Helmsman · Lead Role Stereotype (Concept 1)',
+    name: 'The Helmsman · Lead Role Stereotype (Option A: 60% Helm Console ★)',
     archetype: 'OneUseCaseDiagram',
-    description: 'Calibrated Lead Helmsman stereotype: Actor holding the maritime ship wheel with solid clasping hands, 18px typographic buffer, and Two-Tap Duality.',
+    description: 'Option A: The 60% Helm Console (Rainer’s Concept ★). Rotated 22.5° to clear the throat and remove vertical spike; rising from chest console baseline; 22px+ clear optical buffer.',
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" id="LeadHelmsman_Studio" aim-archetype="OneUseCaseDiagram">
       <g aim-node="true" aim-id="LeadCaptain_Actor" aim-kind="per" aim-display-name="Captain" aim-qualifier="Interaction Lead" aim-href="/actors?select=lead-captain" aim-stereotype="Lead, initiates" transform="translate(60, 140)">
         <rect width="120" height="110" />

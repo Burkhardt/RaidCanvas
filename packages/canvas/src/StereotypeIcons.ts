@@ -360,42 +360,38 @@ export function getStereotypePaths(id: StereotypeId): StereotypePaths {
     }
 
     case 'lead': {
-      // 8. Lead Role / Helmsman Ship's Wheel / Rudder
-      // Bounding box: 36 x 36
+      // 8. Lead Role: Option A — The 60% Helm Console (Rainer's Concept ★)
+      // Upper 5 spokes and upper arch rising from console baseline (0, 0).
+      // When rotated 22.5°, spokes flank chin symmetrically, clearing the throat and removing the 12:00 spike.
       const strokeD = [
-        // 8 Spokes extending to turned handles
-        'M 0 18 H 36',
-        'M 18 0 V 36',
-        'M 5.3 5.3 L 30.7 30.7',
-        'M 30.7 5.3 L 5.3 30.7',
-        // Outer rim (R=11.5) — inner secondary rim dropped per Koyo calibration for zoom legibility
-        'M 29.5 18 A 11.5 11.5 0 1 1 6.5 18 A 11.5 11.5 0 1 1 29.5 18 Z',
+        // 5 Upper Spokes
+        'M 0 0 L 0 -18',
+        'M 0 0 L 18 0',
+        'M 0 0 L -18 0',
+        'M 0 0 L 12.7 -12.7',
+        'M 0 0 L -12.7 -12.7',
+        // Upper Arch Rim (radius 12.7)
+        'M -12.7 0 A 12.7 12.7 0 1 1 12.7 0',
       ].join(' ');
 
       const fillD = [
-        // Hub body (R=4 dual-semicircle)
-        'M 14 18 A 4 4 0 1 1 22 18 A 4 4 0 1 1 14 18 Z',
-        // Turned handle pegs at 8 tips (R=1.5 dual-semicircles for engine safety)
-        'M 16.5 0 A 1.5 1.5 0 1 1 19.5 0 A 1.5 1.5 0 1 1 16.5 0 Z',
-        'M 16.5 36 A 1.5 1.5 0 1 1 19.5 36 A 1.5 1.5 0 1 1 16.5 36 Z',
-        'M -1.5 18 A 1.5 1.5 0 1 1 1.5 18 A 1.5 1.5 0 1 1 -1.5 18 Z',
-        'M 34.5 18 A 1.5 1.5 0 1 1 37.5 18 A 1.5 1.5 0 1 1 34.5 18 Z',
-        'M 3.8 5.3 A 1.5 1.5 0 1 1 6.8 5.3 A 1.5 1.5 0 1 1 3.8 5.3 Z',
-        'M 29.2 5.3 A 1.5 1.5 0 1 1 32.2 5.3 A 1.5 1.5 0 1 1 29.2 5.3 Z',
-        'M 3.8 30.7 A 1.5 1.5 0 1 1 6.8 30.7 A 1.5 1.5 0 1 1 3.8 30.7 Z',
-        'M 29.2 30.7 A 1.5 1.5 0 1 1 32.2 30.7 A 1.5 1.5 0 1 1 29.2 30.7 Z',
+        // Half Hub Boss resting at baseline
+        'M -4.5 0 A 4.5 4.5 0 0 1 4.5 0 Z',
+        // 5 Handle Pegs on Upper Spokes (dual-semicircles for engine safety)
+        'M -1.6 -18 A 1.6 1.6 0 1 1 1.6 -18 A 1.6 1.6 0 1 1 -1.6 -18 Z',
+        'M 16.4 0 A 1.6 1.6 0 1 1 19.6 0 A 1.6 1.6 0 1 1 16.4 0 Z',
+        'M -19.6 0 A 1.6 1.6 0 1 1 -16.4 0 A 1.6 1.6 0 1 1 -19.6 0 Z',
+        'M 11.1 -12.7 A 1.6 1.6 0 1 1 14.3 -12.7 A 1.6 1.6 0 1 1 11.1 -12.7 Z',
+        'M -14.3 -12.7 A 1.6 1.6 0 1 1 -11.1 -12.7 A 1.6 1.6 0 1 1 -14.3 -12.7 Z',
       ].join(' ');
 
-      // Center axle pin (R=1.5 solid ChalkWhite punch over NetGold hub boss)
-      const pinD = 'M 16.5 18 A 1.5 1.5 0 1 1 19.5 18 A 1.5 1.5 0 1 1 16.5 18 Z';
+      // Center Axle Pin resting at (0, -1) with R=1.4
+      const pinD = 'M -1.4 -1 A 1.4 1.4 0 1 1 1.4 -1 A 1.4 1.4 0 1 1 -1.4 -1 Z';
 
-      const accentFillD = [
-        // Hands gripping the rim at 10:00 and 2:00 (R=2.5 dual-semicircles)
-        'M 5.5 12.5 A 2.5 2.5 0 1 1 10.5 12.5 A 2.5 2.5 0 1 1 5.5 12.5 Z',
-        'M 25.5 12.5 A 2.5 2.5 0 1 1 30.5 12.5 A 2.5 2.5 0 1 1 25.5 12.5 Z',
-      ].join(' ');
+      // Hand discs removed per Koyo/Rainer handover
+      const accentFillD = '';
 
-      return { strokeD, fillD, pinD, accentFillD, width: 36, height: 36 };
+      return { strokeD, fillD, pinD, accentFillD, width: 36, height: 20 };
     }
 
     case 'initiates':
@@ -447,11 +443,12 @@ export function renderStereotypeIconSvg(
     svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="1.2" />\n`;
     if (paths.accentFillD) svg += `        <path d="${paths.accentFillD}" fill="${CascaisPalette.ChalkWhite}" />\n`;
   } else if (resolved === 'lead') {
-    // Helmsman Ship's Wheel / Rudder
-    svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" />\n`;
-    if (paths.fillD) svg += `        <path d="${paths.fillD}" fill="${CascaisPalette.NetGold}" />\n`;
-    if (paths.pinD) svg += `        <path d="${paths.pinD}" fill="${CascaisPalette.ChalkWhite}" />\n`;
-    if (paths.accentFillD) svg += `        <path d="${paths.accentFillD}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.4" />\n`;
+    // Option A: The 60% Helm Console (Rainer's Concept ★) rotated 22.5 deg
+    svg += `        <g transform="rotate(22.5)">\n`;
+    svg += `          <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" />\n`;
+    if (paths.fillD) svg += `          <path d="${paths.fillD}" fill="${CascaisPalette.NetGold}" />\n`;
+    if (paths.pinD) svg += `          <path d="${paths.pinD}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="0.8" />\n`;
+    svg += `        </g>\n`;
   } else if (resolved === 'headliner') {
     svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />\n`;
   } else if (resolved === 'ai') {

@@ -1765,12 +1765,13 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
       };
     }
     if (resolved === 'lead') {
-      // Helmsman: Actor holding the Ship's Wheel (Rudder) at the helm
-      // Bounding box 36x36 placed at (cx - 18, 34) -> center is (cx, 52), guaranteeing 18px+ optical buffer to label
+      // Option A: The 60% Helm Console (Rainer's Concept ★)
+      // Rotated 22.5° to clear the throat and remove vertical 12:00 spike;
+      // upper 5 spokes and arch rise from chest baseline (y=54).
       return {
         iconFill: {
           d: paths.fillD,
-          transform: `translate(${cx - 18}, 34)`,
+          transform: `translate(${cx}, 54) rotate(22.5)`,
           fill: CascaisPalette.NetGold,
           stroke: 'none',
           display: 'block',
@@ -1778,7 +1779,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
         iconStroke: {
           d: paths.strokeD,
-          transform: `translate(${cx - 18}, 34)`,
+          transform: `translate(${cx}, 54) rotate(22.5)`,
           stroke: CascaisPalette.NetGold,
           strokeWidth: 2.0,
           strokeLinecap: 'round',
@@ -1789,20 +1790,16 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
         iconPin: {
           d: paths.pinD ?? '',
-          transform: `translate(${cx - 18}, 34)`,
+          transform: `translate(${cx}, 54) rotate(22.5)`,
           fill: CascaisPalette.ChalkWhite,
-          stroke: 'none',
+          stroke: CascaisPalette.WarmGraphite,
+          strokeWidth: 0.8,
           display: paths.pinD ? 'block' : 'none',
           class: 'aim-stereotype-icon-pin',
         },
         iconAccent: {
-          d: paths.accentFillD ?? '',
-          transform: `translate(${cx - 18}, 34)`,
-          fill: CascaisPalette.ChalkWhite,
-          stroke: CascaisPalette.WarmGraphite,
-          strokeWidth: 1.4,
-          display: paths.accentFillD ? 'block' : 'none',
-          class: 'aim-stereotype-icon-accent',
+          d: '',
+          display: 'none',
         },
       };
     }
@@ -2371,17 +2368,23 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
     case 'per': {
       const isInitiating = isInitiatingStereotype(data.stereotype);
       const isSystem = resolvedStereotype === 'system';
-      const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+      const isLead = resolvedStereotype === 'lead';
+      // Decouple Tinctures: Lead role restores WarmGraphite to human actor head & torso lines
+      const strokeColor = (isInitiating && !isLead) ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
       const cx = Math.round(boxWidth / 2);
       const qualifierLines = qualifierText ? qualifierText.split('\n').length : 0;
       const labelRefY = qualifierLines > 0 ? 66 + qualifierLines * 18 : 74;
+      // When Lead: torso closes chest console baseline connecting shoulders (from cx+21 to cx-21)
+      const torsoD = isLead
+        ? `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6 H ${cx - 21}`
+        : `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`;
       return {
         ...baseMetadata,
         attrs: {
           ...portalAttrs,
           ...stereoAttrs,
           torso: {
-            d: `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`,
+            d: torsoD,
             stroke: strokeColor,
             strokeWidth: 2.2,
             display: isSystem ? 'none' : 'block',

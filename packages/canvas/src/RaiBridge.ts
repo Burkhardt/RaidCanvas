@@ -1420,7 +1420,7 @@ export class RaiBridge {
 					const aiColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
 					svg += renderStereotypeIconSvg('ai', cx - 12, 8, aiColor, aiColor);
 				} else if (resolvedStereo === 'lead') {
-					svg += renderStereotypeIconSvg('lead', cx - 18, 34, CascaisPalette.NetGold, CascaisPalette.NetGold);
+					svg += renderStereotypeIconSvg('lead', cx, 54, CascaisPalette.NetGold, CascaisPalette.NetGold);
 				}
 			}
 			svg += this.renderSvgText(rawDisplayName, cx, 80, 12, '500', textColor, isInstance, node.qualifier, width);

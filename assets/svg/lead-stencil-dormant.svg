@@ -1,22 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <title>Lead Role Stencil (Dormant)</title>
-  <desc>AOAIM Lead Role Palette and Inspector Stencil in Dormant State.</desc>
+  <title>Lead Role Stencil (Dormant) — Option A 60% Helm Console</title>
+  <desc>AOAIM Lead Role Palette and Inspector Stencil with 60% Helm Console rising from baseline.</desc>
   <rect width="48" height="48" rx="8" fill="#FAF8F5" stroke="#E5E7EB" stroke-width="1.5" />
-  <!-- Wheel centered at (24, 24) -->
-  <g transform="translate(6, 6)">
-    <!-- 8 Spokes -->
-    <g stroke="#C5A059" stroke-width="2.0" stroke-linecap="round">
-      <line x1="0" y1="18" x2="36" y2="18" />
-      <line x1="18" y1="0" x2="18" y2="36" />
-      <line x1="5.3" y1="5.3" x2="30.7" y2="30.7" />
-      <line x1="30.7" y1="5.3" x2="5.3" y2="30.7" />
+  <!-- Console baseline line -->
+  <line x1="8" y1="34" x2="40" y2="34" stroke="#2D3139" stroke-width="2" stroke-linecap="round" />
+  <!-- 60% Wheel rising from console baseline (24, 33) rotated 22.5 deg -->
+  <g transform="translate(24, 33) rotate(22.5)">
+    <!-- 5 Upper Spokes -->
+    <g stroke="#C5A059" stroke-width="1.8" stroke-linecap="round">
+      <line x1="0" y1="0" x2="0" y2="-17" />
+      <line x1="0" y1="0" x2="17" y2="0" />
+      <line x1="0" y1="0" x2="-17" y2="0" />
+      <line x1="0" y1="0" x2="12" y2="-12" />
+      <line x1="0" y1="0" x2="-12" y2="-12" />
     </g>
-    <!-- Outer Rim -->
-    <circle cx="18" cy="18" r="11.5" fill="none" stroke="#C5A059" stroke-width="2.0" />
-    <!-- 8 Turned Handle Pegs (R=1.5 dual-semicircles) -->
-    <path d="M 16.5 0 A 1.5 1.5 0 1 1 19.5 0 A 1.5 1.5 0 1 1 16.5 0 Z M 16.5 36 A 1.5 1.5 0 1 1 19.5 36 A 1.5 1.5 0 1 1 16.5 36 Z M -1.5 18 A 1.5 1.5 0 1 1 1.5 18 A 1.5 1.5 0 1 1 -1.5 18 Z M 34.5 18 A 1.5 1.5 0 1 1 37.5 18 A 1.5 1.5 0 1 1 34.5 18 Z M 3.8 5.3 A 1.5 1.5 0 1 1 6.8 5.3 A 1.5 1.5 0 1 1 3.8 5.3 Z M 29.2 5.3 A 1.5 1.5 0 1 1 32.2 5.3 A 1.5 1.5 0 1 1 29.2 5.3 Z M 3.8 30.7 A 1.5 1.5 0 1 1 6.8 30.7 A 1.5 1.5 0 1 1 3.8 30.7 Z M 29.2 30.7 A 1.5 1.5 0 1 1 32.2 30.7 A 1.5 1.5 0 1 1 29.2 30.7 Z" fill="#C5A059" />
-    <!-- Hub Boss & Solid Axle Pin Punch -->
-    <path d="M 14 18 A 4 4 0 1 1 22 18 A 4 4 0 1 1 14 18 Z" fill="#C5A059" />
-    <path d="M 16.5 18 A 1.5 1.5 0 1 1 19.5 18 A 1.5 1.5 0 1 1 16.5 18 Z" fill="#FAF8F5" stroke="none" />
+    <!-- Upper Arch Rim -->
+    <path d="M -12 0 A 12 12 0 1 1 12 0" fill="none" stroke="#C5A059" stroke-width="2.0" stroke-linecap="round" />
+    <!-- 5 Handle Pegs on Upper Spokes -->
+    <path d="M -1.5 -17 A 1.5 1.5 0 1 1 1.5 -17 A 1.5 1.5 0 1 1 -1.5 -17 Z M 15.5 0 A 1.5 1.5 0 1 1 18.5 0 A 1.5 1.5 0 1 1 15.5 0 Z M -18.5 0 A 1.5 1.5 0 1 1 -15.5 0 A 1.5 1.5 0 1 1 -18.5 0 Z M 10.5 -12 A 1.5 1.5 0 1 1 13.5 -12 A 1.5 1.5 0 1 1 10.5 -12 Z M -13.5 -12 A 1.5 1.5 0 1 1 -10.5 -12 A 1.5 1.5 0 1 1 -13.5 -12 Z" fill="#C5A059" />
+    <!-- Half Hub Boss at baseline -->
+    <path d="M -4.2 0 A 4.2 4.2 0 0 1 4.2 0 Z" fill="#C5A059" />
+    <circle cx="0" cy="-1" r="1.3" fill="#FAF8F5" stroke="#2D3139" stroke-width="0.8" />
   </g>
 </svg>
