@@ -1675,15 +1675,12 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       assert.ok(paths.strokeD.length > 0 || paths.fillD.length > 0, `${id} must have SVG path data`);
     }
 
-    // Lead specific checks: Option A — The 60% Helm Console (Rainer's Concept ★)
+    // Lead specific checks: Sketch Offset (Δ = 45.0°) Helmsman Rudder Wheel
     const lead = getStereotypePaths('lead');
-    assert.equal(lead.width, 36);
-    assert.ok(lead.strokeD.includes('L 0 -18'), 'Lead must have 5 upper spokes');
-    assert.ok(lead.strokeD.includes('A 12.7 12.7'), 'Lead must have upper rim arch');
-    assert.ok(lead.fillD.includes('A 4.5 4.5'), 'Lead must have half hub boss resting at baseline');
-    assert.ok(lead.fillD.includes('M -1.6 -18 A 1.6 1.6'), 'Lead handle pegs must use dual-semicircles');
-    assert.ok(lead.pinD && lead.pinD.includes('A 1.4 1.4'), 'Lead must have axle pin');
-    assert.equal(lead.accentFillD, '', 'Lead hand discs must be removed');
+    assert.equal(lead.width, 44);
+    assert.ok(lead.strokeD.includes('A 18 18'), 'Lead must have outer rim arc');
+    assert.ok(lead.fillD.includes('A 1.5 1.5'), 'Lead handle pegs must use knob caps');
+    assert.ok(lead.starsD && lead.starsD.includes('M -4.0 -17.5'), 'Lead must provide Option 1 Left Lapel Star');
 
     // Stage specific checks (Festival truss, canopy roof, stars, columns, spotlights, steps) — scaled to 48x44
     const stage = getStereotypePaths('stage');
@@ -2012,7 +2009,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(dualityAttrs.chevron.refY, 30);
   });
 
-  test('Test 4f: createAimNode for Person with stereotype="Lead" renders Option A 60% Helm Console at chest baseline', () => {
+  test('Test 4f: createAimNode for Person with stereotype="Lead" renders Sketch Offset Helmsman with right arm contact', () => {
     const nodeMeta = createAimNode({
       id: 'Lead_Actor',
       kind: 'per',
@@ -2027,18 +2024,36 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     // Decouple Tinctures: Actor head and torso remain WarmGraphite
     assert.equal(attrs.head?.stroke, CascaisPalette.WarmGraphite, 'Actor head remains WarmGraphite');
     assert.equal(attrs.torso?.stroke, CascaisPalette.WarmGraphite, 'Actor torso remains WarmGraphite');
-    assert.ok(attrs.torso?.d.includes('H 39'), 'Torso includes chest console baseline connecting shoulders');
+    assert.ok(attrs.torso?.d.includes('L 68 47'), 'Torso includes right arm reaching to 30 deg handle peg at (68, 47)');
 
-    // Helm Console
+    // Sketch Offset Helmsman Wheel at (48, 58)
     assert.equal(attrs.iconStroke?.display, 'block', 'Lead wheel stroke must be displayed');
     assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Lead wheel stroke is NetGold');
-    assert.equal(attrs.iconStroke?.strokeWidth, 2.0, 'Lead wheel strokeWidth is 2.0 per Koyo calibration');
-    assert.equal(attrs.iconStroke?.transform, 'translate(60, 54) rotate(22.5)', 'Helm is rotated 22.5 deg at chest baseline');
-    assert.equal(attrs.iconFill?.display, 'block', 'Lead wheel hub and pegs must be displayed');
-    assert.equal(attrs.iconFill?.fill, CascaisPalette.NetGold, 'Hub fill is NetGold');
-    assert.equal(attrs.iconPin?.display, 'block', 'Lead axle pin must be displayed');
-    assert.equal(attrs.iconPin?.fill, CascaisPalette.ChalkWhite, 'Lead axle pin is solid ChalkWhite punch');
-    assert.equal(attrs.iconAccent?.display, 'none', 'Hand discs must be removed');
+    assert.equal(attrs.iconStroke?.strokeWidth, 2.0, 'Lead wheel strokeWidth is 2.0');
+    assert.equal(attrs.iconStroke?.transform, 'translate(48, 58)', 'Helm hub is offset to (48, 58)');
+    assert.equal(attrs.iconFill?.display, 'block', 'Lead wheel pegs must be displayed');
+    assert.equal(attrs.iconFill?.fill, CascaisPalette.NetGold, 'Peg fill is NetGold');
+    assert.equal(attrs.iconPin?.display, 'none', 'Lead axle pin is none under y=54 clip');
+    assert.equal(attrs.iconAccent?.display, 'none', 'No lapel star when not headliner');
+  });
+
+  test('Test 4g: createAimNode for Person with stereotype=["Lead", "Headliner"] renders Left Lapel Star (Option 1: The Commander\'s Medal)', () => {
+    const nodeMeta = createAimNode({
+      id: 'Star_Helmsman',
+      kind: 'per',
+      displayName: 'Star Helmsman',
+      qualifier: 'Captain & Artist',
+      stereotype: ['Lead', 'Headliner'],
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    });
+
+    const attrs = nodeMeta.attrs;
+    assert.ok(attrs, 'Node metadata must have attrs');
+    assert.equal(attrs.iconAccent?.display, 'block', 'Left Lapel Star must be displayed for Lead + Headliner');
+    assert.equal(attrs.iconAccent?.stroke, CascaisPalette.NetGold, 'Lapel star stroke is NetGold');
+    assert.equal(attrs.iconAccent?.fill, CascaisPalette.ChalkWhite, 'Lapel star fill is ChalkWhite');
+    assert.equal(attrs.iconAccent?.transform, 'translate(48, 58)', 'Lapel star shares transform with hub');
+    assert.ok(attrs.iconAccent?.class?.includes('aim-lead-lapel-star'), 'Class indicates lead lapel star');
   });
 
   test('Test 5: RaiBridge.renderNodeInnerSvg produces valid vector SVG with aim-stereotype-icon', () => {

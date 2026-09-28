@@ -32,32 +32,45 @@ export const PRESETS: DiagramPreset[] = [
   },
   {
     id: 'lead-helmsman',
-    name: 'The Helmsman · Lead Role Stereotype (Option A: 60% Helm Console ★)',
+    name: 'The Helmsman · Lead & Star Stereotypes (Sketch Offset & Commander Medal)',
     archetype: 'OneUseCaseDiagram',
-    description: 'Option A: The 60% Helm Console (Rainer’s Concept ★). Rotated 22.5° to clear the throat and remove vertical spike; rising from chest console baseline; 22px+ clear optical buffer.',
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" id="LeadHelmsman_Studio" aim-archetype="OneUseCaseDiagram">
-      <g aim-node="true" aim-id="LeadCaptain_Actor" aim-kind="per" aim-display-name="Captain" aim-qualifier="Interaction Lead" aim-href="/actors?select=lead-captain" aim-stereotype="Lead, initiates" transform="translate(60, 140)">
+    description: 'Sketch Offset (Δ = 45.0°) Helmsman with right arm physically gripping the 30° peg, alongside the Star Helmsman carrying Option 1: The Commander’s Medal (Left Lapel Star).',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 440" id="LeadHelmsman_Studio" aim-archetype="OneUseCaseDiagram">
+      <!-- 1. The Helmsman (Captain): Active steering with right arm contact -->
+      <g aim-node="true" aim-id="LeadCaptain_Actor" aim-kind="per" aim-display-name="Captain" aim-qualifier="Interaction Lead" aim-href="/actors?select=lead-captain" aim-stereotype="Lead, initiates" transform="translate(60, 60)">
         <rect width="120" height="110" />
       </g>
-      <g aim-node="true" aim-id="SteerNegotiation_UC" aim-kind="uc" aim-display-name="Steer Gig Terms" aim-qualifier="Orchestration" aim-href="/usecases?select=steer-terms" transform="translate(280, 155)">
-        <ellipse cx="80" cy="40" rx="80" ry="40" />
-      </g>
-      <g aim-node="true" aim-id="Customer_Actor" aim-kind="per" aim-display-name="Dr. Rainer Burkhardt" aim-qualifier="Project Director" aim-href="/actors?select=7010" aim-stereotype="Customer" transform="translate(560, 60)">
+      <!-- 2. The Star Helmsman: Option 1 Left Lapel Star (Commander's Medal) -->
+      <g aim-node="true" aim-id="StarHelmsman_Actor" aim-kind="per" aim-display-name="Star Helmsman" aim-qualifier="Lead &amp; Performer" aim-href="/actors?select=star-helmsman" aim-stereotype="Lead, Headliner" transform="translate(60, 240)">
         <rect width="120" height="110" />
       </g>
-      <g aim-node="true" aim-id="Headliner_Actor" aim-kind="per" aim-display-name="Amália" aim-qualifier="Artist Headliner" aim-href="/actors?select=amalia" aim-stereotype="Headliner" transform="translate(560, 240)">
+      <!-- 3. Method UseCase: Steer Gig Terms -->
+      <g aim-node="true" aim-id="SteerNegotiation_UC" aim-kind="uc" aim-display-name="Steer Gig Terms" aim-qualifier="Orchestration" aim-href="/usecases?select=steer-terms" transform="translate(330, 155)">
+        <ellipse cx="85" cy="42" rx="85" ry="42" />
+      </g>
+      <!-- 4. Customer: Project Director -->
+      <g aim-node="true" aim-id="Customer_Actor" aim-kind="per" aim-display-name="Dr. Rainer Burkhardt" aim-qualifier="Project Director" aim-href="/actors?select=7010" aim-stereotype="Customer" transform="translate(620, 60)">
         <rect width="120" height="110" />
       </g>
+      <!-- 5. Headliner: Performer Artist -->
+      <g aim-node="true" aim-id="Headliner_Actor" aim-kind="per" aim-display-name="Amália" aim-qualifier="Artist Headliner" aim-href="/actors?select=amalia" aim-stereotype="Headliner" transform="translate(620, 240)">
+        <rect width="120" height="110" />
+      </g>
+      <!-- Edges -->
       <g aim-edge="true" aim-id="edge-lead-steers" aim-source="LeadCaptain_Actor" aim-target="SteerNegotiation_UC" aim-edge-kind="association" aim-directed="true">
-        <path d="M 180 195 L 280 195" />
+        <path d="M 180 115 L 330 195" />
+        <text>«initiates»</text>
+      </g>
+      <g aim-edge="true" aim-id="edge-star-steers" aim-source="StarHelmsman_Actor" aim-target="SteerNegotiation_UC" aim-edge-kind="association" aim-directed="true">
+        <path d="M 180 295 L 330 195" />
         <text>«initiates»</text>
       </g>
       <g aim-edge="true" aim-id="edge-buyer-participates" aim-source="Customer_Actor" aim-target="SteerNegotiation_UC" aim-edge-kind="association">
-        <path d="M 560 115 L 440 195" />
+        <path d="M 620 115 L 500 195" />
         <text>«participates»</text>
       </g>
       <g aim-edge="true" aim-id="edge-artist-participates" aim-source="Headliner_Actor" aim-target="SteerNegotiation_UC" aim-edge-kind="association">
-        <path d="M 560 295 L 440 195" />
+        <path d="M 620 295 L 500 195" />
         <text>«participates»</text>
       </g>
     </svg>`,

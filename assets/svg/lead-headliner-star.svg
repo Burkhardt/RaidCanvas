@@ -1,0 +1,52 @@
+<svg width="120" height="110" viewBox="0 0 120 110" xmlns="http://www.w3.org/2000/svg">
+  <title>AOAIM Lead + Headliner Actor Node — Option 1: The Commander's Medal (Left Lapel Star)</title>
+  <desc>Actor carrying both Lead and Headliner stereotypes («Lead, Headliner»). Right arm actively steers the offset rudder wheel at (48, 58), while the 5-point Headliner star rests on the left lapel at (44, 44) as an honorable commander's medal.</desc>
+  <defs>
+    <!-- Strict horizontal clip at y=54 (open torso bottom) -->
+    <clipPath id="lead-cut-star">
+      <rect x="0" y="0" width="120" height="54" />
+    </clipPath>
+  </defs>
+
+  <!-- 1. Head: Pure Chalk White circle (r=12, cy=20 -> chin at y=32) -->
+  <circle cx="60" cy="20" r="12" fill="#FAF8F5" stroke="#2D3139" stroke-width="2.2" />
+
+  <!-- 2. Rudder Wheel: Hub at (48, 58), R=18, Pegs to R=22.5. Strictly equidistant 45° -->
+  <g clip-path="url(#lead-cut-star)" stroke="#C5A059" stroke-linecap="round">
+    <!-- 4 Spokes: 165°, 120°, 75°, 30° -->
+    <line x1="48" y1="58" x2="30.6" y2="53.3" stroke-width="2.0" />
+    <line x1="48" y1="58" x2="39.0" y2="42.4" stroke-width="2.0" />
+    <line x1="48" y1="58" x2="52.7" y2="40.6" stroke-width="2.0" />
+    <line x1="48" y1="58" x2="63.6" y2="49.0" stroke-width="2.0" />
+
+    <!-- Outer Rim Arc (R=18) -->
+    <path d="M 30.6 53.3 A 18 18 0 0 1 63.6 49.0" fill="none" stroke-width="2.2" />
+
+    <!-- 4 Handles (Equidistant Δ=45°) with Knob Bulbs -->
+    <line x1="30.6" y1="53.3" x2="26.3" y2="52.2" stroke-width="2.0" />
+    <circle cx="25.5" cy="52.0" r="1.5" fill="#C5A059" />
+
+    <line x1="39.0" y1="42.4" x2="36.8" y2="38.5" stroke-width="2.0" />
+    <circle cx="36.0" cy="37.5" r="1.5" fill="#C5A059" />
+
+    <!-- 75° Handle: Tip at y=35.5 (4.5px air gap below chin y=32) -->
+    <line x1="52.7" y1="40.6" x2="53.8" y2="36.3" stroke-width="2.0" />
+    <circle cx="54.0" cy="35.5" r="1.5" fill="#C5A059" />
+
+    <!-- 30° Handle: Forearm contact meeting peg at (68, 47) -->
+    <line x1="63.6" y1="49.0" x2="67.5" y2="46.8" stroke-width="2.0" />
+    <circle cx="68.5" cy="46.2" r="1.5" fill="#C5A059" />
+  </g>
+
+  <!-- 3. Torso: Left drop to y=54, right arm drops to elbow (81, 54) and reaches to 30° peg at (68, 47) -->
+  <path d="M 39 54 v -6 a 10 10 0 0 1 10 -10 H 71 a 10 10 0 0 1 10 10 v 6 L 68 47" 
+        fill="none" stroke="#2D3139" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- 4. Option 1: 5-Point Headliner Star on Left Lapel at (44, 44) (The Commander's Medal) -->
+  <path d="M 44 40.5 L 45.3 43.2 L 48.3 43.5 L 46 45.6 L 46.8 48.5 L 44 47 L 41.2 48.5 L 42 45.6 L 39.7 43.5 L 42.7 43.2 Z" 
+        fill="#FAF8F5" stroke="#C5A059" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- 5. Typography -->
+  <text x="60" y="78" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" font-style="italic" fill="#2D3139" text-anchor="middle">«Lead, Headliner»</text>
+  <text x="60" y="94" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#0D3472" text-anchor="middle">Star Helmsman</text>
+</svg>

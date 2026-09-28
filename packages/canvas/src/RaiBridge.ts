@@ -1410,7 +1410,11 @@ export class RaiBridge {
 				const sysColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
 				svg += renderStereotypeIconSvg('system', cx - 22, 8, sysColor, sysColor);
 			} else {
-				svg += `      <path d="M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6" fill="none" stroke="${strokeColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"${unboundAttrs} />\n`;
+				const isLead = resolvedStereo === 'lead';
+				const torsoD = isLead
+					? `M ${cx - 21} 54 v -6 a 10 10 0 0 1 10 -10 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 L ${cx + 8} 47`
+					: `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`;
+				svg += `      <path d="${torsoD}" fill="none" stroke="${strokeColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"${unboundAttrs} />\n`;
 				svg += `      <circle cx="${cx}" cy="20" r="12" fill="${CascaisPalette.ChalkWhite}" stroke="${strokeColor}" stroke-width="2.2"${unboundAttrs} />\n`;
 				if (resolvedStereo === 'customer') {
 					svg += renderStereotypeIconSvg('customer', cx - 12, -7, CascaisPalette.NetGold, CascaisPalette.NetGold);
@@ -1420,7 +1424,7 @@ export class RaiBridge {
 					const aiColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
 					svg += renderStereotypeIconSvg('ai', cx - 12, 8, aiColor, aiColor);
 				} else if (resolvedStereo === 'lead') {
-					svg += renderStereotypeIconSvg('lead', cx, 54, CascaisPalette.NetGold, CascaisPalette.NetGold);
+					svg += renderStereotypeIconSvg(node.stereotype, cx - 12, 58, CascaisPalette.NetGold, CascaisPalette.NetGold);
 				}
 			}
 			svg += this.renderSvgText(rawDisplayName, cx, 80, 12, '500', textColor, isInstance, node.qualifier, width);

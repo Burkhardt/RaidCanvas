@@ -123,6 +123,31 @@ export function isInitiatingStereotype(rawStereotype?: string | readonly string[
 }
 
 /**
+ * Checks whether an arbitrary stereotype string or array includes a specific target StereotypeId.
+ */
+export function hasStereotype(rawStereotype: string | readonly string[] | undefined, target: StereotypeId): boolean {
+  if (!rawStereotype) return false;
+  const items = Array.isArray(rawStereotype) ? rawStereotype : [String(rawStereotype)];
+  for (const item of items) {
+    if (!item) continue;
+    const cleaned = String(item).replace(/[«»"]/g, '').toLowerCase().trim();
+    const tokens = cleaned.split(/[\s,]+/);
+    for (const token of tokens) {
+      if (target === 'lead' && ['lead', 'leader', 'helm', 'helmsman', 'rudder', 'captain'].includes(token)) return true;
+      if (target === 'headliner' && ['headliner', 'artist', 'star'].includes(token)) return true;
+      if (target === 'customer' && ['customer', 'client', 'buyer', 'patron'].includes(token)) return true;
+      if (target === 'stage' && token === 'stage') return true;
+      if (target === 'venue' && ['venue', 'place', 'pin'].includes(token)) return true;
+      if (target === 'bar' && ['bar', 'hospitality'].includes(token)) return true;
+      if (target === 'ai' && ['ai', 'agent', 'bot'].includes(token)) return true;
+      if (target === 'system' && ['system', 'server', 'service', 'daemon', 'backend'].includes(token)) return true;
+      if (target === 'initiates' && ['initiates', 'initiator'].includes(token)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Normalizes an arbitrary stereotype string (e.g. "«Stage»", "Stage", "venue", "Stage, Bar", "Bar, initiates")
  * or array of stereotypes (per Ontology v1.3: e.g. ["Bar", "initiates"], ["initiates", "Stage"])
  * to a canonical known StereotypeId, or undefined if unrecognized.
@@ -360,38 +385,37 @@ export function getStereotypePaths(id: StereotypeId): StereotypePaths {
     }
 
     case 'lead': {
-      // 8. Lead Role: Option A — The 60% Helm Console (Rainer's Concept ★)
-      // Upper 5 spokes and upper arch rising from console baseline (0, 0).
-      // When rotated 22.5°, spokes flank chin symmetrically, clearing the throat and removing the 12:00 spike.
+      // 8. Lead Role: Sketch Offset (Δ = 45.0°) Helmsman Rudder Wheel (media_1790622846477.png)
+      // Hub at (0, 0) (translated to cx - 12, 58 in actor frame, i.e. 48, 58 when cx=60).
+      // 4 Spokes: 165°, 120°, 75°, 30° (strictly equidistant Δ = 45°).
+      // Spokes start at chest horizon y = -4 (y = 54 in actor frame) up to peg tips:
+      // - 165°: (-14.9, -4.0) -> (-21.7, -5.8)
+      // - 120°: (-2.3, -4.0) -> (-11.2, -19.5)
+      // - 75°:  (1.1, -4.0) -> (5.8, -21.7)   [apex at y=-22.5, 4.5px air gap below chin]
+      // - 30°:  (6.9, -4.0) -> (19.5, -11.2) [forearm contact meets 30° peg at (20, -11)]
+      // Outer rim arc: R = 18 from (-17.4, -4.7) to (15.6, -9.0)
       const strokeD = [
-        // 5 Upper Spokes
-        'M 0 0 L 0 -18',
-        'M 0 0 L 18 0',
-        'M 0 0 L -18 0',
-        'M 0 0 L 12.7 -12.7',
-        'M 0 0 L -12.7 -12.7',
-        // Upper Arch Rim (radius 12.7)
-        'M -12.7 0 A 12.7 12.7 0 1 1 12.7 0',
+        'M -14.9 -4 L -21.7 -5.8',
+        'M -2.3 -4 L -11.2 -19.5',
+        'M 1.1 -4 L 5.8 -21.7',
+        'M 6.9 -4 L 19.5 -11.2',
+        'M -17.4 -4.7 A 18 18 0 0 1 15.6 -9.0',
       ].join(' ');
 
+      // 4 Handle Peg Knob Caps (R=1.5 dual-semicircles) at peg tips:
+      // (-22.5, -6.0), (-12.0, -20.5), (6.0, -22.5), (20.5, -11.8)
       const fillD = [
-        // Half Hub Boss resting at baseline
-        'M -4.5 0 A 4.5 4.5 0 0 1 4.5 0 Z',
-        // 5 Handle Pegs on Upper Spokes (dual-semicircles for engine safety)
-        'M -1.6 -18 A 1.6 1.6 0 1 1 1.6 -18 A 1.6 1.6 0 1 1 -1.6 -18 Z',
-        'M 16.4 0 A 1.6 1.6 0 1 1 19.6 0 A 1.6 1.6 0 1 1 16.4 0 Z',
-        'M -19.6 0 A 1.6 1.6 0 1 1 -16.4 0 A 1.6 1.6 0 1 1 -19.6 0 Z',
-        'M 11.1 -12.7 A 1.6 1.6 0 1 1 14.3 -12.7 A 1.6 1.6 0 1 1 11.1 -12.7 Z',
-        'M -14.3 -12.7 A 1.6 1.6 0 1 1 -11.1 -12.7 A 1.6 1.6 0 1 1 -14.3 -12.7 Z',
+        'M -24.0 -6.0 A 1.5 1.5 0 1 1 -21.0 -6.0 A 1.5 1.5 0 1 1 -24.0 -6.0 Z',
+        'M -13.5 -20.5 A 1.5 1.5 0 1 1 -10.5 -20.5 A 1.5 1.5 0 1 1 -13.5 -20.5 Z',
+        'M 4.5 -22.5 A 1.5 1.5 0 1 1 7.5 -22.5 A 1.5 1.5 0 1 1 4.5 -22.5 Z',
+        'M 19.0 -11.8 A 1.5 1.5 0 1 1 22.0 -11.8 A 1.5 1.5 0 1 1 19.0 -11.8 Z',
       ].join(' ');
 
-      // Center Axle Pin resting at (0, -1) with R=1.4
-      const pinD = 'M -1.4 -1 A 1.4 1.4 0 1 1 1.4 -1 A 1.4 1.4 0 1 1 -1.4 -1 Z';
+      // Option 1: Left Lapel Star (The Commander's Medal) for «Lead, Headliner»
+      // Centered at (-4, -14) relative to hub (maps to (44, 44) on actor chest)
+      const starsD = 'M -4.0 -17.5 L -2.7 -14.8 L 0.3 -14.5 L -2.0 -12.4 L -1.2 -9.5 L -4.0 -11.0 L -6.8 -9.5 L -6.0 -12.4 L -8.3 -14.5 L -5.3 -14.8 Z';
 
-      // Hand discs removed per Koyo/Rainer handover
-      const accentFillD = '';
-
-      return { strokeD, fillD, pinD, accentFillD, width: 36, height: 20 };
+      return { strokeD, fillD, starsD, width: 44, height: 24 };
     }
 
     case 'initiates':
@@ -443,12 +467,14 @@ export function renderStereotypeIconSvg(
     svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="1.2" />\n`;
     if (paths.accentFillD) svg += `        <path d="${paths.accentFillD}" fill="${CascaisPalette.ChalkWhite}" />\n`;
   } else if (resolved === 'lead') {
-    // Option A: The 60% Helm Console (Rainer's Concept ★) rotated 22.5 deg
-    svg += `        <g transform="rotate(22.5)">\n`;
-    svg += `          <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" />\n`;
+    // Sketch Offset (Δ = 45.0°) Helmsman Rudder Wheel
+    svg += `        <g stroke="${CascaisPalette.NetGold}" stroke-linecap="round">\n`;
+    svg += `          <path d="${paths.strokeD}" fill="none" stroke-width="2.0" stroke-linejoin="round" />\n`;
     if (paths.fillD) svg += `          <path d="${paths.fillD}" fill="${CascaisPalette.NetGold}" />\n`;
-    if (paths.pinD) svg += `          <path d="${paths.pinD}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="0.8" />\n`;
     svg += `        </g>\n`;
+    if (hasStereotype(rawStereotype, 'headliner') && paths.starsD) {
+      svg += `        <path d="${paths.starsD}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGold}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />\n`;
+    }
   } else if (resolved === 'headliner') {
     svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />\n`;
   } else if (resolved === 'ai') {

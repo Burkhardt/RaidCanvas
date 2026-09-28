@@ -1,22 +1,18 @@
-<svg width="40" height="28" viewBox="0 0 40 28" xmlns="http://www.w3.org/2000/svg">
-  <title>AOAIM Lead Stereotype Icon — Option A: The 60% Helm Console (Rainer's Concept ★)</title>
-  <desc>Top 60% wheel rising from console baseline rotated 22.5 deg.</desc>
-  <g transform="translate(20, 24) rotate(22.5)">
-    <!-- 5 Upper Spokes -->
-    <g stroke="#C5A059" stroke-width="2.0" stroke-linecap="round">
-      <line x1="0" y1="0" x2="0" y2="-18" />
-      <line x1="0" y1="0" x2="18" y2="0" />
-      <line x1="0" y1="0" x2="-18" y2="0" />
-      <line x1="0" y1="0" x2="12.7" y2="-12.7" />
-      <line x1="0" y1="0" x2="-12.7" y2="-12.7" />
-    </g>
-    <!-- Upper Rim Arch -->
-    <path d="M -12.7 0 A 12.7 12.7 0 1 1 12.7 0" fill="none" stroke="#C5A059" stroke-width="2.2" stroke-linecap="round" />
-    <!-- 5 Handle Pegs on Upper Spokes (dual-semicircles) -->
-    <path d="M -1.6 -18 A 1.6 1.6 0 1 1 1.6 -18 A 1.6 1.6 0 1 1 -1.6 -18 Z M 16.4 0 A 1.6 1.6 0 1 1 19.6 0 A 1.6 1.6 0 1 1 16.4 0 Z M -19.6 0 A 1.6 1.6 0 1 1 -16.4 0 A 1.6 1.6 0 1 1 -19.6 0 Z M 11.1 -12.7 A 1.6 1.6 0 1 1 14.3 -12.7 A 1.6 1.6 0 1 1 11.1 -12.7 Z M -14.3 -12.7 A 1.6 1.6 0 1 1 -11.1 -12.7 A 1.6 1.6 0 1 1 -14.3 -12.7 Z" fill="#C5A059" />
-    <!-- Half Hub Boss at baseline -->
-    <path d="M -4.5 0 A 4.5 4.5 0 0 1 4.5 0 Z" fill="#C5A059" />
-    <!-- Center Axle Pin -->
-    <path d="M -1.4 -1 A 1.4 1.4 0 1 1 1.4 -1 A 1.4 1.4 0 1 1 -1.4 -1 Z" fill="#FAF8F5" stroke="#2D3139" stroke-width="0.8" />
+<svg width="48" height="30" viewBox="0 0 48 30" xmlns="http://www.w3.org/2000/svg">
+  <title>AOAIM Lead Helmsman Wheel Glyph — Sketch Offset (Δ = 45.0°)</title>
+  <desc>Equidistant 45° 4-spoke rudder wheel (165°, 120°, 75°, 30°) clipped at baseline horizon in Net Gold (#C5A059).</desc>
+  <g transform="translate(24, 28)" stroke="#C5A059" stroke-linecap="round">
+    <!-- Spokes from y = -4 (baseline horizon) -->
+    <line x1="-14.9" y1="-4" x2="-21.7" y2="-5.8" stroke-width="2.0" />
+    <line x1="-2.3" y1="-4" x2="-11.2" y2="-19.5" stroke-width="2.0" />
+    <line x1="1.1" y1="-4" x2="5.8" y2="-21.7" stroke-width="2.0" />
+    <line x1="6.9" y1="-4" x2="19.5" y2="-11.2" stroke-width="2.0" />
+    <!-- Outer Rim Arc R=18 -->
+    <path d="M -17.4 -4.7 A 18 18 0 0 1 15.6 -9.0" fill="none" stroke-width="2.2" />
+    <!-- 4 Knob Bulbs -->
+    <circle cx="-22.5" cy="-6.0" r="1.5" fill="#C5A059" stroke="none" />
+    <circle cx="-12.0" cy="-20.5" r="1.5" fill="#C5A059" stroke="none" />
+    <circle cx="6.0" cy="-22.5" r="1.5" fill="#C5A059" stroke="none" />
+    <circle cx="20.5" cy="-11.8" r="1.5" fill="#C5A059" stroke="none" />
   </g>
 </svg>

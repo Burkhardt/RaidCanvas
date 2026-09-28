@@ -25,6 +25,7 @@ import {
   resolveStereotype,
   isInitiatingStereotype,
   getStereotypePaths,
+  hasStereotype,
 } from './StereotypeIcons.js';
 
 /**
@@ -1765,13 +1766,14 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
       };
     }
     if (resolved === 'lead') {
-      // Option A: The 60% Helm Console (Rainer's Concept ★)
-      // Rotated 22.5° to clear the throat and remove vertical 12:00 spike;
-      // upper 5 spokes and arch rise from chest baseline (y=54).
+      // Sketch Offset (Δ = 45.0°) Helmsman Rudder Wheel (media_1790622846477.png)
+      // Hub at (cx - 12, 58). Wheel clipped at torso horizon y=54.
+      // Right arm clasp meets 30° peg at (cx + 8, 47).
+      const hasHeadliner = hasStereotype(data.stereotype, 'headliner');
       return {
         iconFill: {
           d: paths.fillD,
-          transform: `translate(${cx}, 54) rotate(22.5)`,
+          transform: `translate(${cx - 12}, 58)`,
           fill: CascaisPalette.NetGold,
           stroke: 'none',
           display: 'block',
@@ -1779,7 +1781,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
         iconStroke: {
           d: paths.strokeD,
-          transform: `translate(${cx}, 54) rotate(22.5)`,
+          transform: `translate(${cx - 12}, 58)`,
           stroke: CascaisPalette.NetGold,
           strokeWidth: 2.0,
           strokeLinecap: 'round',
@@ -1789,17 +1791,19 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
           class: 'aim-stereotype-icon-stroke',
         },
         iconPin: {
-          d: paths.pinD ?? '',
-          transform: `translate(${cx}, 54) rotate(22.5)`,
-          fill: CascaisPalette.ChalkWhite,
-          stroke: CascaisPalette.WarmGraphite,
-          strokeWidth: 0.8,
-          display: paths.pinD ? 'block' : 'none',
-          class: 'aim-stereotype-icon-pin',
-        },
-        iconAccent: {
           d: '',
           display: 'none',
+        },
+        iconAccent: {
+          d: (hasHeadliner && paths.starsD) ? paths.starsD : '',
+          transform: `translate(${cx - 12}, 58)`,
+          fill: CascaisPalette.ChalkWhite,
+          stroke: CascaisPalette.NetGold,
+          strokeWidth: 1.3,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          display: hasHeadliner ? 'block' : 'none',
+          class: 'aim-stereotype-icon-accent aim-lead-lapel-star',
         },
       };
     }
@@ -2061,7 +2065,12 @@ export function configureAimGraph(graph: Graph): void {
   graph.on('node:change:size', ({ node, current }) => {
     if (node.shape === 'aim-per' && current?.width) {
       const cx = Math.round(current.width / 2);
-      node.setAttrByPath('torso/d', `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`);
+      const nodeData = node.getData<RaidNodeData>();
+      const isLead = resolveStereotype(nodeData?.stereotype) === 'lead';
+      const torsoD = isLead
+        ? `M ${cx - 21} 54 v -6 a 10 10 0 0 1 10 -10 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 L ${cx + 8} 47`
+        : `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`;
+      node.setAttrByPath('torso/d', torsoD);
       node.setAttrByPath('head/cx', cx);
     }
     const nodeData = node.getData<RaidNodeData>();
@@ -2374,9 +2383,9 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
       const cx = Math.round(boxWidth / 2);
       const qualifierLines = qualifierText ? qualifierText.split('\n').length : 0;
       const labelRefY = qualifierLines > 0 ? 66 + qualifierLines * 18 : 74;
-      // When Lead: torso closes chest console baseline connecting shoulders (from cx+21 to cx-21)
+      // When Lead: right arm reaches from elbow (cx+21, 54) to 30° peg at (cx+8, 47)
       const torsoD = isLead
-        ? `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6 H ${cx - 21}`
+        ? `M ${cx - 21} 54 v -6 a 10 10 0 0 1 10 -10 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 L ${cx + 8} 47`
         : `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`;
       return {
         ...baseMetadata,
