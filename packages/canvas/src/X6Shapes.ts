@@ -1751,6 +1751,40 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
       };
     }
+    if (resolved === 'lead') {
+      // Helmsman: Actor holding the Ship's Wheel (Rudder) at the helm
+      // Bounding box 36x36 placed at (cx - 18, 36) -> center is (cx, 54), aligning with lower torso
+      return {
+        iconFill: {
+          d: paths.fillD,
+          transform: `translate(${cx - 18}, 36)`,
+          fill: CascaisPalette.NetGold,
+          stroke: 'none',
+          display: 'block',
+          class: 'aim-stereotype-icon-fill',
+        },
+        iconStroke: {
+          d: paths.strokeD,
+          transform: `translate(${cx - 18}, 36)`,
+          stroke: CascaisPalette.NetGold,
+          strokeWidth: 1.8,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          fill: 'none',
+          display: 'block',
+          class: 'aim-stereotype-icon-stroke',
+        },
+        iconAccent: {
+          d: paths.accentFillD ?? '',
+          transform: `translate(${cx - 18}, 36)`,
+          fill: CascaisPalette.ChalkWhite,
+          stroke: CascaisPalette.WarmGraphite,
+          strokeWidth: 1.2,
+          display: paths.accentFillD ? 'block' : 'none',
+          class: 'aim-stereotype-icon-accent',
+        },
+      };
+    }
     if (resolved === 'headliner') {
       // 5-Point hollow Star on the chest (media_1789693770549.png)
       // Hollow so that the torso line and Duality emerald door fill are visible
@@ -1924,6 +1958,10 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
     cardAccentColor = CascaisPalette.NetGold;
   } else if (resolved === 'customer') {
     cardStrokeColor = CascaisPalette.WarmGraphite;
+    cardFillColor = CascaisPalette.NetGold;
+    cardAccentColor = CascaisPalette.ChalkWhite;
+  } else if (resolved === 'lead') {
+    cardStrokeColor = CascaisPalette.NetGold;
     cardFillColor = CascaisPalette.NetGold;
     cardAccentColor = CascaisPalette.ChalkWhite;
   } else if (resolved === 'headliner') {

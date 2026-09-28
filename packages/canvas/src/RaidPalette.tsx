@@ -41,6 +41,27 @@ export const CANONICAL_PALETTE_ITEMS: RaidPaletteItem[] = [
 		),
 	},
 	{
+		id: 'per-lead',
+		name: 'Lead Role',
+		kind: 'per',
+		badge: 'LEAD',
+		badgeColor: '#C5A059',
+		description: 'Lead role / Helmsman steering the interaction',
+		customData: {
+			stereotype: 'Lead',
+		},
+		iconSvg: (
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C5A059" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+				<circle cx="12" cy="12" r="7" />
+				<circle cx="12" cy="12" r="2.5" fill="#C5A059" />
+				<line x1="12" y1="2" x2="12" y2="22" />
+				<line x1="2" y1="12" x2="22" y2="12" />
+				<line x1="4.9" y1="4.9" x2="19.1" y2="19.1" />
+				<line x1="19.1" y1="4.9" x2="4.9" y2="19.1" />
+			</svg>
+		),
+	},
+	{
 		id: 'uc',
 		name: 'UseCase',
 		kind: 'uc',

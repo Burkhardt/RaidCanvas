@@ -1640,6 +1640,11 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(resolveStereotype('Bar'), 'bar');
     assert.equal(resolveStereotype('Customer'), 'customer');
     assert.equal(resolveStereotype('«Customer»'), 'customer');
+    assert.equal(resolveStereotype('Lead'), 'lead');
+    assert.equal(resolveStereotype('«Lead»'), 'lead');
+    assert.equal(resolveStereotype('helmsman'), 'lead');
+    assert.equal(resolveStereotype('rudder'), 'lead');
+    assert.equal(resolveStereotype('captain'), 'lead');
     assert.equal(resolveStereotype('Headliner'), 'headliner');
     assert.equal(resolveStereotype('AI'), 'ai');
     assert.equal(resolveStereotype('initiates'), 'initiates');
@@ -1657,17 +1662,25 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(resolveStereotype(['Venue', 'Stage']), 'venue');
     assert.equal(resolveStereotype(['Stage', 'Venue']), 'stage');
     assert.equal(resolveStereotype(['Customer', 'initiates']), 'customer');
+    assert.equal(resolveStereotype(['Lead', 'initiates']), 'lead');
     assert.equal(resolveStereotype(['Bar']), 'bar');
     assert.equal(resolveStereotype([]), undefined);
   });
 
   test('Test 2: getStereotypePaths generates valid geometry for the seed stereotypes', () => {
-    for (const id of ['stage', 'venue', 'bar', 'customer', 'headliner', 'ai', 'system']) {
+    for (const id of ['stage', 'venue', 'bar', 'customer', 'headliner', 'ai', 'system', 'lead']) {
       const paths = getStereotypePaths(id);
       assert.ok(paths.width > 0, `${id} must have positive width`);
       assert.ok(paths.height > 0, `${id} must have positive height`);
       assert.ok(paths.strokeD.length > 0 || paths.fillD.length > 0, `${id} must have SVG path data`);
     }
+
+    // Lead specific checks (Helmsman ship's wheel / rudder, 8 spokes, outer rim, inner rim, hub) — 36x36
+    const lead = getStereotypePaths('lead');
+    assert.equal(lead.width, 36);
+    assert.equal(lead.height, 36);
+    assert.ok(lead.strokeD.includes('M 0 18 H 36'), 'Lead must have 8 spokes');
+    assert.ok(lead.fillD.includes('M 22 18 A 4 4'), 'Lead must have hub fill');
 
     // Stage specific checks (Festival truss, canopy roof, stars, columns, spotlights, steps) — scaled to 48x44
     const stage = getStereotypePaths('stage');
@@ -1994,6 +2007,28 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(dualityAttrs.chevron.display, 'block');
     assert.equal(dualityAttrs.chevron.refDx, 32);
     assert.equal(dualityAttrs.chevron.refY, 30);
+  });
+
+  test('Test 4f: createAimNode for Person with stereotype="Lead" renders Helmsman ship\'s wheel at torso with hands', () => {
+    const nodeMeta = createAimNode({
+      id: 'Lead_Actor',
+      kind: 'per',
+      displayName: 'Captain',
+      qualifier: 'Interaction Lead',
+      stereotype: 'Lead',
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    });
+
+    const attrs = nodeMeta.attrs;
+    assert.ok(attrs, 'Node metadata must have attrs');
+    assert.equal(attrs.iconStroke?.display, 'block', 'Lead wheel stroke must be displayed');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Lead wheel stroke is NetGold');
+    assert.equal(attrs.iconFill?.display, 'block', 'Lead wheel hub and pegs must be displayed');
+    assert.equal(attrs.iconFill?.fill, CascaisPalette.NetGold, 'Hub fill is NetGold');
+    assert.equal(attrs.iconAccent?.display, 'block', 'Hands gripping wheel must be displayed');
+    assert.equal(attrs.iconAccent?.fill, CascaisPalette.ChalkWhite, 'Hands are ChalkWhite');
+    // Wheel is 36x36. Placed at translate(60-18, 36) = translate(42, 36) -> center is (60, 54)
+    assert.equal(attrs.iconStroke?.transform, 'translate(42, 36)', 'Ship wheel is centered on lower torso at (42, 36)');
   });
 
   test('Test 5: RaiBridge.renderNodeInnerSvg produces valid vector SVG with aim-stereotype-icon', () => {

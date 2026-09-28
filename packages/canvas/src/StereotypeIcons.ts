@@ -17,7 +17,7 @@
 
 import { CascaisPalette } from './X6Shapes.js';
 
-export type StereotypeId = 'stage' | 'venue' | 'bar' | 'customer' | 'headliner' | 'ai' | 'initiates' | 'system';
+export type StereotypeId = 'stage' | 'venue' | 'bar' | 'customer' | 'headliner' | 'ai' | 'initiates' | 'system' | 'lead';
 
 export interface StereotypeDefinition {
   id: StereotypeId;
@@ -29,6 +29,14 @@ export interface StereotypeDefinition {
 }
 
 export const KNOWN_STEREOTYPES: Record<StereotypeId, StereotypeDefinition> = {
+  lead: {
+    id: 'lead',
+    name: 'Lead',
+    targetPit: 'Person',
+    description: 'Lead role / Helmsman at the wheel (rudder).',
+    width: 36,
+    height: 36,
+  },
   stage: {
     id: 'stage',
     name: 'Stage',
@@ -134,6 +142,7 @@ export function resolveStereotype(rawStereotype?: string | readonly string[]): S
     const tokens = cleaned.split(/[\s,]+/);
 
     for (const token of tokens) {
+      if (token === 'lead' || token === 'leader' || token === 'helm' || token === 'helmsman' || token === 'rudder' || token === 'captain') return 'lead';
       if (token === 'stage') return 'stage';
       if (token === 'venue' || token === 'place' || token === 'pin') return 'venue';
       if (token === 'bar' || token === 'hospitality') return 'bar';
@@ -349,6 +358,46 @@ export function getStereotypePaths(id: StereotypeId): StereotypePaths {
       return { strokeD, fillD, accentFillD, width: 44, height: 44 };
     }
 
+    case 'lead': {
+      // 8. Lead Role / Helmsman Ship's Wheel / Rudder
+      // Bounding box: 36 x 36
+      const strokeD = [
+        // 8 Spokes extending to turned handles
+        'M 0 18 H 36',
+        'M 18 0 V 36',
+        'M 5.3 5.3 L 30.7 30.7',
+        'M 30.7 5.3 L 5.3 30.7',
+        // Outer rim
+        'M 29.5 18 A 11.5 11.5 0 1 1 6.5 18 A 11.5 11.5 0 1 1 29.5 18 Z',
+        // Inner rim
+        'M 26 18 A 8 8 0 1 1 10 18 A 8 8 0 1 1 26 18 Z',
+      ].join(' ');
+
+      const fillD = [
+        // Hub body
+        'M 22 18 A 4 4 0 1 1 14 18 A 4 4 0 1 1 22 18 Z',
+        // Turned handle pegs at 8 tips
+        'M 18 0 A 1.5 1.5 0 1 1 17.9 0 Z',
+        'M 18 36 A 1.5 1.5 0 1 1 17.9 36 Z',
+        'M 0 18 A 1.5 1.5 0 1 1 0 17.9 Z',
+        'M 36 18 A 1.5 1.5 0 1 1 35.9 18 Z',
+        'M 5.3 5.3 A 1.5 1.5 0 1 1 5.2 5.3 Z',
+        'M 30.7 5.3 A 1.5 1.5 0 1 1 30.6 5.3 Z',
+        'M 5.3 30.7 A 1.5 1.5 0 1 1 5.2 30.7 Z',
+        'M 30.7 30.7 A 1.5 1.5 0 1 1 30.6 30.7 Z',
+      ].join(' ');
+
+      const accentFillD = [
+        // Center axle pin
+        'M 19.5 18 A 1.5 1.5 0 1 1 16.5 18 A 1.5 1.5 0 1 1 19.5 18 Z',
+        // Hands gripping the rim at 10:00 and 2:00
+        'M 10.5 12.5 A 2.5 2.5 0 1 1 5.5 12.5 A 2.5 2.5 0 1 1 10.5 12.5 Z',
+        'M 30.5 12.5 A 2.5 2.5 0 1 1 25.5 12.5 A 2.5 2.5 0 1 1 30.5 12.5 Z',
+      ].join(' ');
+
+      return { strokeD, fillD, accentFillD, width: 36, height: 36 };
+    }
+
     case 'initiates':
     default: {
       const strokeD = 'M 6 10 L 12 4 L 18 10 M 12 5 V 16';
@@ -396,6 +445,11 @@ export function renderStereotypeIconSvg(
   } else if (resolved === 'customer') {
     svg += `        <path d="${paths.fillD}" fill="${CascaisPalette.NetGold}" />\n`;
     svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="1.2" />\n`;
+    if (paths.accentFillD) svg += `        <path d="${paths.accentFillD}" fill="${CascaisPalette.ChalkWhite}" />\n`;
+  } else if (resolved === 'lead') {
+    // Helmsman Ship's Wheel / Rudder
+    svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />\n`;
+    if (paths.fillD) svg += `        <path d="${paths.fillD}" fill="${CascaisPalette.NetGold}" />\n`;
     if (paths.accentFillD) svg += `        <path d="${paths.accentFillD}" fill="${CascaisPalette.ChalkWhite}" />\n`;
   } else if (resolved === 'headliner') {
     svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />\n`;

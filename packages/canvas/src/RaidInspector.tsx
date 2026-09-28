@@ -868,11 +868,12 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							value={Array.isArray(node.stereotype) ? node.stereotype.join(', ') : (node.stereotype ?? '')}
 							onChange={(e) => onUpdateNode?.(selection.id, { stereotype: e.target.value })}
 							style={inputStyle}
-							placeholder="e.g. Customer, Headliner, AI, Stage, Bar"
+							placeholder="e.g. Lead, Customer, Headliner, AI, Stage, Bar"
 						/>
 						{/* Preset Quick Badges */}
 						<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
 							{[
+								{ id: 'Lead', label: '☸️ Lead' },
 								{ id: 'Customer', label: '👑 Customer' },
 								{ id: 'Headliner', label: '⭐ Headliner' },
 								{ id: 'AI', label: '🤖 AI' },
