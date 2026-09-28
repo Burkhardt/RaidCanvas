@@ -1675,12 +1675,17 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       assert.ok(paths.strokeD.length > 0 || paths.fillD.length > 0, `${id} must have SVG path data`);
     }
 
-    // Lead specific checks (Helmsman ship's wheel / rudder, 8 spokes, outer rim, inner rim, hub) — 36x36
+    // Lead specific checks (Helmsman ship's wheel / rudder, 8 spokes, outer rim, hub) — 36x36
     const lead = getStereotypePaths('lead');
     assert.equal(lead.width, 36);
     assert.equal(lead.height, 36);
     assert.ok(lead.strokeD.includes('M 0 18 H 36'), 'Lead must have 8 spokes');
-    assert.ok(lead.fillD.includes('M 22 18 A 4 4'), 'Lead must have hub fill');
+    assert.ok(lead.strokeD.includes('A 11.5 11.5'), 'Lead must have outer rim');
+    assert.ok(!lead.strokeD.includes('A 8 8'), 'Lead inner rim must be dropped per Koyo curatorial calibration');
+    assert.ok(lead.fillD.includes('A 4 4'), 'Lead must have hub fill with dual-semicircles');
+    assert.ok(lead.fillD.includes('M 16.5 0 A 1.5 1.5'), 'Lead handle pegs must use dual-semicircle pairs for engine safety');
+    assert.ok(lead.pinD && lead.pinD.includes('M 16.5 18 A 1.5 1.5'), 'Lead must have separate solid axle pin pinD');
+    assert.ok(lead.accentFillD && lead.accentFillD.includes('M 5.5 12.5 A 2.5 2.5'), 'Lead must have dual-semicircle hands in accentFillD');
 
     // Stage specific checks (Festival truss, canopy roof, stars, columns, spotlights, steps) — scaled to 48x44
     const stage = getStereotypePaths('stage');
@@ -2023,12 +2028,17 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.ok(attrs, 'Node metadata must have attrs');
     assert.equal(attrs.iconStroke?.display, 'block', 'Lead wheel stroke must be displayed');
     assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Lead wheel stroke is NetGold');
+    assert.equal(attrs.iconStroke?.strokeWidth, 2.0, 'Lead wheel strokeWidth is 2.0 per Koyo calibration');
     assert.equal(attrs.iconFill?.display, 'block', 'Lead wheel hub and pegs must be displayed');
     assert.equal(attrs.iconFill?.fill, CascaisPalette.NetGold, 'Hub fill is NetGold');
+    assert.equal(attrs.iconPin?.display, 'block', 'Lead axle pin must be displayed');
+    assert.equal(attrs.iconPin?.fill, CascaisPalette.ChalkWhite, 'Lead axle pin is solid ChalkWhite punch');
     assert.equal(attrs.iconAccent?.display, 'block', 'Hands gripping wheel must be displayed');
     assert.equal(attrs.iconAccent?.fill, CascaisPalette.ChalkWhite, 'Hands are ChalkWhite');
-    // Wheel is 36x36. Placed at translate(60-18, 36) = translate(42, 36) -> center is (60, 54)
-    assert.equal(attrs.iconStroke?.transform, 'translate(42, 36)', 'Ship wheel is centered on lower torso at (42, 36)');
+    assert.equal(attrs.iconAccent?.stroke, CascaisPalette.WarmGraphite, 'Hands outline is WarmGraphite');
+    assert.equal(attrs.iconAccent?.strokeWidth, 1.4, 'Hands outline strokeWidth is 1.4 per Koyo calibration');
+    // Wheel is 36x36. Placed at translate(60-18, 34) = translate(42, 34) -> center is (60, 52), giving 18px+ optical buffer
+    assert.equal(attrs.iconStroke?.transform, 'translate(42, 34)', 'Ship wheel is centered on lower torso at (42, 34) with 18px+ margin');
   });
 
   test('Test 5: RaiBridge.renderNodeInnerSvg produces valid vector SVG with aim-stereotype-icon', () => {

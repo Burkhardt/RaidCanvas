@@ -791,6 +791,10 @@ export function registerAimShapes(): void {
       },
       {
         tagName: 'path',
+        selector: 'iconPin',
+      },
+      {
+        tagName: 'path',
         selector: 'iconAccent',
       },
       {
@@ -858,6 +862,13 @@ export function registerAimShapes(): void {
         strokeLinejoin: 'round',
         display: 'none',
         class: 'aim-stereotype-icon-stroke',
+      },
+      iconPin: {
+        d: '',
+        fill: CascaisPalette.ChalkWhite,
+        stroke: 'none',
+        display: 'none',
+        class: 'aim-stereotype-icon-pin',
       },
       iconAccent: {
         d: '',
@@ -1710,6 +1721,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
     return {
       iconFill: { d: '', display: 'none' },
       iconStroke: { d: '', display: 'none' },
+      iconPin: { d: '', display: 'none' },
       iconAccent: { d: '', display: 'none' },
     };
   }
@@ -1741,6 +1753,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
           display: 'block',
           class: 'aim-stereotype-icon-stroke',
         },
+        iconPin: { d: '', display: 'none' },
         iconAccent: {
           d: paths.accentFillD ?? '',
           transform: `translate(${cx - 12}, -7)`,
@@ -1753,11 +1766,11 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
     }
     if (resolved === 'lead') {
       // Helmsman: Actor holding the Ship's Wheel (Rudder) at the helm
-      // Bounding box 36x36 placed at (cx - 18, 36) -> center is (cx, 54), aligning with lower torso
+      // Bounding box 36x36 placed at (cx - 18, 34) -> center is (cx, 52), guaranteeing 18px+ optical buffer to label
       return {
         iconFill: {
           d: paths.fillD,
-          transform: `translate(${cx - 18}, 36)`,
+          transform: `translate(${cx - 18}, 34)`,
           fill: CascaisPalette.NetGold,
           stroke: 'none',
           display: 'block',
@@ -1765,21 +1778,29 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
         iconStroke: {
           d: paths.strokeD,
-          transform: `translate(${cx - 18}, 36)`,
+          transform: `translate(${cx - 18}, 34)`,
           stroke: CascaisPalette.NetGold,
-          strokeWidth: 1.8,
+          strokeWidth: 2.0,
           strokeLinecap: 'round',
           strokeLinejoin: 'round',
           fill: 'none',
           display: 'block',
           class: 'aim-stereotype-icon-stroke',
         },
+        iconPin: {
+          d: paths.pinD ?? '',
+          transform: `translate(${cx - 18}, 34)`,
+          fill: CascaisPalette.ChalkWhite,
+          stroke: 'none',
+          display: paths.pinD ? 'block' : 'none',
+          class: 'aim-stereotype-icon-pin',
+        },
         iconAccent: {
           d: paths.accentFillD ?? '',
-          transform: `translate(${cx - 18}, 36)`,
+          transform: `translate(${cx - 18}, 34)`,
           fill: CascaisPalette.ChalkWhite,
           stroke: CascaisPalette.WarmGraphite,
-          strokeWidth: 1.2,
+          strokeWidth: 1.4,
           display: paths.accentFillD ? 'block' : 'none',
           class: 'aim-stereotype-icon-accent',
         },
@@ -1804,6 +1825,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
           display: 'block',
           class: 'aim-stereotype-icon-stroke',
         },
+        iconPin: { d: '', display: 'none' },
         iconAccent: {
           d: '',
           display: 'none',
@@ -1831,6 +1853,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
           display: 'block',
           class: 'aim-stereotype-icon-stroke',
         },
+        iconPin: { d: '', display: 'none' },
         iconAccent: {
           d: paths.accentFillD ?? '',
           transform: `translate(${cx - 12}, 8)`,
@@ -1862,6 +1885,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
           display: 'block',
           class: 'aim-stereotype-icon-stroke',
         },
+        iconPin: { d: '', display: 'none' },
         iconAccent: {
           d: paths.accentFillD ?? '',
           transform: `translate(${cx - 22}, 8)`,
@@ -1875,6 +1899,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
     return {
       iconFill: { d: '', display: 'none' },
       iconStroke: { d: '', display: 'none' },
+      iconPin: { d: '', display: 'none' },
       iconAccent: { d: '', display: 'none' },
     };
   }
