@@ -1,6 +1,6 @@
 <svg width="120" height="110" viewBox="0 0 120 110" xmlns="http://www.w3.org/2000/svg">
-  <title>AOAIM Lead + Headliner Actor Node — Option 1: The Commander's Medal (Left Lapel Star)</title>
-  <desc>Actor carrying both Lead and Headliner stereotypes («Lead, Headliner»). Right arm actively steers the offset rudder wheel at (48, 58), while the 5-point Headliner star rests on the left lapel at (44, 44) as an honorable commander's medal.</desc>
+  <title>AOAIM Lead + Headliner Actor Node — The Star Helmsman (Calibrated Center-Chest Star)</title>
+  <desc>Actor carrying both Lead and Headliner stereotypes («Lead, Headliner»). Right arm actively steers the offset rudder wheel at (48, 58), while the 5-point Headliner star rests at (60.5, 45) nestled between the vertical spoke and the steering arm per Dr. Rainer Burkhardt's sketch (media_1790624147859.png).</desc>
   <defs>
     <!-- Strict horizontal clip at y=54 (open torso bottom) -->
     <clipPath id="lead-cut-star">
@@ -42,11 +42,11 @@
   <path d="M 39 54 v -6 a 10 10 0 0 1 10 -10 H 71 a 10 10 0 0 1 10 10 v 6 L 68 47" 
         fill="none" stroke="#2D3139" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
 
-  <!-- 4. Option 1: 5-Point Headliner Star on Left Lapel at (44, 44) (The Commander's Medal) -->
-  <path d="M 44 40.5 L 45.3 43.2 L 48.3 43.5 L 46 45.6 L 46.8 48.5 L 44 47 L 41.2 48.5 L 42 45.6 L 39.7 43.5 L 42.7 43.2 Z" 
+  <!-- 4. 5-Point Headliner Star shifted to (60.5, 45) per Dr. Rainer Burkhardt's sketch -->
+  <path d="M 60.5 41.5 L 61.8 44.2 L 64.8 44.5 L 62.5 46.6 L 63.3 49.5 L 60.5 48 L 57.7 49.5 L 58.5 46.6 L 56.2 44.5 L 59.2 44.2 Z" 
         fill="#FAF8F5" stroke="#C5A059" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
 
   <!-- 5. Typography -->
-  <text x="60" y="78" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" font-style="italic" fill="#2D3139" text-anchor="middle">«Lead, Headliner»</text>
-  <text x="60" y="94" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#0D3472" text-anchor="middle">Star Helmsman</text>
+  <text x="60" y="78" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="700" font-style="italic" fill="#2D3139" text-anchor="middle">«Lead, Headliner»</text>
+  <text x="60" y="94" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#0D3472" text-anchor="middle">Star Helmsman</text>
 </svg>

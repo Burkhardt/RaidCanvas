@@ -1680,7 +1680,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(lead.width, 44);
     assert.ok(lead.strokeD.includes('A 18 18'), 'Lead must have outer rim arc');
     assert.ok(lead.fillD.includes('A 1.5 1.5'), 'Lead handle pegs must use knob caps');
-    assert.ok(lead.starsD && lead.starsD.includes('M -4.0 -17.5'), 'Lead must provide Option 1 Left Lapel Star');
+    assert.ok(lead.starsD && lead.starsD.includes('M 12.5 -16.5'), 'Lead must provide calibrated Star Helmsman star');
 
     // Stage specific checks (Festival truss, canopy roof, stars, columns, spotlights, steps) — scaled to 48x44
     const stage = getStereotypePaths('stage');

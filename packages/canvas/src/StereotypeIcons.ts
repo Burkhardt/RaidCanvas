@@ -411,9 +411,9 @@ export function getStereotypePaths(id: StereotypeId): StereotypePaths {
         'M 19.0 -11.8 A 1.5 1.5 0 1 1 22.0 -11.8 A 1.5 1.5 0 1 1 19.0 -11.8 Z',
       ].join(' ');
 
-      // Option 1: Left Lapel Star (The Commander's Medal) for «Lead, Headliner»
-      // Centered at (-4, -14) relative to hub (maps to (44, 44) on actor chest)
-      const starsD = 'M -4.0 -17.5 L -2.7 -14.8 L 0.3 -14.5 L -2.0 -12.4 L -1.2 -9.5 L -4.0 -11.0 L -6.8 -9.5 L -6.0 -12.4 L -8.3 -14.5 L -5.3 -14.8 Z';
+      // Headliner Star shifted to center chest (60.5, 45) per Dr. Rainer's sketch (media_1790624147859.png)
+      // Centered at (+12.5, -13.0) relative to hub, nestling between 75° spoke and steering arm
+      const starsD = 'M 12.5 -16.5 L 13.8 -13.8 L 16.8 -13.5 L 14.5 -11.4 L 15.3 -8.5 L 12.5 -10.0 L 9.7 -8.5 L 10.5 -11.4 L 8.2 -13.5 L 11.2 -13.8 Z';
 
       return { strokeD, fillD, starsD, width: 44, height: 24 };
     }
