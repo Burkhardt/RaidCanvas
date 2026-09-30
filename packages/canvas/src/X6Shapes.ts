@@ -1834,11 +1834,12 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
       };
     }
     if (resolved === 'observer') {
-      // 9. Observer / Supervisory Eye on Chest (ADR-0008, aim-observer-icon.svg)
+      // 9. Observer / True Cyclops in Head (ADR-0008, Option 1B: 85% scale centered at cx, cy=20)
+      const cyclopsTransform = `translate(${cx}, 20) scale(0.85) translate(-12, -9.5)`;
       return {
         iconFill: {
           d: paths.fillD,
-          transform: `translate(${cx - 12}, 36)`,
+          transform: cyclopsTransform,
           fill: strokeColor,
           stroke: 'none',
           display: 'block',
@@ -1846,9 +1847,9 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
         iconStroke: {
           d: paths.strokeD,
-          transform: `translate(${cx - 12}, 36)`,
+          transform: cyclopsTransform,
           stroke: strokeColor,
-          strokeWidth: 1.4,
+          strokeWidth: 1.6,
           strokeLinecap: 'round',
           strokeLinejoin: 'round',
           fill: 'none',
@@ -1858,7 +1859,7 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         iconPin: { d: '', display: 'none' },
         iconAccent: {
           d: paths.accentFillD ?? '',
-          transform: `translate(${cx - 12}, 36)`,
+          transform: cyclopsTransform,
           fill: CascaisPalette.NetGold,
           stroke: 'none',
           display: paths.accentFillD ? 'block' : 'none',

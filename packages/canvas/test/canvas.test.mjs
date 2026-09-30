@@ -2113,7 +2113,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.ok(attrs, 'Observer node must have attrs');
     assert.equal(attrs.iconStroke?.display, 'block', 'Observer eye contour stroke must be displayed');
     assert.equal(attrs.iconStroke?.stroke, CascaisPalette.WarmGraphite, 'Standard observer stroke is WarmGraphite');
-    assert.equal(attrs.iconStroke?.transform, 'translate(48, 36)', 'Eye contour is centered on chest at (48, 36)');
+    assert.equal(attrs.iconStroke?.transform, 'translate(60, 20) scale(0.85) translate(-12, -9.5)', 'Eye contour is centered in head as True Cyclops Option 1B');
     assert.equal(attrs.iconFill?.display, 'block', 'Observer pupil fill must be displayed');
     assert.equal(attrs.iconFill?.fill, CascaisPalette.WarmGraphite, 'Pupil fill is WarmGraphite');
     assert.equal(attrs.iconAccent?.display, 'block', 'Observer gold glint must be displayed');

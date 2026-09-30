@@ -1431,7 +1431,8 @@ export class RaiBridge {
 					svg += renderStereotypeIconSvg(node.stereotype, cx - 12, 58, CascaisPalette.NetGold, CascaisPalette.NetGold);
 				} else if (resolvedStereo === 'observer') {
 					const obsColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
-					svg += renderStereotypeIconSvg(node.stereotype, cx - 12, 36, obsColor, CascaisPalette.NetGold);
+					const cyclopsTransform = `translate(${cx}, 20) scale(0.85) translate(-12, -9.5)`;
+					svg += renderStereotypeIconSvg(node.stereotype, cx - 12, 11, obsColor, CascaisPalette.NetGold, cyclopsTransform);
 				}
 			}
 			svg += this.renderSvgText(rawDisplayName, cx, 80, 12, '500', textColor, isInstance, node.qualifier, width);

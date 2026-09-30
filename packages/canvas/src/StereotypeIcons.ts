@@ -474,6 +474,7 @@ export function renderStereotypeIconSvg(
   y: number,
   primaryColor: string = CascaisPalette.WarmGraphite,
   _accentColor: string = CascaisPalette.NetGold,
+  transformOverride?: string,
 ): string {
   const resolved = resolveStereotype(rawStereotype);
   if (!resolved) return '';
@@ -481,7 +482,8 @@ export function renderStereotypeIconSvg(
   const isInitiating = isInitiatingStereotype(rawStereotype);
   const strokeColor = isInitiating ? CascaisPalette.NetGold : primaryColor;
   const paths = getStereotypePaths(resolved);
-  let svg = `      <g class="aim-stereotype-icon aim-icon-${resolved}" transform="translate(${x}, ${y})">\n`;
+  const transform = transformOverride ?? `translate(${x}, ${y})`;
+  let svg = `      <g class="aim-stereotype-icon aim-icon-${resolved}" transform="${transform}">\n`;
 
   if (resolved === 'stage') {
     // Stage canopy, rig, and stars
@@ -515,8 +517,8 @@ export function renderStereotypeIconSvg(
   } else if (resolved === 'headliner') {
     svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />\n`;
   } else if (resolved === 'observer') {
-    // Observer supervisory eye glyph (ADR-0008)
-    svg += `        <path d="${paths.strokeD}" fill="none" stroke="${strokeColor}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />\n`;
+    // Observer supervisory eye glyph — True Cyclops (ADR-0008)
+    svg += `        <path d="${paths.strokeD}" fill="none" stroke="${strokeColor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />\n`;
     if (paths.fillD) svg += `        <path d="${paths.fillD}" fill="${strokeColor}" />\n`;
     if (paths.accentFillD) svg += `        <path d="${paths.accentFillD}" fill="${CascaisPalette.NetGold}" />\n`;
   } else if (resolved === 'ai') {
