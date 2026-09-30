@@ -75,6 +75,51 @@ export const PRESETS: DiagramPreset[] = [
       </g>
     </svg>`,
   },
+  {
+    id: 'supervisory-observer-adr0008',
+    name: 'The Supervisory Board · Observer & Stewardship (ADR-0008)',
+    archetype: 'OneUseCaseDiagram',
+    description: 'Supervisory Board Member carrying the canonical Observer eye glyph with gold specular glint, monitoring the Activity via telemetric association line (6,3,2,3 dash), alongside the Lead Captain and the Star Helmsman.',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 440" id="SupervisoryObserver_Studio" aim-archetype="OneUseCaseDiagram">
+      <!-- 1. The Helmsman (Captain): Active steering with right arm contact -->
+      <g aim-node="true" aim-id="LeadCaptain_Actor" aim-kind="per" aim-display-name="Captain" aim-qualifier="Interaction Lead" aim-href="/actors?select=lead-captain" aim-stereotype="Lead, initiates" transform="translate(60, 60)">
+        <rect width="120" height="110" />
+      </g>
+      <!-- 2. The Star Helmsman: Option 1 Left Lapel Star (Commander's Medal) -->
+      <g aim-node="true" aim-id="StarHelmsman_Actor" aim-kind="per" aim-display-name="Star Helmsman" aim-qualifier="Captain &amp; Headliner" aim-href="/actors?select=star-helmsman" aim-stereotype="Lead, Headliner" transform="translate(60, 240)">
+        <rect width="120" height="110" />
+      </g>
+      <!-- 3. Target Method UseCase: Production Review -->
+      <g aim-node="true" aim-id="ProductionReview_UC" aim-kind="uc" aim-display-name="Production Review" aim-qualifier="Domain Governance" aim-href="/usecases?select=production-review" transform="translate(340, 150)">
+        <ellipse cx="90" cy="45" rx="90" ry="45" />
+      </g>
+      <!-- 4. Supervisory Observer: Board Member with Eye Glyph & Glint -->
+      <g aim-node="true" aim-id="BoardObserver_Actor" aim-kind="per" aim-display-name="Board Observer" aim-qualifier="Supervisory Board" aim-href="/actors?select=board-observer" aim-stereotype="Observer" transform="translate(640, 60)">
+        <rect width="120" height="110" />
+      </g>
+      <!-- 5. Lead Auditor: Initiating Observer (Net Gold) -->
+      <g aim-node="true" aim-id="LeadAuditor_Actor" aim-kind="per" aim-display-name="Lead Auditor" aim-qualifier="Oversight Committee" aim-href="/actors?select=lead-auditor" aim-stereotype="Observer, initiates" transform="translate(640, 240)">
+        <rect width="120" height="110" />
+      </g>
+      <!-- Edges -->
+      <g aim-edge="true" aim-id="edge-captain-steers" aim-source="LeadCaptain_Actor" aim-target="ProductionReview_UC" aim-edge-kind="association" aim-directed="true">
+        <path d="M 180 115 L 340 195" />
+        <text>«initiates»</text>
+      </g>
+      <g aim-edge="true" aim-id="edge-star-steers" aim-source="StarHelmsman_Actor" aim-target="ProductionReview_UC" aim-edge-kind="association" aim-directed="true">
+        <path d="M 180 295 L 340 195" />
+        <text>«initiates»</text>
+      </g>
+      <g aim-edge="true" aim-id="edge-board-observes" aim-source="BoardObserver_Actor" aim-target="ProductionReview_UC" aim-edge-kind="association" aim-label="«observes»" aim-stereotype="«observes»">
+        <path d="M 640 115 L 520 195" stroke-dasharray="6,3,2,3" />
+        <text>«observes»</text>
+      </g>
+      <g aim-edge="true" aim-id="edge-auditor-observes" aim-source="LeadAuditor_Actor" aim-target="ProductionReview_UC" aim-edge-kind="association" aim-label="«observes»" aim-stereotype="«observes»">
+        <path d="M 640 295 L 520 195" stroke-dasharray="6,3,2,3" />
+        <text>«observes»</text>
+      </g>
+    </svg>`,
+  },
   ...ROLE_PRESETS,
   {
     id: 'heraldic-duality',
