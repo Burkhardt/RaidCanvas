@@ -1672,10 +1672,17 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(resolveStereotype('Headliner, Lead'), 'lead');
     assert.equal(resolveStereotype('Lead, Headliner'), 'lead');
     assert.equal(resolveStereotype('«Headliner», «Lead»'), 'lead');
+
+    // Observer / Supervisory Board Member (ADR-0008)
+    assert.equal(resolveStereotype('Observer'), 'observer');
+    assert.equal(resolveStereotype('«Observer»'), 'observer');
+    assert.equal(resolveStereotype('observes'), 'observer');
+    assert.equal(resolveStereotype('supervisory'), 'observer');
+    assert.equal(resolveStereotype(['Observer', 'initiates']), 'observer');
   });
 
   test('Test 2: getStereotypePaths generates valid geometry for the seed stereotypes', () => {
-    for (const id of ['stage', 'venue', 'bar', 'customer', 'headliner', 'ai', 'system', 'lead']) {
+    for (const id of ['stage', 'venue', 'bar', 'customer', 'headliner', 'ai', 'system', 'lead', 'observer']) {
       const paths = getStereotypePaths(id);
       assert.ok(paths.width > 0, `${id} must have positive width`);
       assert.ok(paths.height > 0, `${id} must have positive height`);
@@ -2090,6 +2097,77 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(stereo.iconFill.display, 'block');
     assert.equal(stereo.iconAccent.display, 'block');
     assert.equal(stereo.iconAccent.stroke, CascaisPalette.NetGold);
+  });
+
+  test('Test 4h: createAimNode for Person with stereotype="Observer" renders supervisory eye and supervisory edge (ADR-0008)', () => {
+    const observerNode = createAimNode({
+      id: 'Observer_1',
+      kind: 'per',
+      displayName: 'Board Observer',
+      qualifier: 'Supervisory Board',
+      stereotype: 'Observer',
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    });
+
+    const attrs = observerNode.attrs;
+    assert.ok(attrs, 'Observer node must have attrs');
+    assert.equal(attrs.iconStroke?.display, 'block', 'Observer eye contour stroke must be displayed');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.WarmGraphite, 'Standard observer stroke is WarmGraphite');
+    assert.equal(attrs.iconStroke?.transform, 'translate(48, 36)', 'Eye contour is centered on chest at (48, 36)');
+    assert.equal(attrs.iconFill?.display, 'block', 'Observer pupil fill must be displayed');
+    assert.equal(attrs.iconFill?.fill, CascaisPalette.WarmGraphite, 'Pupil fill is WarmGraphite');
+    assert.equal(attrs.iconAccent?.display, 'block', 'Observer gold glint must be displayed');
+    assert.equal(attrs.iconAccent?.fill, CascaisPalette.NetGold, 'Observer glint is NetGold');
+
+    // Initiating observer
+    const initiatingObserver = createAimNode({
+      id: 'Observer_Init',
+      kind: 'per',
+      displayName: 'Lead Auditor',
+      stereotype: ['Observer', 'initiates'],
+      bounds: { x: 50, y: 80, width: 120, height: 110 },
+    });
+    assert.equal(initiatingObserver.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Initiating observer stroke is NetGold');
+    assert.equal(initiatingObserver.attrs.iconFill?.fill, CascaisPalette.NetGold, 'Initiating observer pupil is NetGold');
+
+    // Supervisory monitoring edge with stereotype «observes»
+    const observesEdge = createAimEdge({
+      id: 'E_Obs',
+      kind: 'association',
+      sourceId: 'Observer_1',
+      targetId: 'Act_1',
+      stereotype: '«observes»',
+      bendPoints: [],
+    });
+    assert.equal(observesEdge.attrs?.line?.strokeDasharray, '6,3,2,3', 'Supervisory edge has 6,3,2,3 telemetry dash');
+
+    // Supervisory monitoring edge with label "observes"
+    const labelEdge = createAimEdge({
+      id: 'E_Obs2',
+      kind: 'association',
+      sourceId: 'Observer_1',
+      targetId: 'Act_1',
+      label: 'observes',
+      bendPoints: [],
+    });
+    assert.equal(labelEdge.attrs?.line?.strokeDasharray, '6,3,2,3', 'Edge with label "observes" has 6,3,2,3 telemetry dash');
+
+    // SVG serialization test
+    const bridge = new RaiBridge();
+    const model = {
+      diagramId: 'ObserverDiagram',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        { id: 'Observer_1', kind: 'per', displayName: 'Board Observer', stereotype: 'Observer', bounds: { x: 50, y: 50, width: 120, height: 110 } },
+        { id: 'Act_1', kind: 'act', displayName: 'Audit Review', bounds: { x: 250, y: 50, width: 140, height: 60 } },
+      ],
+      edges: [
+        { id: 'E_Obs', kind: 'association', sourceId: 'Observer_1', targetId: 'Act_1', stereotype: '«observes»', bendPoints: [] },
+      ],
+    };
+    const freshSvg = bridge.generateFreshSvg(model, {});
+    assert.ok(freshSvg.includes('stroke-dasharray="6,3,2,3"'), 'Fresh SVG serializes 6,3,2,3 dash for supervisory edge');
+    assert.ok(freshSvg.includes('class="aim-stereotype-icon aim-icon-observer"'), 'Fresh SVG serializes observer icon group');
   });
 
   test('Test 5: RaiBridge.renderNodeInnerSvg produces valid vector SVG with aim-stereotype-icon', () => {

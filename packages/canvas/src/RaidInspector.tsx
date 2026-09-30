@@ -877,6 +877,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 								{ id: 'Lead', label: '☸️ Lead', stereoId: 'lead' as StereotypeId },
 								{ id: 'Customer', label: '👑 Customer', stereoId: 'customer' as StereotypeId },
 								{ id: 'Headliner', label: '⭐ Headliner', stereoId: 'headliner' as StereotypeId },
+								{ id: 'Observer', label: '👁️ Observer', stereoId: 'observer' as StereotypeId },
 								{ id: 'AI', label: '🤖 AI', stereoId: 'ai' as StereotypeId },
 								{ id: 'System', label: '🖥️ System', stereoId: 'system' as StereotypeId },
 								{ id: 'Stage', label: '🎪 Stage', stereoId: 'stage' as StereotypeId },

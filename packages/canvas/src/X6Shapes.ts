@@ -1833,6 +1833,39 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
       };
     }
+    if (resolved === 'observer') {
+      // 9. Observer / Supervisory Eye on Chest (ADR-0008, aim-observer-icon.svg)
+      return {
+        iconFill: {
+          d: paths.fillD,
+          transform: `translate(${cx - 12}, 36)`,
+          fill: strokeColor,
+          stroke: 'none',
+          display: 'block',
+          class: 'aim-stereotype-icon-fill aim-observer-pupil',
+        },
+        iconStroke: {
+          d: paths.strokeD,
+          transform: `translate(${cx - 12}, 36)`,
+          stroke: strokeColor,
+          strokeWidth: 1.4,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          fill: 'none',
+          display: 'block',
+          class: 'aim-stereotype-icon-stroke aim-observer-contour',
+        },
+        iconPin: { d: '', display: 'none' },
+        iconAccent: {
+          d: paths.accentFillD ?? '',
+          transform: `translate(${cx - 12}, 36)`,
+          fill: CascaisPalette.NetGold,
+          stroke: 'none',
+          display: paths.accentFillD ? 'block' : 'none',
+          class: 'aim-stereotype-icon-accent aim-observer-glint',
+        },
+      };
+    }
     if (resolved === 'ai') {
       return {
         iconFill: {
@@ -2687,7 +2720,22 @@ export function createAimEdge(data: RaidEdgeData, showExpressions = true): EdgeM
   registerAimShapes();
 
   const isDirected = data.directed !== false;
-  const edgeAttrs = { ...getEdgeStyling(data.kind), ...(isDirected ? {} : { targetMarker: null }) };
+  const isObserves = Boolean(
+    (data.label && String(data.label).toLowerCase().includes('observes')) ||
+    (data.stereotype && String(data.stereotype).toLowerCase().includes('observes'))
+  );
+  const baseEdgeStyling = getEdgeStyling(data.kind);
+  const edgeAttrs: Record<string, unknown> = {
+    ...baseEdgeStyling,
+    ...(isDirected ? {} : { targetMarker: null }),
+    ...(isObserves
+      ? {
+          strokeDasharray: '6,3,2,3', // Supervisory monitoring telemetry line (ADR-0008)
+          strokeWidth: 1.5,
+          stroke: CascaisPalette.WarmGraphite,
+        }
+      : {}),
+  };
   const routing = data.routing ?? 'manhattan';
 
   let routerConfig: EdgeMetadata['router'] = {

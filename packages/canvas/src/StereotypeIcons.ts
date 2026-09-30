@@ -17,7 +17,7 @@
 
 import { CascaisPalette } from './X6Shapes.js';
 
-export type StereotypeId = 'stage' | 'venue' | 'bar' | 'customer' | 'headliner' | 'ai' | 'initiates' | 'system' | 'lead';
+export type StereotypeId = 'stage' | 'venue' | 'bar' | 'customer' | 'headliner' | 'ai' | 'initiates' | 'system' | 'lead' | 'observer';
 
 export interface StereotypeDefinition {
   id: StereotypeId;
@@ -29,6 +29,14 @@ export interface StereotypeDefinition {
 }
 
 export const KNOWN_STEREOTYPES: Record<StereotypeId, StereotypeDefinition> = {
+  observer: {
+    id: 'observer',
+    name: 'Observer',
+    targetPit: 'Person',
+    description: 'Supervisory observer or board member of an Activity (ADR-0008).',
+    width: 24,
+    height: 18,
+  },
   lead: {
     id: 'lead',
     name: 'Lead',
@@ -141,6 +149,7 @@ export function hasStereotype(rawStereotype: string | readonly string[] | undefi
       if (target === 'bar' && ['bar', 'hospitality'].includes(token)) return true;
       if (target === 'ai' && ['ai', 'agent', 'bot'].includes(token)) return true;
       if (target === 'system' && ['system', 'server', 'service', 'daemon', 'backend'].includes(token)) return true;
+      if (target === 'observer' && ['observer', 'observes', 'supervisory', 'supervisor', 'board', 'oversight'].includes(token)) return true;
       if (target === 'initiates' && ['initiates', 'initiator'].includes(token)) return true;
     }
   }
@@ -152,7 +161,7 @@ export function hasStereotype(rawStereotype: string | readonly string[] | undefi
  * or array of stereotypes (per Ontology v1.3: e.g. ["Bar", "initiates"], ["initiates", "Stage"])
  * to a canonical known StereotypeId, or undefined if unrecognized.
  *
- * Prioritizes domain stereotypes (Stage, Venue, Bar, Customer, Headliner, AI, System).
+ * Prioritizes domain stereotypes (Stage, Venue, Bar, Customer, Headliner, AI, System, Observer).
  * If no domain stereotype is present, falls back to 'initiates' if present.
  */
 export function resolveStereotype(rawStereotype?: string | readonly string[]): StereotypeId | undefined {
@@ -180,6 +189,7 @@ export function resolveStereotype(rawStereotype?: string | readonly string[]): S
       if (token === 'bar' || token === 'hospitality') return 'bar';
       if (token === 'customer' || token === 'client' || token === 'buyer' || token === 'patron') return 'customer';
       if (token === 'headliner' || token === 'artist' || token === 'star') return 'headliner';
+      if (token === 'observer' || token === 'observes' || token === 'supervisory' || token === 'supervisor' || token === 'board' || token === 'oversight') return 'observer';
       if (token === 'ai' || token === 'agent' || token === 'bot') return 'ai';
       if (token === 'system' || token === 'server' || token === 'service' || token === 'daemon' || token === 'backend') return 'system';
       if (token === 'initiates' || token === 'initiator') foundInitiates = true;
@@ -425,6 +435,26 @@ export function getStereotypePaths(id: StereotypeId): StereotypePaths {
       return { strokeD, fillD, starsD, width: 44, height: 24 };
     }
 
+    case 'observer': {
+      // 9. Observer / Supervisory Board Member (ADR-0008, aim-observer-icon.svg)
+      // Bounding box: 24 x 18
+      const strokeD = [
+        'M 2 9.5 C 6 4 18 4 22 9.5 C 18 15 6 15 2 9.5 Z',
+        'M 7.8 9.5 A 4.2 4.2 0 1 0 16.2 9.5 A 4.2 4.2 0 1 0 7.8 9.5 Z',
+        'M 4.5 4 Q 12 1.8 19.5 4',
+      ].join(' ');
+
+      const fillD = [
+        'M 9.8 9.5 A 2.2 2.2 0 1 0 14.2 9.5 A 2.2 2.2 0 1 0 9.8 9.5 Z',
+      ].join(' ');
+
+      const accentFillD = [
+        'M 13.5 8.2 A 0.7 0.7 0 1 1 13.4 8.2 Z',
+      ].join(' ');
+
+      return { strokeD, fillD, accentFillD, width: 24, height: 18 };
+    }
+
     case 'initiates':
     default: {
       const strokeD = 'M 6 10 L 12 4 L 18 10 M 12 5 V 16';
@@ -484,6 +514,11 @@ export function renderStereotypeIconSvg(
     }
   } else if (resolved === 'headliner') {
     svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />\n`;
+  } else if (resolved === 'observer') {
+    // Observer supervisory eye glyph (ADR-0008)
+    svg += `        <path d="${paths.strokeD}" fill="none" stroke="${strokeColor}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />\n`;
+    if (paths.fillD) svg += `        <path d="${paths.fillD}" fill="${strokeColor}" />\n`;
+    if (paths.accentFillD) svg += `        <path d="${paths.accentFillD}" fill="${CascaisPalette.NetGold}" />\n`;
   } else if (resolved === 'ai') {
     svg += `        <path d="${paths.strokeD}" fill="none" stroke="${strokeColor}" stroke-width="1.4" stroke-linecap="round" />\n`;
     svg += `        <path d="${paths.fillD}" fill="${strokeColor}" opacity="0.12" />\n`;

@@ -70,9 +70,9 @@ describe('AOAIM Semantic Connection Rules (Anti-Entropy Wiring)', () => {
     assert.equal(invalidDesc, 'Invalid ontological connection');
   });
 
-  test('provides «initiates», «owns» (0..1), and «participates» (0..*) for per->uc', () => {
+  test('provides «initiates», «owns» (0..1), «observes» (0..*), and «participates» (0..*) for per->uc (ADR-0008)', () => {
     const options = getAvailableStereotypes('per', 'uc');
-    assert.equal(options.length, 3);
+    assert.equal(options.length, 4);
 
     const initiates = options.find((o) => o.stereotype === '«initiates»');
     assert.ok(initiates);
@@ -81,6 +81,11 @@ describe('AOAIM Semantic Connection Rules (Anti-Entropy Wiring)', () => {
     assert.ok(owns);
     assert.equal(owns.defaultCardinality, '0..1');
     assert.ok(owns.description.includes('0..1'));
+
+    const observes = options.find((o) => o.stereotype === '«observes»');
+    assert.ok(observes);
+    assert.equal(observes.defaultCardinality, '0..*');
+    assert.ok(observes.description.includes('Observer'));
 
     const participates = options.find((o) => o.stereotype === '«participates»');
     assert.ok(participates);

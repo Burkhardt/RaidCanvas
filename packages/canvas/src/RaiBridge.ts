@@ -1212,8 +1212,12 @@ export class RaiBridge {
 			pathEl.setAttribute('stroke', CascaisPalette.WarmGraphite);
 			pathEl.setAttribute('stroke-width', '1.5');
 
+			const isObserves = (edge.stereotype && edge.stereotype.toLowerCase().includes('observes')) ||
+				(edge.label && edge.label.toLowerCase().includes('observes'));
 			if (edge.kind === 'dependency') {
 				pathEl.setAttribute('stroke-dasharray', '5,5');
+			} else if (isObserves) {
+				pathEl.setAttribute('stroke-dasharray', '6,3,2,3');
 			} else {
 				pathEl.removeAttribute('stroke-dasharray');
 			}
@@ -1425,6 +1429,9 @@ export class RaiBridge {
 					svg += renderStereotypeIconSvg('ai', cx - 12, 8, aiColor, aiColor);
 				} else if (resolvedStereo === 'lead') {
 					svg += renderStereotypeIconSvg(node.stereotype, cx - 12, 58, CascaisPalette.NetGold, CascaisPalette.NetGold);
+				} else if (resolvedStereo === 'observer') {
+					const obsColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+					svg += renderStereotypeIconSvg(node.stereotype, cx - 12, 36, obsColor, CascaisPalette.NetGold);
 				}
 			}
 			svg += this.renderSvgText(rawDisplayName, cx, 80, 12, '500', textColor, isInstance, node.qualifier, width);
@@ -1598,7 +1605,9 @@ export class RaiBridge {
 		svg += `  <g class="aim-edges-layer">\n`;
 		for (const edge of model.edges) {
 			const bendsFormatted = this.formatBendPoints(edge.bendPoints);
-			const strokeDash = edge.kind === 'dependency' ? ' stroke-dasharray="5,5"' : '';
+			const isObserves = (edge.stereotype && edge.stereotype.toLowerCase().includes('observes')) ||
+				(edge.label && edge.label.toLowerCase().includes('observes'));
+			const strokeDash = edge.kind === 'dependency' ? ' stroke-dasharray="5,5"' : isObserves ? ' stroke-dasharray="6,3,2,3"' : '';
 			const markerEnd = edge.directed === false ? '' : edge.kind === 'generalization' ? ' marker-end="url(#arrow-hollow)"' : ' marker-end="url(#arrow-classic)"';
 
 			// Path data construction

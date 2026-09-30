@@ -83,7 +83,24 @@ export const SEMANTIC_RULES_MATRIX: Readonly<Record<string, SemanticRule>> = {
   'plc->cls': { valid: true, defaultEdgeKind: 'dependency', defaultStereotype: '«instantiates»', description: 'Place instantiates Class', availableStereotypes: [] },
   'act->uc': { valid: true, defaultEdgeKind: 'dependency', defaultStereotype: '«instantiates»', description: 'Activity instantiates UseCase', availableStereotypes: [] },
   'uc->rol': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '', description: 'UseCase declares participant role', availableStereotypes: [] },
-  'rol->uc': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '«participates»', description: 'Role participates in UseCase', availableStereotypes: [] },
+  'rol->uc': {
+    valid: true,
+    defaultEdgeKind: 'association',
+    defaultStereotype: '«participates»',
+    description: 'Role participates in or observes UseCase',
+    availableStereotypes: [
+      {
+        stereotype: '«participates»',
+        defaultCardinality: '0..*',
+        description: 'Participating role supporting UseCase execution',
+      },
+      {
+        stereotype: '«observes»',
+        defaultCardinality: '0..*',
+        description: 'Supervisory monitoring edge from an Observer role to UseCase (ADR-0008)',
+      },
+    ],
+  },
   'uc->per': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '«participates»', description: 'UseCase has participant role', availableStereotypes: [] },
   'uc->cls': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '«participates»', description: 'UseCase has external system role', availableStereotypes: [] },
   'cls->uc': { valid: true, defaultEdgeKind: 'association', defaultStereotype: '«participates»', description: 'External system role participates in UseCase', availableStereotypes: [] },
@@ -91,7 +108,7 @@ export const SEMANTIC_RULES_MATRIX: Readonly<Record<string, SemanticRule>> = {
     valid: true,
     defaultEdgeKind: 'association',
     defaultStereotype: '«initiates»',
-    description: 'Actor initiates, owns, or participates in UseCase',
+    description: 'Actor initiates, owns, observes, or participates in UseCase',
     availableStereotypes: [
       {
         stereotype: '«initiates»',
@@ -104,6 +121,11 @@ export const SEMANTIC_RULES_MATRIX: Readonly<Record<string, SemanticRule>> = {
         description: 'Ownership relationship representing responsible party (cardinality 0..1)',
       },
       {
+        stereotype: '«observes»',
+        defaultCardinality: '0..*',
+        description: 'Supervisory monitoring edge from an Observer to an Activity / UseCase (ADR-0008)',
+      },
+      {
         stereotype: '«participates»',
         defaultCardinality: '0..*',
         description: 'Participating role supporting the UseCase execution (cardinality 0..*)',
@@ -114,11 +136,16 @@ export const SEMANTIC_RULES_MATRIX: Readonly<Record<string, SemanticRule>> = {
     valid: true,
     defaultEdgeKind: 'association',
     defaultStereotype: '«executes»',
-    description: 'Actor directly performs or executes Activity',
+    description: 'Actor directly performs, executes, or observes Activity',
     availableStereotypes: [
       {
         stereotype: '«executes»',
         description: 'Actor performs this process step',
+      },
+      {
+        stereotype: '«observes»',
+        defaultCardinality: '0..*',
+        description: 'Supervisory monitoring edge from an Observer to an Activity (ADR-0008)',
       },
       {
         stereotype: '«approves»',
