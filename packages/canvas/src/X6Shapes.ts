@@ -27,6 +27,11 @@ import {
   getStereotypePaths,
   hasStereotype,
 } from './StereotypeIcons.js';
+import {
+  resolveStereotypeGlyph,
+  getStereotypeGlyphUrl,
+  computeStereotypeGlyphPlacement,
+} from './StereotypeGlyphs.js';
 
 /**
  * Cascais Heraldry color palette constants.
@@ -232,6 +237,11 @@ export function registerAimShapes(): void {
         selector: 'iconAccent',
       },
       {
+        // CR053: OTW stereotype pictogram (badge on cards, silhouette on actors / frameless places)
+        tagName: 'image',
+        selector: 'glyph',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -358,6 +368,11 @@ export function registerAimShapes(): void {
       {
         tagName: 'path',
         selector: 'iconAccent',
+      },
+      {
+        // CR053: OTW stereotype pictogram (badge on cards, silhouette on actors / frameless places)
+        tagName: 'image',
+        selector: 'glyph',
       },
       {
         tagName: 'text',
@@ -514,6 +529,11 @@ export function registerAimShapes(): void {
         selector: 'iconAccent',
       },
       {
+        // CR053: OTW stereotype pictogram (badge on cards, silhouette on actors / frameless places)
+        tagName: 'image',
+        selector: 'glyph',
+      },
+      {
         tagName: 'text',
         selector: 'chevron',
       },
@@ -660,6 +680,11 @@ export function registerAimShapes(): void {
         selector: 'iconAccent',
       },
       {
+        // CR053: OTW stereotype pictogram (badge on cards, silhouette on actors / frameless places)
+        tagName: 'image',
+        selector: 'glyph',
+      },
+      {
         tagName: 'text',
         selector: 'qualifier',
       },
@@ -797,6 +822,11 @@ export function registerAimShapes(): void {
       {
         tagName: 'path',
         selector: 'iconAccent',
+      },
+      {
+        // CR053: OTW stereotype pictogram (badge on cards, silhouette on actors / frameless places)
+        tagName: 'image',
+        selector: 'glyph',
       },
       {
         tagName: 'text',
@@ -954,6 +984,11 @@ export function registerAimShapes(): void {
       {
         tagName: 'path',
         selector: 'iconAccent',
+      },
+      {
+        // CR053: OTW stereotype pictogram (badge on cards, silhouette on actors / frameless places)
+        tagName: 'image',
+        selector: 'glyph',
       },
       {
         tagName: 'text',
@@ -2253,22 +2288,87 @@ export function createAimBoundary(data: RaidBoundaryData): NodeMetadata {
   };
 }
 
+/**
+ * Formats a stereotype list as its UML guillemet line, e.g. `['Lead', 'Customer']` → `«Lead, Customer»`.
+ */
+export function formatStereotypeLabel(stereotype: RaidNodeData['stereotype']): string {
+  if (!stereotype) return '';
+  const items = (Array.isArray(stereotype) ? stereotype.map(String) : String(stereotype).split(','))
+    .map((s) => s.replace(/[«»"]/g, '').trim())
+    .filter(Boolean);
+  return items.length > 0 ? `«${items.join(', ')}»` : '';
+}
+
+/**
+ * CR053 — X6 attributes for the `glyph` image slot.
+ *
+ * Positions are anchored with `refX` / `refY` against the node box, so the pictogram stays centred
+ * (silhouette) or vertically centred (badge) while the node is resized, without recomputing attrs.
+ * With no glyph, or an unknown one, the slot is hidden and the node renders exactly as before.
+ */
+export function computeStereotypeGlyphAttrs(
+  data: RaidNodeData,
+  width: number = data.bounds.width,
+  height: number = data.bounds.height,
+  frameless = false,
+): { glyph: Record<string, unknown> } {
+  const entry = resolveStereotypeGlyph(data.stereotypeGlyph);
+  const href = entry ? getStereotypeGlyphUrl(entry.file) : undefined;
+  if (!entry || !href) {
+    return { glyph: { display: 'none', href: '', xlinkHref: '' } };
+  }
+  const p = computeStereotypeGlyphPlacement(data.kind, width, height, { frameless });
+  const anchor: Record<string, unknown> =
+    p.mode === 'silhouette' || (data.kind === 'plc' && !frameless)
+      ? { refX: 0.5, x: -p.width / 2, y: p.y }
+      : data.kind === 'cls'
+        ? { x: p.x, y: p.y }
+        : { x: p.x, refY: 0.5, y: -p.height / 2 };
+  return {
+    glyph: {
+      ...anchor,
+      width: p.width,
+      height: p.height,
+      href,
+      xlinkHref: href,
+      preserveAspectRatio: 'xMidYMid meet',
+      display: 'block',
+      pointerEvents: 'none',
+      opacity: data.unbound === true ? 0.7 : 1,
+      class: `aim-stereotype-glyph aim-stereotype-glyph-${p.mode}`,
+      'aim-stereotype-glyph': entry.file,
+    },
+  };
+}
+
 export function createAimNode(data: RaidNodeData): NodeMetadata {
   registerAimShapes();
   data = layoutDescription(data);
 
   const resolvedStereotype = resolveStereotype(data.stereotype);
-  const hasStereotypeIcon = Boolean(resolvedStereotype && resolvedStereotype !== 'initiates');
-  const stereoAttrs = computeStereotypeIconAttrs(data);
+  // CR053: a known pictogram takes the place of the built-in stereotype icon (badge on cards,
+  // silhouette on actors and frameless places). Unknown names fall back silently.
+  const glyphEntry = resolveStereotypeGlyph(data.stereotypeGlyph);
+  const hasGlyph = glyphEntry !== undefined;
+  const hasStereotypeIcon = hasGlyph || Boolean(resolvedStereotype && resolvedStereotype !== 'initiates');
+  const stereoAttrs: Record<string, any> = hasGlyph
+    ? {
+        iconFill: { d: '', display: 'none' },
+        iconStroke: { d: '', display: 'none' },
+        iconAccent: { d: '', display: 'none' },
+        iconPin: { d: '', display: 'none' },
+      }
+    : computeStereotypeIconAttrs(data);
 
   // Frameless Place glyphs (Venue, Stage, Bar) match the stature of the Actor glyph (~120x110)
-  const isFramelessPlc = data.kind === 'plc' && ['venue', 'stage', 'bar'].includes(resolvedStereotype ?? '');
+  const isFramelessPlc = data.kind === 'plc' && !hasGlyph && ['venue', 'stage', 'bar'].includes(resolvedStereotype ?? '');
   const effectiveWidth = isFramelessPlc
     ? (data.bounds.width > 140 ? 120 : data.bounds.width)
     : data.bounds.width;
   const effectiveHeight = isFramelessPlc
     ? (data.bounds.height < 110 ? 110 : data.bounds.height)
     : data.bounds.height;
+  const glyphAttrs = computeStereotypeGlyphAttrs(data, effectiveWidth, effectiveHeight, isFramelessPlc);
 
   const shapeName = `aim-${data.kind}`;
   const baseMetadata: NodeMetadata = {

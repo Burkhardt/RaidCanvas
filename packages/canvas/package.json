@@ -54,6 +54,7 @@
     "postcss": "^8.5.28",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "svgo": "^4.1.0",
     "typescript": "^7.0.2"
   },
   "publishConfig": {

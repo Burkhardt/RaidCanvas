@@ -104,6 +104,13 @@ export interface RaidNodeData {
 	/** Optional plural alias for multiple stereotypes per Ontology v1.3. */
 	readonly stereotypes?: readonly string[];
 
+	/**
+	 * CR053: the OTW pictogram drawn for this node (e.g. `'Computer.svg'`), serialized as
+	 * `aim-stereotype-glyph`. Independent of `stereotype` — `«ApplicationServer»` may wear
+	 * `Computer.svg`. Unknown names fall back to plain archetype rendering.
+	 */
+	readonly stereotypeGlyph?: string;
+
 	/** Subtitle, frame, or namespace tag. */
 	readonly namespace?: string;
 
@@ -297,6 +304,7 @@ export const AimSvgContract = {
 	ATTR_INSTANCE: 'aim-instance',
 	ATTR_HREF: 'aim-href',
 	ATTR_STEREOTYPE: 'aim-stereotype',
+	ATTR_STEREOTYPE_GLYPH: 'aim-stereotype-glyph',
 	ATTR_NAMESPACE: 'aim-namespace',
 	ATTR_UNBOUND: 'aim-unbound',
 
