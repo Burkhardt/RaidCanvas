@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index c7d48499d29aa323b91463dd12f7d256712618c4..ab7a6b55b69f6e98a8407b46c0141b0fe5694b51 100644
+--- a/package.json
++++ b/package.json
+@@ -7,7 +7,6 @@
+   "unpkg": "dist/x6.min.js",
+   "jsdelivr": "dist/x6.min.js",
+   "types": "lib/index.d.ts",
+-  "type": "module",
+   "files": [
+     "dist",
+     "es",

@@ -139,6 +139,11 @@ describe('Diagram-specific role semantics', () => {
     assert.equal(allowed({ kind: 'per', instance: true }, { kind: 'uc' }), false);
     assert.equal(allowed({ kind: 'per' }, { kind: 'per' }), false);
     assert.equal(allowed({ kind: 'per' }, { kind: 'cls' }), false);
-    for (const kind of ['obj', 'rf', 'act', 'plc']) assert.equal(isNodeAllowedInDiagram({ kind }, 'OneUseCaseDiagram'), false);
+    for (const kind of ['rf', 'act']) assert.equal(isNodeAllowedInDiagram({ kind }, 'OneUseCaseDiagram'), false);
+    // Handover: What- and Where-roles are slots of the UseCase; their instances belong to the RoleFiller view
+    for (const kind of ['obj', 'plc', 'rol']) assert.equal(isNodeAllowedInDiagram({ kind, slot: true }, 'OneUseCaseDiagram'), true);
+    for (const kind of ['obj', 'plc']) assert.equal(isNodeAllowedInDiagram({ kind, instance: true }, 'OneUseCaseDiagram'), false);
+    assert.equal(allowed({ kind: 'obj', slot: true }, { kind: 'uc' }), true);
+    assert.equal(allowed({ kind: 'uc' }, { kind: 'plc', slot: true }), true);
   });
 });

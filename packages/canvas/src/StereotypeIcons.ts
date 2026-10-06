@@ -480,7 +480,7 @@ export function renderStereotypeIconSvg(
   if (!resolved) return '';
 
   const isInitiating = isInitiatingStereotype(rawStereotype);
-  const strokeColor = isInitiating ? CascaisPalette.NetGold : primaryColor;
+  const strokeColor = isInitiating ? CascaisPalette.NetGoldStroke : primaryColor;
   const paths = getStereotypePaths(resolved);
   const transform = transformOverride ?? `translate(${x}, ${y})`;
   let svg = `      <g class="aim-stereotype-icon aim-icon-${resolved}" transform="${transform}">\n`;
@@ -503,19 +503,19 @@ export function renderStereotypeIconSvg(
     if (paths.accentFillD) svg += `        <path d="${paths.accentFillD}" fill="${strokeColor}" />\n`;
   } else if (resolved === 'customer') {
     svg += `        <path d="${paths.fillD}" fill="${CascaisPalette.NetGold}" />\n`;
-    svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="1.2" />\n`;
+    svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGoldStroke}" stroke-width="1.2" />\n`;
     if (paths.accentFillD) svg += `        <path d="${paths.accentFillD}" fill="${CascaisPalette.ChalkWhite}" />\n`;
   } else if (resolved === 'lead') {
     // Sketch Offset (Δ = 45.0°) Helmsman Rudder Wheel
-    svg += `        <g stroke="${CascaisPalette.NetGold}" stroke-linecap="round">\n`;
+    svg += `        <g stroke="${CascaisPalette.NetGoldStroke}" stroke-linecap="round">\n`;
     svg += `          <path d="${paths.strokeD}" fill="none" stroke-width="2.0" stroke-linejoin="round" />\n`;
     if (paths.fillD) svg += `          <path d="${paths.fillD}" fill="${CascaisPalette.NetGold}" />\n`;
     svg += `        </g>\n`;
     if (hasStereotype(rawStereotype, 'headliner') && paths.starsD) {
-      svg += `        <path d="${paths.starsD}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGold}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />\n`;
+      svg += `        <path d="${paths.starsD}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGoldStroke}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />\n`;
     }
   } else if (resolved === 'headliner') {
-    svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGold}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />\n`;
+    svg += `        <path d="${paths.strokeD}" fill="none" stroke="${CascaisPalette.NetGoldStroke}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />\n`;
   } else if (resolved === 'observer') {
     // Observer supervisory eye glyph — True Cyclops (ADR-0008)
     svg += `        <path d="${paths.strokeD}" fill="none" stroke="${strokeColor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />\n`;

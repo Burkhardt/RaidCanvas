@@ -6,7 +6,9 @@
 
 :root {
   /* Cascais Heraldry Design Tokens */
-  --aim-net-gold: #F59E0B;
+  /* One gold family (CR055, Koyo D6): fills in the chrome's heraldic gold, lines in its denser stroke sibling */
+  --aim-net-gold: #D4AF37;
+  --aim-net-gold-stroke: #AB8722;
   --aim-heraldic-green: #10B981;
   --aim-warm-graphite: #1F2937;
   --aim-graphite-muted: #4B5563;
@@ -16,6 +18,11 @@
   --aim-canvas-cream: #F8FAFC;
   --aim-accent-blue: #3B82F6;
   --aim-danger-crimson: #EF4444;
+
+  /* CR055: the duality bicolour, as on the flag of Portugal — Verde on the hoist (left, the Persona),
+     Vermelho on the fly (right, the Portal), Net Gold at the seam. Same hues as the Glass chrome. */
+  --aim-bandeira-verde: #1E5631;
+  --aim-bandeira-vermelho: #D22B2B;
 
   /* Typography */
   --aim-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -30,8 +37,8 @@
   --aim-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --aim-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --aim-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --aim-shadow-glow-gold: 0 0 0 3px rgba(245, 158, 11, 0.35);
-  --aim-shadow-glow-green: 0 0 0 3px rgba(16, 185, 129, 0.35);
+  --aim-shadow-glow-gold: 0 0 0 3px color-mix(in srgb, var(--aim-net-gold) 35%, transparent);
+  --aim-shadow-glow-green: 0 0 0 3px color-mix(in srgb, var(--aim-heraldic-green) 35%, transparent);
   --aim-shadow-glow-blue: 0 0 0 3px rgba(59, 130, 246, 0.35);
 }
 
@@ -49,13 +56,17 @@
   transition: transform 0.1s ease, filter 0.15s ease;
 }
 
-.aim-node:hover {
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08));
+/* Hover is progressive enhancement for mouse and trackpad, never load-bearing: the iPad has no hover, and
+   ungated :hover styles stick after a tap in WebKit. Every hover rule below sits behind this query. */
+@media (hover: hover) and (pointer: fine) {
+  .aim-node:hover {
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08));
+  }
 }
 
 .aim-node.aim-selected {
   outline: none;
-  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.4));
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--aim-accent-blue) 40%, transparent));
 }
 
 /* 1. UseCase Nodes ('uc') */
@@ -63,13 +74,15 @@
 .aim-node[aim-kind="uc"],
 .aim-uc {
   fill: var(--aim-chalk-white);
-  stroke: var(--aim-net-gold);
+  stroke: var(--aim-net-gold-stroke);
   stroke-width: 2px;
 }
 
-.aim-node[aim-uc]:hover,
-.aim-node[aim-kind="uc"]:hover {
-  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4));
+@media (hover: hover) and (pointer: fine) {
+  .aim-node[aim-uc]:hover,
+  .aim-node[aim-kind="uc"]:hover {
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--aim-net-gold) 40%, transparent));
+  }
 }
 
 /* 2. Activity Nodes ('act') */
@@ -90,9 +103,11 @@
   text-decoration: underline;
 }
 
-.aim-node[aim-act]:hover,
-.aim-node[aim-kind="act"]:hover {
-  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.4));
+@media (hover: hover) and (pointer: fine) {
+  .aim-node[aim-act]:hover,
+  .aim-node[aim-kind="act"]:hover {
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--aim-danger-crimson) 40%, transparent));
+  }
 }
 
 /* 3. Class Specification Nodes ('cls') */
@@ -173,26 +188,56 @@ rect.aim-frameless,
   stroke-dasharray: 4, 3;
 }
 
-/* The Duality of the Object: Portuguese Bicolor Seam & Portal Door */
+/* The Duality of the Object: the flag of Portugal (CR055) — Verde Persona, Net Gold seam, Vermelho Portal.
+   The wash strength is per material (Koyo D8) and comes from the shape's fill attribute, so these rules set none. */
+.aim-portal-persona {
+  transition: fill 0.2s ease, opacity 0.2s ease;
+}
+
+/* The left half answers like the right, in Verde, but only where tap 2 on it does something: RaidCanvas marks
+   its wrapper `.aim-inspectable` when the host passes `onNodeClick`. The persona is hidden until tap 1. */
+.aim-inspectable .aim-portal-persona {
+  cursor: pointer;
+}
+
+.aim-inspectable .aim-portal-persona:active {
+  fill: color-mix(in srgb, var(--aim-bandeira-verde) 18%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .aim-inspectable .aim-portal-persona:hover {
+    fill: color-mix(in srgb, var(--aim-bandeira-verde) 18%, transparent);
+  }
+}
+
 .aim-portal-door {
-  fill: rgba(16, 185, 129, 0.10);
   cursor: pointer;
   transition: fill 0.2s ease, opacity 0.2s ease;
 }
 
 .aim-portal-seam {
-  stroke: var(--aim-net-gold);
+  stroke: var(--aim-net-gold-stroke);
   stroke-width: 1.5px;
   pointer-events: none;
 }
 
-.aim-node:hover .aim-portal-door,
-.aim-portal-door:hover {
-  fill: rgba(16, 185, 129, 0.18);
+/* The right half drives the feedback (Koyo): `.aim-node` sits on the body shape, a sibling of the door and the
+   chevron rather than their parent, and the chevron takes no pointer events, so only the door can be hovered or
+   pressed. Pressing (:active) is the feedback on touch glass and applies to every input; hover only to a cursor. */
+.aim-portal-door:active,
+a:active > .aim-portal-door {
+  fill: color-mix(in srgb, var(--aim-bandeira-vermelho) 18%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .aim-portal-door:hover,
+  a:hover > .aim-portal-door {
+    fill: color-mix(in srgb, var(--aim-bandeira-vermelho) 18%, transparent);
+  }
 }
 
 .aim-portal-chevron {
-  fill: rgba(16, 185, 129, 0.60);
+  fill: color-mix(in srgb, var(--aim-bandeira-vermelho) 70%, transparent);
   font-family: Inter, system-ui, -apple-system, sans-serif;
   font-size: 14px;
   font-weight: bold;
@@ -201,8 +246,18 @@ rect.aim-frameless,
   transition: transform 0.2s ease, fill 0.2s ease;
 }
 
-.aim-node:hover .aim-portal-chevron {
-  fill: rgba(16, 185, 129, 0.90);
+.aim-portal-door:active ~ .aim-portal-chevron,
+a:active > .aim-portal-chevron {
+  fill: var(--aim-bandeira-vermelho);
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .aim-portal-door:hover ~ .aim-portal-chevron,
+  a:hover > .aim-portal-chevron {
+    fill: var(--aim-bandeira-vermelho);
+    opacity: 1;
+  }
 }
 
 /* Relationship Edges */
@@ -215,10 +270,12 @@ rect.aim-frameless,
   transition: stroke 0.15s ease, stroke-width 0.15s ease;
 }
 
-.aim-edge:hover {
-  stroke: var(--aim-accent-blue);
-  stroke-width: 2.5px;
-  cursor: pointer;
+@media (hover: hover) and (pointer: fine) {
+  .aim-edge:hover {
+    stroke: var(--aim-accent-blue);
+    stroke-width: 2.5px;
+    cursor: pointer;
+  }
 }
 
 .aim-edge[aim-edge-kind="dependency"] {
@@ -235,14 +292,15 @@ rect.aim-frameless,
   transition: opacity 0.15s ease, transform 0.1s ease, fill 0.1s ease;
 }
 
-.x6-node:hover .x6-port,
-.aim-node:hover .x6-port,
-.x6-node:hover .aim-port-body,
-.x6-node:hover circle[magnet="true"],
-.aim-node:hover circle[magnet="true"],
-circle[magnet="true"]:hover {
-  visibility: visible !important;
-  opacity: 1 !important;
+/* `.aim-node:hover …` selectors were dropped: `.aim-node` is the body shape, never an ancestor of a port. */
+@media (hover: hover) and (pointer: fine) {
+  .x6-node:hover .x6-port,
+  .x6-node:hover .aim-port-body,
+  .x6-node:hover circle[magnet="true"],
+  circle[magnet="true"]:hover {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 }
 
 .aim-port-body {
@@ -251,12 +309,14 @@ circle[magnet="true"]:hover {
   stroke-width: 1.5px;
 }
 
-.aim-port-body:hover,
-circle[magnet="true"]:hover {
-  fill: var(--aim-net-gold);
-  stroke: var(--aim-warm-graphite);
-  transform: scale(1.4);
-  cursor: crosshair;
+@media (hover: hover) and (pointer: fine) {
+  .aim-port-body:hover,
+  circle[magnet="true"]:hover {
+    fill: var(--aim-net-gold);
+    stroke: var(--aim-warm-graphite);
+    transform: scale(1.4);
+    cursor: crosshair;
+  }
 }
 
 /* User-Editable Edge Bend Point Vertices */
@@ -267,9 +327,11 @@ circle[magnet="true"]:hover {
   cursor: move;
 }
 
-.x6-edge-tool-vertex:hover {
-  fill: var(--aim-accent-blue);
-  r: 10;
+@media (hover: hover) and (pointer: fine) {
+  .x6-edge-tool-vertex:hover {
+    fill: var(--aim-accent-blue);
+    r: 10;
+  }
 }
 
 /* Dark Mode Overrides */
@@ -296,6 +358,6 @@ circle[magnet="true"]:hover {
 /* A selected routing point remains visible when the pointer moves to the Inspector. */
 .x6-edge-tool-vertex[aria-pressed="true"] {
   fill: #FDE68A;
-  stroke: #1E5631;
+  stroke: var(--aim-bandeira-verde);
   stroke-width: 3px;
 }

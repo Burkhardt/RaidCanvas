@@ -21,7 +21,28 @@ import { STATEMENT_KEY_PATTERN } from './types.js';
 import type { RaidWaypointSelection } from './RaidCanvas.js';
 import { RaidPropertyTree } from './RaidPropertyTree.js';
 import { computeExpressionPillColors } from './X6Shapes.js';
+import { CascaisPalette } from './CascaisTheme.js';
+import { GENERIC_ROLE_LABEL } from './RaidPalette.js';
 import { hasStereotype, type StereotypeId } from './StereotypeIcons.js';
+import {
+	STEREOTYPE_GLYPH_CATEGORIES,
+	getStereotypeGlyphUrl,
+	resolveStereotypeGlyph,
+	searchStereotypeGlyphs,
+	type StereotypeGlyphCategory,
+	type StereotypeGlyphEntry,
+} from './StereotypeGlyphs.js';
+
+/** Who / What / Where role categories, plus the uncommitted Generic Role. */
+const ROLE_CATEGORIES: ReadonlyArray<{ kind: AimOntologyKind; label: string }> = [
+	{ kind: 'per', label: 'Who' },
+	{ kind: 'obj', label: 'What' },
+	{ kind: 'plc', label: 'Where' },
+	{ kind: 'rol', label: 'Generic' },
+];
+
+/** Archetypes that draw a CR053 pictogram (silhouette or badge). */
+const GLYPH_KINDS: ReadonlySet<AimOntologyKind> = new Set(['uc', 'act', 'cls', 'obj', 'per', 'plc']);
 
 export interface RaidInspectorSelection {
 	id: string;
@@ -78,8 +99,8 @@ export interface RaidInspectorProps {
 
 /** Channel-specific pill styling */
 const CHANNEL_STYLES: Record<string, { bg: string; color: string; border: string }> = {
-	AppleCalendar: { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0' },
-	WhatsApp:      { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0' },
+	AppleCalendar: { bg: CascaisPalette.EmeraldMist, color: CascaisPalette.EmeraldInk, border: CascaisPalette.EmeraldLine },
+	WhatsApp:      { bg: CascaisPalette.EmeraldMist, color: CascaisPalette.EmeraldInk, border: CascaisPalette.EmeraldLine },
 	Email:         { bg: '#F1F5F9', color: '#334155', border: '#CBD5E1' },
 	Chat:          { bg: '#FFFBEB', color: '#92400E', border: '#FDE68A' },
 };
@@ -286,9 +307,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							aria-label={isPinned ? 'Unpin Inspector' : 'Pin Inspector'} aria-pressed={isPinned}
                             title={isPinned ? 'Unpin Inspector' : 'Pin Inspector (keep open)'}
 							style={{
-								background: isPinned ? '#C59B2720' : 'transparent',
-								border: `1px solid ${isPinned ? '#C59B27' : '#D1D5DB'}`,
-								color: isPinned ? '#B45309' : '#6B7280',
+								background: isPinned ? `${CascaisPalette.NetGoldStroke}20` : 'transparent',
+								border: `1px solid ${isPinned ? CascaisPalette.NetGoldStroke : '#D1D5DB'}`,
+								color: isPinned ? CascaisPalette.AmberDeep : '#6B7280',
 								borderRadius: 4,
 								padding: '2px 6px',
 								cursor: 'pointer',
@@ -322,7 +343,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 		if (isBoundary) return `${boundary?.kind ?? 'Class'} Boundary`;
 		if (isNode) {
 			if (node?.kind === 'rf') return 'RoleFiller';
-			if (node?.kind === 'rol') return 'Role';
+			if (node?.kind === 'rol') return GENERIC_ROLE_LABEL;
+			if (node?.slot) return 'Role Slot';
 			return 'Node Properties';
 		}
 		return 'Edge Properties';
@@ -332,8 +354,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 		if (isBoundary) {
 			return {
 				text: (boundary?.kind ?? 'CLASS').toUpperCase(),
-				bg: boundary?.kind === 'Package' ? '#1E293B15' : '#C59B2720',
-				color: boundary?.kind === 'Package' ? '#1E293B' : '#B45309',
+				bg: boundary?.kind === 'Package' ? '#1E293B15' : `${CascaisPalette.NetGoldStroke}20`,
+				color: boundary?.kind === 'Package' ? '#1E293B' : CascaisPalette.AmberDeep,
 			};
 		}
 		if (isNode) {
@@ -345,7 +367,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 		}
 		return {
 			text: edge?.directed === false ? 'AIM-EDGE' : 'AIM-ARROW',
-			bg: '#10B98115',
+			bg: `${CascaisPalette.HeraldicGreen}15`,
 			color: '#059669',
 		};
 	};
@@ -399,9 +421,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						aria-label={isPinned ? 'Unpin Inspector' : 'Pin Inspector'} aria-pressed={isPinned}
                             title={isPinned ? 'Unpin Inspector' : 'Pin Inspector (keep open)'}
 						style={{
-							background: isPinned ? '#C59B2720' : 'transparent',
-							border: `1px solid ${isPinned ? '#C59B27' : '#D1D5DB'}`,
-							color: isPinned ? '#B45309' : '#6B7280',
+							background: isPinned ? `${CascaisPalette.NetGoldStroke}20` : 'transparent',
+							border: `1px solid ${isPinned ? CascaisPalette.NetGoldStroke : '#D1D5DB'}`,
+							color: isPinned ? CascaisPalette.AmberDeep : '#6B7280',
 							borderRadius: 4,
 							padding: '2px 6px',
 							cursor: 'pointer',
@@ -546,7 +568,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					</div>
 
 					{/* Ontological Deep Link & Portuguese Bicolor Duality (Class Browser Portal) */}
-					<div style={{ padding: '10px 12px', background: boundary.href ? '#064E3B15' : '#ECECE6', border: `1px solid ${boundary.href ? '#10B98160' : '#DCDCD4'}`, borderRadius: 6 }}>
+					<div style={{ padding: '10px 12px', background: boundary.href ? `${CascaisPalette.EmeraldShadow}15` : '#ECECE6', border: `1px solid ${boundary.href ? `${CascaisPalette.HeraldicGreen}60` : '#DCDCD4'}`, borderRadius: 6 }}>
 						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
 							<label style={{ ...labelStyle, marginBottom: 0 }}>Class Browser Link (aim-href)</label>
 							<span
@@ -555,8 +577,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 									fontWeight: 700,
 									padding: '1px 6px',
 									borderRadius: 3,
-									background: boundary.href ? '#10B98125' : '#E5E7EB',
-									color: boundary.href ? '#047857' : '#6B7280',
+									background: boundary.href ? `${CascaisPalette.HeraldicGreen}25` : '#E5E7EB',
+									color: boundary.href ? CascaisPalette.EmeraldDeep : '#6B7280',
 								}}
 							>
 								{boundary.href ? '🟢 DUALITY ACTIVE' : '⚪ MONOLITHIC'}
@@ -573,7 +595,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 
 						{boundary.href && boundary.href.trim().length > 0 ? (
 							<div style={{ marginTop: 8 }}>
-								<div style={{ fontSize: 10, color: '#047857', lineHeight: 1.4, marginBottom: 8 }}>
+								<div style={{ fontSize: 10, color: CascaisPalette.EmeraldDeep, lineHeight: 1.4, marginBottom: 8 }}>
 									<strong>Dynabook 2-Tap Model:</strong><br />
 									• <em>Tap 1:</em> Awakens Duality (Gold Seam &amp; Green Door).<br />
 									• <em>Tap 2 (Left):</em> Inspects Class in Inspector.<br />
@@ -588,9 +610,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 											padding: '5px 8px',
 											fontSize: 10,
 											fontWeight: 600,
-											background: '#F59E0B25',
-											color: '#B45309',
-											border: '1px solid #F59E0B60',
+											background: `${CascaisPalette.NetGold}25`,
+											color: CascaisPalette.AmberDeep,
+											border: `1px solid ${CascaisPalette.NetGold}60`,
 											borderRadius: 4,
 											cursor: 'pointer',
 										}}
@@ -605,9 +627,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 											padding: '5px 8px',
 											fontSize: 10,
 											fontWeight: 600,
-											background: '#10B98125',
-											color: '#047857',
-											border: '1px solid #10B98160',
+											background: `${CascaisPalette.HeraldicGreen}25`,
+											color: CascaisPalette.EmeraldDeep,
+											border: `1px solid ${CascaisPalette.HeraldicGreen}60`,
 											borderRadius: 4,
 											cursor: 'pointer',
 										}}
@@ -632,9 +654,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 										padding: '6px 10px',
 										fontSize: 11,
 										fontWeight: 600,
-										background: '#10B98120',
-										color: '#047857',
-										border: '1px solid #10B98150',
+										background: `${CascaisPalette.HeraldicGreen}20`,
+										color: CascaisPalette.EmeraldDeep,
+										border: `1px solid ${CascaisPalette.HeraldicGreen}50`,
 										borderRadius: 4,
 										cursor: 'pointer',
 									}}
@@ -762,13 +784,64 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							<option value="cls">Class (aim-cls)</option>
 							<option value="obj">Object / Instance (aim-obj)</option>
 							<option value="plc">Place / Stage (aim-plc)</option>
-							<option value="rol">Role (hollow circle)</option>
-							<option value="rf">RoleFiller (filled circle)</option>
+							<option value="rol">{GENERIC_ROLE_LABEL} (hollow circle)</option>
+							{/* Legacy only: a RoleFiller is drawn as its own archetype with a `fills:` edge. */}
+							{node.kind === 'rf' && <option value="rf">RoleFiller (legacy)</option>}
 						</select>
 					</div>
 
+					{/* Role category (Who / What / Where): a slot keeps id, name and restriction */}
+					{(node.slot || node.kind === 'rol') && (
+						<div data-testid="role-category">
+							<label style={labelStyle}>Role category</label>
+							<div style={{ display: 'flex', gap: 4 }}>
+								{ROLE_CATEGORIES.map((category) => {
+									const isActive = node.kind === category.kind;
+									return (
+										<button className="btn btn-xs"
+											key={category.kind}
+											type="button"
+											aria-pressed={isActive}
+											onClick={() => {
+												if (isActive) return;
+												onUpdateNode?.(selection.id, { kind: category.kind, slot: category.kind !== 'rol' });
+											}}
+											style={{
+												flex: 1,
+												padding: '2px 6px',
+												fontSize: 11,
+												borderRadius: 4,
+												border: isActive ? `1.5px solid ${CascaisPalette.NetGoldStroke}` : '1px solid #D1D5DB',
+												background: isActive ? CascaisPalette.AmberMist : '#FFFFFF',
+												color: isActive ? '#92400E' : '#374151',
+												fontWeight: isActive ? 600 : 400,
+												cursor: 'pointer',
+											}}
+										>
+											{category.label}
+										</button>
+									);
+								})}
+							</div>
+						</div>
+					)}
+
+					{/* Restriction: the expected Class of a role slot, shown as `: <Class>` */}
+					{node.slot && (
+						<div>
+							<label style={labelStyle}>Restriction (expected Class)</label>
+							<input className="input input-sm w-full"
+								type="text"
+								value={node.restriction ?? ''}
+								onChange={(e) => onUpdateNode?.(selection.id, { restriction: e.target.value })}
+								style={inputStyle}
+								placeholder="e.g. Person, Document, Venue"
+							/>
+						</div>
+					)}
+
 					{/* Unbound Role Slot Toggle (Rule 2: No Coining) */}
-					<div style={{ background: node.unbound ? '#FEF3C7' : '#ECECE6', border: `1px solid ${node.unbound ? '#F59E0B' : '#DCDCD4'}`, borderRadius: 6, padding: '8px 10px' }}>
+					<div style={{ background: node.unbound ? CascaisPalette.AmberMist : '#ECECE6', border: `1px solid ${node.unbound ? CascaisPalette.NetGoldStroke : '#DCDCD4'}`, borderRadius: 6, padding: '8px 10px' }}>
 						<label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: 0 }}>
 							<input className="checkbox checkbox-sm"
 								type="checkbox"
@@ -779,7 +852,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 								Unbound Role Slot [Slot]
 							</span>
 						</label>
-						<div style={{ fontSize: 10, color: node.unbound ? '#B45309' : '#6B7280', marginTop: 4, lineHeight: 1.3 }}>
+						<div style={{ fontSize: 10, color: node.unbound ? CascaisPalette.AmberDeep : '#6B7280', marginTop: 4, lineHeight: 1.3 }}>
 							Rule 2 (No Coining): Displays dashed perimeter, 70% opacity, and bracketed label awaiting runtime binding.
 						</div>
 					</div>
@@ -789,8 +862,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						<div
 							style={{
 								padding: '10px 12px',
-								background: node.href ? '#ECFDF5' : '#ECECE6',
-								border: `1px solid ${node.href ? '#10B981' : '#DCDCD4'}`,
+								background: node.href ? CascaisPalette.EmeraldMist : '#ECECE6',
+								border: `1px solid ${node.href ? CascaisPalette.HeraldicGreen : '#DCDCD4'}`,
 								borderRadius: 6,
 							}}
 						>
@@ -802,8 +875,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 										fontWeight: 700,
 										padding: '1px 6px',
 										borderRadius: 3,
-										background: node.href ? '#10B98120' : '#9CA3AF20',
-										color: node.href ? '#065F46' : '#6B7280',
+										background: node.href ? `${CascaisPalette.HeraldicGreen}20` : '#9CA3AF20',
+										color: node.href ? CascaisPalette.EmeraldInk : '#6B7280',
 									}}
 								>
 									{node.href ? '🟢 DUALITY ACTIVE' : '⚪ MONOLITHIC'}
@@ -829,7 +902,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 												padding: '4px 6px',
 												fontSize: 10,
 												fontWeight: 600,
-												background: '#FEF3C7',
+												background: CascaisPalette.AmberMist,
 												color: '#92400E',
 												border: '1px solid #FCD34D',
 												borderRadius: 4,
@@ -846,8 +919,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 												padding: '4px 6px',
 												fontSize: 10,
 												fontWeight: 600,
-												background: '#D1FAE5',
-												color: '#065F46',
+												background: CascaisPalette.EmeraldPale,
+												color: CascaisPalette.EmeraldInk,
 												border: '1px solid #6EE7B7',
 												borderRadius: 4,
 												cursor: 'pointer',
@@ -871,6 +944,18 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							style={inputStyle}
 							placeholder="e.g. Lead, Customer, Headliner, AI, Stage, Bar"
 						/>
+						{node.kind && GLYPH_KINDS.has(node.kind) && (
+							<StereotypeGlyphPicker
+								key={selection.id}
+								glyph={node.stereotypeGlyph}
+								onSelect={(entry) => {
+									const stereotype = node.stereotype;
+									const unset = typeof stereotype === 'string' ? !stereotype.trim() : !stereotype?.length;
+									onUpdateNode?.(selection.id, { stereotypeGlyph: entry.file, ...(unset ? { stereotype: entry.id } : {}) });
+								}}
+								onClear={() => onUpdateNode?.(selection.id, { stereotypeGlyph: '' })}
+							/>
+						)}
 						{/* Preset Quick Badges */}
 						<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
 							{[
@@ -919,8 +1004,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 											padding: '2px 8px',
 											fontSize: 11,
 											borderRadius: 4,
-											border: isActive ? '1.5px solid #F59E0B' : '1px solid #D1D5DB',
-											background: isActive ? '#FEF3C7' : '#FFFFFF',
+											border: isActive ? `1.5px solid ${CascaisPalette.NetGoldStroke}` : '1px solid #D1D5DB',
+											background: isActive ? CascaisPalette.AmberMist : '#FFFFFF',
 											color: isActive ? '#92400E' : '#374151',
 											fontWeight: isActive ? 600 : 400,
 											cursor: 'pointer',
@@ -935,7 +1020,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					</div>
 
 					{/* Instance Underline */}
-					{node.kind !== 'cls' && node.kind !== 'uc' && node.kind !== 'rol' && (
+					{node.kind !== 'cls' && node.kind !== 'uc' && node.kind !== 'rol' && !node.slot && (
 						<label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
 							<input className="checkbox checkbox-sm"
 								type="checkbox"
@@ -951,7 +1036,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						<div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4, padding: '10px', background: '#ECECE6', borderRadius: 6, border: '1px solid #DCDCD4' }}>
 							<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 								<span style={{ fontSize: 11, fontWeight: 700, color: '#1F2937' }}>Activity Conditions</span>
-								<span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: '#10B98120', color: '#047857' }}>ONE-ACTIVITY</span>
+								<span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: `${CascaisPalette.HeraldicGreen}20`, color: CascaisPalette.EmeraldDeep }}>ONE-ACTIVITY</span>
 							</div>
 
 							<div>
@@ -1039,9 +1124,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 										onClick={() => onUpdateEdge?.(selection.id, { directed: true })}
 										style={{
 											...buttonChoiceStyle,
-											borderColor: edge.directed !== false ? '#10B981' : '#D1D5DB',
-											background: edge.directed !== false ? '#ECFDF5' : '#FFFFFF',
-											color: edge.directed !== false ? '#065F46' : '#4B5563',
+											borderColor: edge.directed !== false ? CascaisPalette.HeraldicGreen : '#D1D5DB',
+											background: edge.directed !== false ? CascaisPalette.EmeraldMist : '#FFFFFF',
+											color: edge.directed !== false ? CascaisPalette.EmeraldInk : '#4B5563',
 											fontWeight: edge.directed !== false ? 700 : 500,
 										}}
 									>
@@ -1058,6 +1143,13 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 									onChange={(e) => onUpdateEdge?.(selection.id, { label: e.target.value.replace(/<wbr\s*\/?>/gi, ''), stereotype: e.target.value.replace(/<wbr\s*\/?>/gi, '') })}
 									style={inputStyle}
 									placeholder="e.g. «initiates», «owns», «participates»"
+								/>
+								{/* CR053: edges carry the pictogram only; the label above stays the operator's text. */}
+								<StereotypeGlyphPicker
+									key={selection.id}
+									glyph={edge.stereotypeGlyph}
+									onSelect={(entry) => onUpdateEdge?.(selection.id, { stereotypeGlyph: entry.file })}
+									onClear={() => onUpdateEdge?.(selection.id, { stereotypeGlyph: '' })}
 								/>
 							</div>
 
@@ -1106,8 +1198,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 								<label style={labelStyle}>Capsule Color (Casçais Palette)</label>
 								<div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
 									{[
-										{ id: 'green', label: '🟢 Green', color: '#10B981', desc: 'Cascais Green (#10B981)' },
-										{ id: 'red', label: '🔴 Red', color: '#EF4444', desc: 'Cascais Red (#EF4444)' },
+										{ id: 'green', label: '🟢 Green', color: CascaisPalette.HeraldicGreen, desc: `Cascais Green (${CascaisPalette.HeraldicGreen})` },
+										{ id: 'red', label: '🔴 Red', color: CascaisPalette.CascaisRed, desc: `Cascais Red (${CascaisPalette.CascaisRed})` },
 										{ id: 'anthracite', label: '⚫ Anthracite', color: '#1F2937', desc: 'Cascais Anthracite (#1F2937)' },
 										{ id: 'auto', label: '⚪ Auto', color: '#64748B', desc: 'Follows Evaluation State' },
 									].map((opt) => {
@@ -1146,9 +1238,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 										onClick={() => onUpdateEdge?.(selection.id, { satisfied: true })}
 										style={{
 											...buttonChoiceStyle,
-											borderColor: edge.satisfied === true ? '#10B981' : '#D1D5DB',
-											background: edge.satisfied === true ? '#ECFDF5' : '#FFFFFF',
-											color: edge.satisfied === true ? '#065F46' : '#4B5563',
+											borderColor: edge.satisfied === true ? CascaisPalette.HeraldicGreen : '#D1D5DB',
+											background: edge.satisfied === true ? CascaisPalette.EmeraldMist : '#FFFFFF',
+											color: edge.satisfied === true ? CascaisPalette.EmeraldInk : '#4B5563',
 											fontWeight: edge.satisfied === true ? 700 : 500,
 										}}
 									>
@@ -1159,7 +1251,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 										onClick={() => onUpdateEdge?.(selection.id, { satisfied: false })}
 										style={{
 											...buttonChoiceStyle,
-											borderColor: edge.satisfied === false ? '#F59E0B' : '#D1D5DB',
+											borderColor: edge.satisfied === false ? CascaisPalette.NetGoldStroke : '#D1D5DB',
 											background: edge.satisfied === false ? '#FFFBEB' : '#FFFFFF',
 											color: edge.satisfied === false ? '#92400E' : '#4B5563',
 											fontWeight: edge.satisfied === false ? 700 : 500,
@@ -1231,10 +1323,10 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					style={{
 						marginTop: 'auto',
 						padding: '8px 12px',
-						background: '#FEE2E2',
+						background: CascaisPalette.RedMist,
 						border: '1px solid #F87171',
 						borderRadius: 6,
-						color: '#B91C1C',
+						color: CascaisPalette.RedDeep,
 						fontSize: 11,
 						fontWeight: 600,
 						cursor: 'pointer',
@@ -1245,6 +1337,131 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 			)}
             {footer}
 		</aside>
+	);
+};
+
+/**
+ * CR053 §2.2 — visual picker for the node's stereotype pictogram. A badge shows the active glyph;
+ * it opens an inline flyout with category tabs, a search field (English, German, aliases) and the
+ * glyph grid. An unknown reference stays visible verbatim so it can be cleared, never silently lost.
+ */
+const StereotypeGlyphPicker: React.FC<{
+	glyph: string | undefined;
+	onSelect: (entry: StereotypeGlyphEntry) => void;
+	onClear: () => void;
+}> = ({ glyph, onSelect, onClear }) => {
+	const [open, setOpen] = useState(false);
+	const [query, setQuery] = useState('');
+	const [category, setCategory] = useState<StereotypeGlyphCategory | 'all'>('all');
+	const active = resolveStereotypeGlyph(glyph);
+	const activeUrl = active ? getStereotypeGlyphUrl(active.file) : undefined;
+	const unknown = !active && Boolean(glyph?.trim());
+	const results = open ? searchStereotypeGlyphs(query, category) : [];
+	const tabs: { id: StereotypeGlyphCategory | 'all'; label: string }[] = [{ id: 'all', label: 'All' }, ...STEREOTYPE_GLYPH_CATEGORIES];
+
+	return (
+		<div className="raid-glyph-picker" style={{ marginTop: 6 }}>
+			<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+				<button className="btn btn-xs"
+					type="button"
+					aria-label="Choose stereotype glyph"
+					aria-expanded={open}
+					title={active ? `Glyph: ${active.label}` : 'Choose a stereotype glyph'}
+					onClick={() => setOpen((o) => !o)}
+					style={{ ...buttonChoiceStyle, gap: 6, padding: '2px 8px', background: active ? CascaisPalette.AmberMist : '#FFFFFF', border: active ? `1.5px solid ${CascaisPalette.NetGoldStroke}` : buttonChoiceStyle.border }}
+				>
+					{activeUrl
+						? <img src={activeUrl} alt="" width={20} height={20} style={{ objectFit: 'contain' }} />
+						: <span aria-hidden="true" style={{ fontSize: 14, lineHeight: '20px' }}>＋</span>}
+					<span style={{ color: unknown ? CascaisPalette.RedDeep : '#374151' }}>
+						{active ? active.label : unknown ? `Unknown: ${glyph}` : 'Glyph'}
+					</span>
+				</button>
+				{(active || unknown) && (
+					<button className="btn btn-xs"
+						type="button"
+						aria-label="Clear stereotype glyph"
+						title="Reset to the default archetype rendering"
+						onClick={() => { onClear(); setOpen(false); }}
+						style={{ ...buttonChoiceStyle, padding: '2px 8px', background: '#FFFFFF', color: '#6B7280' }}
+					>
+						Clear
+					</button>
+				)}
+			</div>
+			{open && (
+				<div role="dialog" aria-label="Stereotype glyphs"
+					style={{ marginTop: 6, padding: 8, border: '1px solid #E5E5DF', borderRadius: 8, background: '#FFFFFF' }}
+				>
+					<input className="input input-sm w-full"
+						type="search"
+						aria-label="Search stereotype glyphs"
+						placeholder="Search, e.g. computer, Lehrer, artist"
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
+						style={inputStyle}
+						autoFocus
+					/>
+					<div role="tablist" aria-label="Glyph categories" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '6px 0' }}>
+						{tabs.map((tab) => (
+							<button className="btn btn-xs"
+								key={tab.id}
+								type="button"
+								role="tab"
+								aria-selected={category === tab.id}
+								onClick={() => setCategory(tab.id)}
+								style={{
+									padding: '1px 6px',
+									fontSize: 10,
+									borderRadius: 4,
+									border: category === tab.id ? `1.5px solid ${CascaisPalette.NetGoldStroke}` : '1px solid #D1D5DB',
+									background: category === tab.id ? CascaisPalette.AmberMist : '#FFFFFF',
+									color: category === tab.id ? '#92400E' : '#374151',
+									cursor: 'pointer',
+								}}
+							>
+								{tab.label}
+							</button>
+						))}
+					</div>
+					{results.length === 0 ? (
+						<p style={{ fontSize: 11, color: '#6B7280', margin: '8px 0' }}>No glyph matches “{query}”.</p>
+					) : (
+						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, maxHeight: 240, overflowY: 'auto' }}>
+							{results.map((entry) => {
+								const selected = entry.file === active?.file;
+								return (
+									<button
+										key={entry.file}
+										type="button"
+										aria-label={entry.label}
+										aria-pressed={selected}
+										title={entry.label}
+										onClick={() => { onSelect(entry); setOpen(false); }}
+										style={{
+											display: 'flex',
+											flexDirection: 'column',
+											alignItems: 'center',
+											gap: 2,
+											padding: 4,
+											borderRadius: 6,
+											border: selected ? `1.5px solid ${CascaisPalette.NetGoldStroke}` : '1px solid transparent',
+											background: selected ? CascaisPalette.AmberMist : 'transparent',
+											cursor: 'pointer',
+										}}
+									>
+										<img src={getStereotypeGlyphUrl(entry.file)} alt="" width={32} height={32} loading="lazy" style={{ objectFit: 'contain' }} />
+										<span style={{ fontSize: 9, color: '#4B5563', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+											{entry.label}
+										</span>
+									</button>
+								);
+							})}
+						</div>
+					)}
+				</div>
+			)}
+		</div>
 	);
 };
 

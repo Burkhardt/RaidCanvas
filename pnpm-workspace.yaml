@@ -3,3 +3,5 @@ packages:
   - 'apps/*'
 allowBuilds:
   esbuild: true
+patchedDependencies:
+  '@antv/x6@3.1.8': patches/@antv__x6@3.1.8.patch

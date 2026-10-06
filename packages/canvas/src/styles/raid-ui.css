@@ -30,9 +30,10 @@
   --color-neutral: #23231F;
   --color-neutral-content: #FAF9F6;
   --color-info: #2563EB;
-  --color-success: #1E5631;
+  /* Telemetry, not heraldry (CR055, Koyo D2/D7): the flag pair stays primary/secondary */
+  --color-success: #10B981;
   --color-warning: #D4AF37;
-  --color-error: #D22B2B;
+  --color-error: #EF4444;
   --radius-selector: 0.375rem;
   --radius-field: 0.375rem;
   --radius-box: 0.5rem;

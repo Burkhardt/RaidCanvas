@@ -9,6 +9,7 @@
 
 import React, { useState } from 'react';
 import type { AimOntologyKind, RaidNodeData } from './types.js';
+import { CascaisPalette } from './CascaisTheme.js';
 
 export interface RaidPaletteItem {
 	id: string;
@@ -24,6 +25,55 @@ export interface RaidPaletteItem {
 	iconSvg: React.ReactNode;
 }
 
+/** RAI's name for the hollow circle (`rol`), in the palette and the archetype selector. */
+export const GENERIC_ROLE_LABEL = 'Generic Role';
+
+const GENERIC_ROLE_ICON = (
+	<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.GraphiteMuted} strokeWidth="2">
+		<circle cx="12" cy="12" r="7" />
+	</svg>
+);
+
+const GENERIC_ROLE_ITEM: RaidPaletteItem = {
+	id: 'rol',
+	name: GENERIC_ROLE_LABEL,
+	kind: 'rol',
+	badge: 'ROLE',
+	badgeColor: CascaisPalette.GraphiteMuted,
+	description: 'Hollow circle: a role whose Who / What / Where category is not chosen yet',
+	customData: { displayName: 'Role' },
+	iconSvg: GENERIC_ROLE_ICON,
+};
+
+/** A dashed ring around a category icon: the palette face of a 1UCC role slot. */
+function slotIcon(glyph: React.ReactNode): React.ReactNode {
+	return (
+		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.NetGoldStroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+			<circle cx="12" cy="12" r="11" strokeWidth="1" strokeDasharray="2.5 2" />
+			<g transform="translate(5.4 5.4) scale(0.55)">{glyph}</g>
+		</svg>
+	);
+}
+
+const PERSON_GLYPH = (
+	<>
+		<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+		<circle cx="12" cy="7" r="4" />
+	</>
+);
+const OBJECT_GLYPH = (
+	<>
+		<rect x="3" y="4" width="18" height="16" rx="2" />
+		<line x1="7" y1="10" x2="17" y2="10" />
+	</>
+);
+const PLACE_GLYPH = (
+	<>
+		<path d="M 12 18 C 8 13.8 5 10.6 5 7.5 A 7 7 0 1 1 19 7.5 C 19 10.6 16 13.8 12 18 Z" />
+		<circle cx="12" cy="7.5" r="2.5" />
+	</>
+);
+
 export const CANONICAL_PALETTE_ITEMS: RaidPaletteItem[] = [
 	// 1. Core Ontological Archetypes
 	{
@@ -31,10 +81,10 @@ export const CANONICAL_PALETTE_ITEMS: RaidPaletteItem[] = [
 		name: 'Actor / Person',
 		kind: 'per',
 		badge: 'ACTOR',
-		badgeColor: '#F59E0B',
+		badgeColor: CascaisPalette.NetGoldStroke,
 		description: 'Initiating role or external persona interacting with system',
 		iconSvg: (
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.NetGoldStroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
 				<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
 				<circle cx="12" cy="7" r="4" />
 			</svg>
@@ -66,10 +116,10 @@ export const CANONICAL_PALETTE_ITEMS: RaidPaletteItem[] = [
 		name: 'UseCase',
 		kind: 'uc',
 		badge: 'USECASE',
-		badgeColor: '#C59B27',
+		badgeColor: CascaisPalette.NetGoldStroke,
 		description: 'Class-scoped method goal or system capability',
 		iconSvg: (
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C59B27" strokeWidth="2">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.NetGoldStroke} strokeWidth="2">
 				<ellipse cx="12" cy="12" rx="10" ry="6" />
 			</svg>
 		),
@@ -79,10 +129,10 @@ export const CANONICAL_PALETTE_ITEMS: RaidPaletteItem[] = [
 		name: 'Activity',
 		kind: 'act',
 		badge: 'PROCESS',
-		badgeColor: '#EF4444',
+		badgeColor: CascaisPalette.CascaisRed,
 		description: 'Discrete executable action step in an orchestrated workflow',
 		iconSvg: (
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.CascaisRed} strokeWidth="2" strokeLinecap="round">
 				<rect x="3" y="5" width="18" height="14" rx="4" />
 			</svg>
 		),
@@ -107,10 +157,10 @@ export const CANONICAL_PALETTE_ITEMS: RaidPaletteItem[] = [
 		name: 'Object',
 		kind: 'obj',
 		badge: 'INSTANCE',
-		badgeColor: '#10B981',
+		badgeColor: CascaisPalette.HeraldicGreen,
 		description: 'Runtime instantiated entity card with underlined title',
 		iconSvg: (
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.HeraldicGreen} strokeWidth="2">
 				<rect x="3" y="4" width="18" height="16" rx="2" strokeDasharray="3 2" />
 				<line x1="7" y1="10" x2="17" y2="10" />
 			</svg>
@@ -130,32 +180,7 @@ export const CANONICAL_PALETTE_ITEMS: RaidPaletteItem[] = [
 			</svg>
 		),
 	},
-	{
-		id: 'rol',
-		name: 'Role',
-		kind: 'rol',
-		badge: 'KL-ONE',
-		badgeColor: '#8B5CF6',
-		description: 'Hollow circle: a typed role defined by its owner',
-		iconSvg: (
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
-				<circle cx="12" cy="12" r="7" />
-			</svg>
-		),
-	},
-	{
-		id: 'rf',
-		name: 'RoleFiller',
-		kind: 'rf',
-		badge: 'BINDING',
-		badgeColor: '#2563EB',
-		description: 'Filled circle: an object’s binding of a role to a filler',
-		iconSvg: (
-			<svg width="20" height="20" viewBox="0 0 24 24">
-				<circle cx="12" cy="12" r="7" fill="#2563EB" />
-			</svg>
-		),
-	},
+	GENERIC_ROLE_ITEM,
 
 	// 2. Boundaries
 	{
@@ -164,12 +189,12 @@ export const CANONICAL_PALETTE_ITEMS: RaidPaletteItem[] = [
 		isBoundary: true,
 		boundaryKind: 'Class',
 		badge: 'CLASS BOX',
-		badgeColor: '#C59B27',
+		badgeColor: CascaisPalette.NetGoldStroke,
 		description: 'Outer resizable boundary enclosure with inset badge for UseCases',
 		iconSvg: (
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C59B27" strokeWidth="1.5">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.NetGoldStroke} strokeWidth="1.5">
 				<rect x="2" y="2" width="20" height="20" rx="3" strokeDasharray="3 2" />
-				<rect x="4" y="4" width="8" height="4" fill="#C59B2720" stroke="#C59B27" strokeWidth="0.8" rx="1" />
+				<rect x="4" y="4" width="8" height="4" fill={`${CascaisPalette.NetGoldStroke}20`} stroke={CascaisPalette.NetGoldStroke} strokeWidth="0.8" rx="1" />
 			</svg>
 		),
 	},
@@ -239,40 +264,58 @@ export const CANONICAL_PALETTE_ITEMS: RaidPaletteItem[] = [
 /**
  * Returns the contextual palette stencils for a specific diagram archetype.
  * Guarantees that folded and unfolded palettes offer the identical set of elements:
- * - OneUseCaseDiagram: Actor/Person, UseCase, ClassBoundary, Package
- * - OneActivityDiagram: Actor/Person (instance with Rolefiller name underlined & Person name quiet),
- *   Activity (Cascais red, Activity name underlined, UseCase qualifier quiet on top),
- *   Object (RoleFiller instance)
+ * - OneUseCaseDiagram: Who / What / Where role slots, Generic Role, UseCase, ClassBoundary, Package
+ * - OneActivityDiagram (RoleFiller view): Activity, then the Person, Object and Place instances that
+ *   fill its roles (identity underlined, Class quiet on top)
  * - General/Other: Complete canonical palette set.
  */
 export function getPaletteItemsForArchetype(archetype: string = ''): RaidPaletteItem[] {
 	const norm = archetype.toLowerCase();
 
 	if (norm.includes('usecase')) {
+		// In a 1UCC every Person, Object or Place wired to the UseCase is a role: a formal parameter
+		// named by the role, with its expected Class as the quiet tag.
 		return [
 			{
-				id: 'per',
-				name: 'Actor / Person',
+				id: 'per-slot',
+				name: 'Who-Role (Person)',
 				kind: 'per',
-				badge: 'ACTOR',
-				badgeColor: '#F59E0B',
-				description: 'Initiating role or external persona interacting with system',
-				iconSvg: (
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-						<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-						<circle cx="12" cy="7" r="4" />
-					</svg>
-				),
+				badge: 'WHO',
+				badgeColor: CascaisPalette.NetGoldStroke,
+				description: 'Role slot of the UseCase, e.g. Signer : Person',
+				customData: { slot: true, displayName: 'Signer', restriction: 'Person' },
+				iconSvg: slotIcon(PERSON_GLYPH),
 			},
+			{
+				id: 'obj-slot',
+				name: 'What-Role (Object)',
+				kind: 'obj',
+				badge: 'WHAT',
+				badgeColor: CascaisPalette.NetGoldStroke,
+				description: 'Role slot of the UseCase, e.g. Contract : Document',
+				customData: { slot: true, displayName: 'Contract', restriction: 'Document' },
+				iconSvg: slotIcon(OBJECT_GLYPH),
+			},
+			{
+				id: 'plc-slot',
+				name: 'Where-Role (Place)',
+				kind: 'plc',
+				badge: 'WHERE',
+				badgeColor: CascaisPalette.NetGoldStroke,
+				description: 'Role slot of the UseCase, e.g. Venue : Place',
+				customData: { slot: true, displayName: 'Venue', restriction: 'Place' },
+				iconSvg: slotIcon(PLACE_GLYPH),
+			},
+			GENERIC_ROLE_ITEM,
 			{
 				id: 'uc',
 				name: 'UseCase',
 				kind: 'uc',
 				badge: 'USECASE',
-				badgeColor: '#C59B27',
+				badgeColor: CascaisPalette.NetGoldStroke,
 				description: 'Class-scoped method goal or system capability',
 				iconSvg: (
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C59B27" strokeWidth="2">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.NetGoldStroke} strokeWidth="2">
 						<ellipse cx="12" cy="12" rx="10" ry="6" />
 					</svg>
 				),
@@ -283,12 +326,12 @@ export function getPaletteItemsForArchetype(archetype: string = ''): RaidPalette
 				isBoundary: true,
 				boundaryKind: 'Class',
 				badge: 'CLASS BOX',
-				badgeColor: '#C59B27',
+				badgeColor: CascaisPalette.NetGoldStroke,
 				description: 'Outer resizable boundary enclosure with inset label for UseCases',
 				iconSvg: (
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C59B27" strokeWidth="1.5">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.NetGoldStroke} strokeWidth="1.5">
 						<rect x="2" y="2" width="20" height="20" rx="3" strokeDasharray="3 2" />
-						<rect x="4" y="4" width="8" height="4" fill="#C59B2720" stroke="#C59B27" strokeWidth="0.8" rx="1" />
+						<rect x="4" y="4" width="8" height="4" fill={`${CascaisPalette.NetGoldStroke}20`} stroke={CascaisPalette.NetGoldStroke} strokeWidth="0.8" rx="1" />
 					</svg>
 				),
 			},
@@ -311,66 +354,72 @@ export function getPaletteItemsForArchetype(archetype: string = ''): RaidPalette
 	}
 
 	if (norm.includes('activity')) {
+		// The RoleFiller view: the Activity in the centre, the instances that fill its roles around it.
+		// The quiet upper line is the instance's Class; the edge carries `fills: <Role>`.
 		return [
-			{
-				id: 'per-instance',
-				name: 'Actor / Person',
-				kind: 'per',
-				badge: 'ROLEFILLER',
-				badgeColor: '#F59E0B',
-				description: 'Instance with underlined Rolefiller & quiet Actor name',
-				customData: {
-					instance: true,
-					qualifier: 'Customer',
-					displayName: 'Signer',
-				},
-				iconSvg: (
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-						<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-						<circle cx="12" cy="7" r="4" />
-						<line x1="6" y1="23" x2="18" y2="23" stroke="#F59E0B" strokeWidth="1.5" />
-					</svg>
-				),
-			},
 			{
 				id: 'act',
 				name: 'Activity',
 				kind: 'act',
 				badge: 'PROCESS',
-				badgeColor: '#EF4444',
+				badgeColor: CascaisPalette.CascaisRed,
 				description: 'Cascais red: Activity name underlined, UseCase quiet on top',
 				customData: {
 					instance: true,
-					qualifier: 'CloseContract',
-					displayName: 'MyContract.CloseContract',
+					qualifier: 'NegotiateContract',
+					displayName: 'NegotiateContract4711',
 					properties: {
-						preconditions: ['Customer != null'],
-						postconditions: ['Contract.State == Closed'],
+						preconditions: ['Signer != null'],
+						postconditions: ['Contract.State == Approved'],
 					},
 				},
 				iconSvg: (
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.CascaisRed} strokeWidth="2" strokeLinecap="round">
 						<rect x="3" y="5" width="18" height="14" rx="4" />
-						<line x1="7" y1="15" x2="17" y2="15" stroke="#EF4444" strokeWidth="1.2" />
+						<line x1="7" y1="15" x2="17" y2="15" stroke={CascaisPalette.CascaisRed} strokeWidth="1.2" />
 					</svg>
 				),
 			},
 			{
-				id: 'obj',
-				name: 'Object (RoleFiller)',
-				kind: 'obj',
-				badge: 'ROLEFILLER',
-				badgeColor: '#10B981',
-				description: 'RoleFiller object instance (e.g. Host, Age, Contract)',
-				customData: {
-					instance: true,
-					qualifier: 'RoleFiller',
-					displayName: 'Host',
-				},
+				id: 'per-instance',
+				name: 'Person',
+				kind: 'per',
+				badge: 'INSTANCE',
+				badgeColor: CascaisPalette.NetGoldStroke,
+				description: 'Fills a Who-role; underlined identity, Class quiet on top',
+				customData: { instance: true, qualifier: 'Person', displayName: 'Person1' },
 				iconSvg: (
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2">
-						<rect x="3" y="4" width="18" height="16" rx="2" strokeDasharray="3 2" />
-						<line x1="7" y1="12" x2="17" y2="12" />
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.NetGoldStroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						{PERSON_GLYPH}
+						<line x1="6" y1="23" x2="18" y2="23" strokeWidth="1.5" />
+					</svg>
+				),
+			},
+			{
+				id: 'obj-instance',
+				name: 'Object',
+				kind: 'obj',
+				badge: 'INSTANCE',
+				badgeColor: CascaisPalette.HeraldicGreen,
+				description: 'Fills a What-role; underlined identity, Class quiet on top',
+				customData: { instance: true, qualifier: 'Document', displayName: 'Object1' },
+				iconSvg: (
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.HeraldicGreen} strokeWidth="2">
+						{OBJECT_GLYPH}
+					</svg>
+				),
+			},
+			{
+				id: 'plc-instance',
+				name: 'Place',
+				kind: 'plc',
+				badge: 'INSTANCE',
+				badgeColor: CascaisPalette.WarmGraphite,
+				description: 'Fills a Where-role; underlined identity, Class quiet on top',
+				customData: { instance: true, qualifier: 'Place', displayName: 'Place1' },
+				iconSvg: (
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.WarmGraphite} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+						{PLACE_GLYPH}
 					</svg>
 				),
 			},
@@ -497,11 +546,14 @@ export const RaidPalette: React.FC<RaidPaletteProps> = ({
 							justifyContent: 'center',
 							transition: 'background 0.15s ease',
 						}}
-						onMouseEnter={(e) => {
+						// Hover polish for a mouse or trackpad only; a tap on glass must not leave the tile lit
+						onPointerEnter={(e) => {
+							if (e.pointerType !== 'mouse') return;
 							e.currentTarget.style.background = '#FFFFFF';
 							e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
 						}}
-						onMouseLeave={(e) => {
+						onPointerLeave={(e) => {
+							if (e.pointerType !== 'mouse') return;
 							e.currentTarget.style.background = 'transparent';
 							e.currentTarget.style.boxShadow = 'none';
 						}}
@@ -574,11 +626,13 @@ export const RaidPalette: React.FC<RaidPaletteProps> = ({
 							cursor: 'grab',
 							transition: 'all 0.15s ease',
 						}}
-						onMouseEnter={(e) => {
-							e.currentTarget.style.borderColor = '#C59B27';
+						onPointerEnter={(e) => {
+							if (e.pointerType !== 'mouse') return;
+							e.currentTarget.style.borderColor = CascaisPalette.NetGoldStroke;
 							e.currentTarget.style.background = '#FEFDFB';
 						}}
-						onMouseLeave={(e) => {
+						onPointerLeave={(e) => {
+							if (e.pointerType !== 'mouse') return;
 							e.currentTarget.style.borderColor = '#E5E5DF';
 							e.currentTarget.style.background = '#FFFFFF';
 						}}

@@ -127,7 +127,7 @@ RaidCanvas recognizes seven primary archetypes, each mapped to a distinct ontolo
 
 | Archetype | Ontological Domain | WWWA Pit | Visual Geometry | Primary Semantics |
 | :--- | :--- | :--- | :--- | :--- |
-| **`act` (Activity)** | Dynamic Behavior | `Activity` (`Action`) | Rounded Box ($r=12$), Heraldic Green accent | Execution over time; a process step or running method instance. |
+| **`act` (Activity)** | Dynamic Behavior | `Activity` (`Action`) | Rounded Box ($r=12$), Cascais Red frame (red = execution) | Execution over time; a process step or running method instance. |
 | **`uc` (UseCase)** | Behavioral Blueprint | Meta-Activity | Ellipse, Cascais Net Gold accent border | The specification of an operation; the method signature. |
 | **`obj` (Object)** | Concrete State | `Object` (`What`) | Sharp Rectangle, SilverLine/Graphite border | A living instance with concrete properties; holds state. |
 | **`cls` (Class)** | Structural Blueprint | `Object` (`Kind: Cls`) | Three-compartment Card (Header, Attrs, Methods) | The conceptual schema defining potential attributes (*Farben*). |
@@ -203,19 +203,21 @@ Every node in RaidCanvas is divided into two distinct hemispheres:
 
 ```
                       THE DUAL HEMISPHERES
+     hoist · Verde Esperança     ┃ Net Gold ┃     fly · Vermelho Coragem
   ┌─────────────────────────────────┬─────────────────────────────────┐
-  │                                 │ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
-  │   LEFT HEMISPHERE:              │ ░░░ RIGHT HEMISPHERE:         ░░░ │
-  │   THE PERSONA (THE ANCHOR)      │ ░░░ THE PORTAL (THE DOOR)     ░░░ │
-  │                                 │ ░░░                           ░░░ │
-  │   • Base background fill        │ ░░░ • Translucent Green wash  ░░░ │
-  │   • Archetype identity          │ ░░░   (Cascais Heraldic Glow) ░░░ │
-  │   • Qualifier & Display Name    │ ░░░ • The Gateway to Depth    ░░░ │
-  │                                 │ ░░░                           ░░░ │
-  │   GESTURES:                     │ ░░░ GESTURES:                 ░░░ │
-  │   • TAP: Opens Inspector        │ ░░░ • TAP: Dives through door ░░░ │
-  │     (DaisyUI Side Drawer)       │ ░░░   into entity / sub-model ░░░ │
-  │   • DRAG: Moves node in space   │ ░░░ • DRAG: Moves node safely ░░░ │
+  │ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ │ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │
+  │ ▒▒ LEFT HEMISPHERE:          ▒▒ │ ░░ RIGHT HEMISPHERE:          ░░ │
+  │ ▒▒ THE PERSONA (THE ANCHOR)  ▒▒ │ ░░ THE PORTAL (THE DOOR)      ░░ │
+  │ ▒▒                           ▒▒ │ ░░                            ░░ │
+  │ ▒▒ • Translucent Verde wash  ▒▒ │ ░░ • Translucent Vermelho     ░░ │
+  │ ▒▒   (Bandeira Verde)        ▒▒ │ ░░   wash (Bandeira Vermelho) ░░ │
+  │ ▒▒ • Archetype identity,     ▒▒ │ ░░ • The Gateway to Depth     ░░ │
+  │ ▒▒   Qualifier & Name        ▒▒ │ ░░ • Doorway chevron  ›       ░░ │
+  │ ▒▒                           ▒▒ │ ░░                            ░░ │
+  │ ▒▒ GESTURES:                 ▒▒ │ ░░ GESTURES:                  ░░ │
+  │ ▒▒ • TAP: Opens Inspector    ▒▒ │ ░░ • TAP: Dives through door  ░░ │
+  │ ▒▒   (DaisyUI Side Drawer)   ▒▒ │ ░░   into entity / sub-model  ░░ │
+  │ ▒▒ • DRAG: Moves node        ▒▒ │ ░░ • DRAG: Moves node safely  ░░ │
   └─────────────────────────────────┴─────────────────────────────────┘
                     ▲                               ▲
                     │                               │
@@ -224,26 +226,27 @@ Every node in RaidCanvas is divided into two distinct hemispheres:
 ```
 
 ### 4.1 The Left Hemisphere: The Persona (The Anchor)
-* **Visual Expression:** Rendered in the entity’s foundational archetype palette (Chalk White, Canvas Cream, or Warm Graphite). It contains the head glyph, the qualifier, and the display name.
+* **Visual Expression:** Rendered in the entity’s foundational archetype palette (Chalk White, Canvas Cream, or Warm Graphite). It contains the head glyph, the qualifier, and the display name. When the duality awakens, the left half takes a translucent **Verde Esperança** wash (`CascaisPalette.BandeiraVerde`, `class="aim-portal-persona"`): the hoist of the flag. The wash is the door outline mirrored across the seam, so it follows the same contour (card, rack, pin, stage, glass). A **Person** raises the same flag across head and torso, at card-level subtlety (10 %), so the figure reads as tinted, not cut (CR055, Koyo). When the host can inspect (`onNodeClick`), pressing the left half, or hovering it with a mouse or trackpad, raises the Verde to 18 %: the mirror of the door's feedback.
 * **Semantic Meaning:** Represents the entity as it exists *in this current diagram*.
 * **Touch Ergonomics:**
-  * **Single Tap:** Selects the node and opens the **In Situ Smalltalk Inspector Drawer** (DaisyUI `drawer-end`) on the right side of the screen. The user **never leaves the diagram**. The canvas remains mounted, zoom and pan are preserved, and the entity's live attributes, conversation with Cize, and preconditions appear alongside the canvas.
+  * **Tap on the awakened node:** Opens the **In Situ Smalltalk Inspector Drawer** (DaisyUI `drawer-end`) on the right side of the screen. On a node without a door there is nothing to awaken, so the first tap opens it. Selection alone never brings the Inspector forward; a host may update an always-visible Inspector rail silently (Koyo D9). The user **never leaves the diagram**. The canvas remains mounted, zoom and pan are preserved, and the entity's live attributes, conversation with Cize, and preconditions appear alongside the canvas.
   * **Touch Drag:** Drags the node across the canvas to reposition it. Our $\Delta > 4\text{px}$ drag-immunity guard ensures that rearranging shapes never triggers an accidental inspection or navigation.
 
 ### 4.2 The Right Hemisphere: The Portal (The Door)
-* **Visual Expression:** A subtle, luminous vertical wash of Cascais Heraldic Green (`rgba(16, 185, 129, 0.08)` to `0.14`). At its right boundary sits a quiet, translucent doorway affordance (`›`).
+* **Visual Expression:** A subtle vertical wash of **Vermelho Coragem** (`CascaisPalette.BandeiraVermelho`, `class="aim-portal-door"`): the fly of the flag. Both halves share one strength per material (`DualityWashStrength`, Koyo D8): 10 % on cards and on a Person, 15 % on the Class boundary and on System, Venue and Stage silhouettes, 18 % on the Bar glass, 18 % on door hover. At its right boundary sits the doorway affordance (`›`) in the same red, 70 % at rest and full while the door is pressed (`:active`), or hovered with a mouse or trackpad: the whole right half drives the feedback, since the chevron takes no pointer events. Hover is never load-bearing: the iPad has none, so every affordance is already visible after Tap 1, and hover styles apply only under `@media (hover: hover) and (pointer: fine)`.
 * **Semantic Meaning:** Represents the doorway into the entity’s *underlying reality*—its child diagram, its source code, its place on the map, or its detailed dossier.
 * **Touch Ergonomics:**
-  * **Single Tap:** Directly engages the portal, transitioning the application perspective into the underlying world (e.g. stepping into a sub-activity workflow or opening the full entity workbench).
+  * **Tap on the awakened node:** Engages the portal, transitioning the application perspective into the underlying world (e.g. stepping into a sub-activity workflow or opening the full entity workbench).
   * **Fitts' Law Mastery:** In a standard 160×70px Activity, the right door is a massive **80×70px touch target**. Unlike tiny 16×16px corner links, an iPad operator can tap this portal blindly with their right thumb while holding the tablet.
 
 ### 4.3 The Portuguese Bicolor Seam & The Two-Tap Dynabook Lifecycle
 The visual inspiration draws directly upon the Portuguese national flag and the Cascais heraldic heritage:
-* On the flag, green and red share a proud, dignified vertical meridian, with the armillary sphere anchoring the transition.
-* On our canvas, the boundary between the Persona and the Portal is marked by the **Net Gold (`#F59E0B`) Meridian Seam** (`stroke-width="1.5"`).
+* On the flag, green (*Verde Esperança*) holds the hoist on the left and red (*Vermelho Coragem*) the fly on the right; they share a vertical meridian, with the armillary sphere anchoring the transition.
+* On our canvas the awakened node reads the same way, left to right: **Verde persona · Net Gold seam · Vermelho portal** (CR055). The flag pair (`BandeiraVerde #1E5631`, `BandeiraVermelho #D22B2B`) is the same bicolour as the Glass chrome in aia-workbench (`--heraldic-green`, `--castle-red`). It is kept apart from the status colours (`HeraldicGreen #10B981` for satisfied / true, `CascaisRed #EF4444` for the Activity frame and false), which never form a left/right pair.
+* On our canvas, the boundary between the Persona and the Portal is marked by the **Net Gold Meridian Seam** (`stroke-width="1.5"`). The Glass has one gold family (Koyo D6): `NetGold #D4AF37`, the chrome's heraldic gold, fills crowns, accents and badges; its denser sibling `NetGoldStroke #AB8722` draws the seam and every other line on a light ground.
 * **The Two-Tap Dynabook Selection Lifecycle:**
   * **State 0 (Dormant):** The node rests in a quiet, monolithic state displaying its pure ontological archetype and Persona Anchor. The right hemisphere is calm, preserving canvas serenity.
-  * **Tap 1 (Awakened Duality):** Tapping the node awakens its dual nature. The vertical **Net Gold Meridian Seam** drops down the center line ($x = \text{midX}$). The Right Hemisphere illuminates with the translucent Cascais Emerald Green portal wash (`rgba(16, 185, 129, 0.12)`) and reveals the subtle doorway chevron (`›`). The node is now actively waiting for the operator's next intent.
+  * **Tap 1 (Awakened Duality):** Tapping the node awakens its dual nature. The vertical **Net Gold Meridian Seam** drops down the center line ($x = \text{midX}$). The Left Hemisphere takes the Verde persona wash, the Right Hemisphere the Vermelho portal wash, and the subtle doorway chevron (`›`) appears: the whole flag at once, because a node at rest does not yet know which way the operator will step (Koyo D4). The node is now actively waiting for the operator's next intent. Tap 1 is selection, not inspection.
   * **Tap 2 — Left Hemisphere (The Persona):** Tapping the left side opens the in-situ Smalltalk-style **DaisyUI Inspector Drawer** (`drawer-end`), allowing immediate inspection and editing of attributes, role fillers, and conversations with Cize without leaving the diagram.
   * **Tap 2 — Right Hemisphere (The Portal):** Tapping the right door plunges through the portal, dispatching `onNodePortalClick` to transition to the underlying UseCase Browser, Sub-Activity workflow, or Venue Map.
   * **Tap Outside:** Deselects the node, smoothly retiring the gold seam and returning the node to its dormant state.
@@ -257,7 +260,7 @@ With the release of WWWA Ontology v1.3 (authored by Vasco, Lead Ontologist, `701
    * The Stereotype Icon lives within the **Left Hemisphere (The Persona)** or crowns the entity top meridian.
    * By anchoring the icon on the far left of standard cards, the entity's ontological qualifier and display name shift gracefully to the right (`cardTextRefX: 0.62`), with text wrapping adjusted (`boxWidth - 52`) to prevent visual collisions.
    * On **Heraldic Person nodes (`per`)**, the stereotype glyph hovers with dignity above or beside the green head and shoulder silhouette, eliminating unnecessary rectangular frames. Typography dynamically spaces (`refY: 58 + qualifierLines * 16`) across an expanded boundary (`Math.max(boxWidth, 140)`) to eliminate collisions between qualifiers and titles.
-   * On **Place / Venue nodes (`plc`)**, assigning a stereotype transforms the card into a **frameless** entity (`fill: 'transparent', stroke: 'transparent'`), centering the location glyph at the top ($y=8$) in **Net Gold** (`#F59E0B`)—matching the Person and UseCase vector strokes—with centered typography underneath. When unstereotyped, Place nodes render a crisp theme red frame (**Cascais Red** `#D22B2B`) with the legacy blue window header completely excised.
+   * On **Place / Venue nodes (`plc`)**, assigning a stereotype transforms the card into a **frameless** entity (`fill: 'transparent', stroke: 'transparent'`), centering the location glyph at the top ($y=8$) in **Net Gold** (`NetGoldStroke #AB8722` when initiating)—matching the Person and UseCase vector strokes—with centered typography underneath. When unstereotyped, Place nodes render a crisp theme red frame (**Cascais Red** `#D22B2B`) with the legacy blue window header completely excised.
 
 2. **The Cascais Palette & Vector Glyphs:**
    * **🎪 `Stage` (Place / Venue):** Sourced directly from festival stage architecture—a trapezoidal canopy adorned with 4 Net Gold stars across the fascia, dual cross-braced lattice truss towers, an overhead crossbeam rig with 5 hanging spotlights, dual speaker stacks, and a stepped stage deck. Rendered in frameless Net Gold glyph mode.
@@ -305,12 +308,14 @@ The Duality of the Object is realized through concrete engineering across the `@
 ### 6.2 SVG Synchronization Bridge (`RaiBridge.ts`)
 * When `node.href` is present, `RaiBridge.renderNodeInnerSvg` splits the background shape into the dual-hemisphere structure:
   - Left `<rect>` or `<path>`: The base archetype fill.
-  - Right `<rect>` or `<path>`: The translucent Cascais Green portal wash (`class="aim-portal-door"`).
-* In standalone vector SVG exports (for Keynote, Safari, Preview, and PDF), the right hemisphere is wrapped in `<a href="${escapedHref}" target="_blank">`, maintaining clickable vector portals outside the browser.
+  - Right `<path class="aim-portal-door">`: the right half as an unpainted click target, with the Net Gold seam and the Vermelho chevron.
+* A static export shows the node **at rest** (Koyo D5): no persona and no washes, so a slide of linked nodes does not become a field of red-and-green patches. The live canvas paints the flag only when a node is awakened.
+* `updateExistingSvg` heals older diagrams on their next save: emerald or painted doors are cleared, chevrons turn Vermelho, and any persona wash is removed.
+* In standalone vector SVG exports (for Keynote, Safari, Preview, and PDF), the right hemisphere (door, seam, chevron) is wrapped in `<a href="${escapedHref}" target="_blank">`, maintaining clickable vector portals outside the browser.
 
 ### 6.3 Touch-First Event Dispatch (`RaidCanvas.tsx`)
 * `<RaidCanvas />` exposes:
-  - `onNodeClick(node, event)`: Fired on left-hemisphere taps; consumed by AIA to toggle the DaisyUI Inspector Drawer.
+  - `onNodeClick(node, event)`: Fired on tap 2 in the left hemisphere of an awakened node, or on the first tap of a node without a door; consumed by AIA to toggle the DaisyUI Inspector Drawer. Hosts open the Inspector here, never on `onSelectionChange` (Koyo D9).
   - `onNodePortalClick(node, event)`: Fired on right-hemisphere taps; consumed by AIA to execute route transitions.
   - `canvasRef.current.getSvg()`: Synchronous, instantaneous serialization that flushes pending canvas state before any page transition can unmount the DOM.
 

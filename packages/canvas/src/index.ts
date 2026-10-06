@@ -32,9 +32,11 @@ export {
   type SerializationOptions,
 } from './types.js';
 
+// Cascais theme: the single source of every heraldic colour (CR055)
+export { CascaisPalette, DualityWashStrength, HeraldicWash, RoleSlotRing, withAlpha } from './CascaisTheme.js';
+
 // AntV X6 Custom Shapes & Port Registrations
 export {
-  CascaisPalette,
   createOrthogonalPorts,
   registerAimShapes,
   configureAimGraph,
@@ -48,6 +50,7 @@ export {
   getDefaultNodeName,
   computePortalDoorAttrs,
   computeStereotypeIconAttrs,
+  computeStereotypeGlyphAttrs,
   setNodeDualityActive,
   wrapAimText,
   computeMaxLineLength,
@@ -64,6 +67,27 @@ export {
   type StereotypeDefinition,
   type StereotypePaths,
 } from './StereotypeIcons.js';
+
+// CR053 Stereotype Pictogram Library (artwork shipped in `assets/stereotypes/`, served by the host)
+export {
+  STEREOTYPE_GLYPH_CATALOG,
+  STEREOTYPE_GLYPH_CATEGORIES,
+  GLYPH_SILHOUETTE_BAND,
+  GLYPH_BADGE_SIZE,
+  GLYPH_EDGE_SIZE,
+  resolveStereotypeGlyph,
+  hasStereotypeGlyph,
+  getStereotypeGlyphUrl,
+  getStereotypeGlyphBaseUrl,
+  setStereotypeGlyphBaseUrl,
+  setStereotypeGlyphResolver,
+  searchStereotypeGlyphs,
+  computeStereotypeGlyphPlacement,
+  type StereotypeGlyphEntry,
+  type StereotypeGlyphCategory,
+  type StereotypeGlyphUrlResolver,
+  type StereotypeGlyphPlacement,
+} from './StereotypeGlyphs.js';
 
 // Anti-Entropy Semantic Connection Rules
 export {
@@ -101,11 +125,12 @@ export {
   type RaidPaletteItem,
   CANONICAL_PALETTE_ITEMS,
   getPaletteItemsForArchetype,
+  GENERIC_ROLE_LABEL,
 } from './RaidPalette.js';
 
 export { isNodeAllowedInDiagram, validateDiagramConnection } from './semanticRules.js';
 
-export { projectRoleAttributes, classAttributeLines } from './RoleModel.js';
+export { projectRoleAttributes, classAttributeLines, isInstanceNode, restrictionTag } from './RoleModel.js';
 
 export { wrapDescription, layoutDescription } from './X6Shapes.js';
 

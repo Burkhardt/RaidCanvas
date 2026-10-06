@@ -37,6 +37,14 @@ describe('RaidCanvas React Component Export & Contracts', () => {
     assert.equal(element.props.onSelectionChange, onSelectionChange);
   });
 
+  test('CR055: the wrapper is .aim-inspectable only when a left tap has somewhere to go (onNodeClick)', async () => {
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const inspectable = renderToStaticMarkup(React.createElement(RaidCanvas, { onNodeClick: () => {}, className: 'host' }));
+    assert.match(inspectable, /class="raid-canvas-wrapper aim-inspectable host"/);
+    const plain = renderToStaticMarkup(React.createElement(RaidCanvas, {}));
+    assert.match(plain, /class="raid-canvas-wrapper"/);
+  });
+
   test('RaidCanvas can be created with legacy svg and onSelect props', () => {
     const sampleSvg = `<svg id="test-canvas" xmlns="http://www.w3.org/2000/svg" />`;
     const element = React.createElement(RaidCanvas, {

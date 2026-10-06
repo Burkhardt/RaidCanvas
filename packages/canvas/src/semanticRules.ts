@@ -318,10 +318,11 @@ export function getSemanticRuleDescription(
 export function isNodeAllowedInDiagram(node: { kind?: string; instance?: boolean }, archetype: string): boolean {
   const norm = (archetype ?? '').toLowerCase();
   if (norm.includes('usecase')) {
-    return !node.instance && ['uc', 'per', 'rol', 'cls'].includes(node.kind ?? '');
+    // Who / What / Where role slots (per / obj / plc) and the Generic Role are the UseCase's formal parameters
+    return !node.instance && ['uc', 'per', 'obj', 'plc', 'rol', 'cls'].includes(node.kind ?? '');
   }
   if (norm.includes('activity')) {
-    return ['act', 'per', 'obj', 'rf'].includes(node.kind ?? '');
+    return ['act', 'per', 'obj', 'plc', 'rf'].includes(node.kind ?? '');
   }
   return true;
 }
@@ -332,10 +333,10 @@ export function validateDiagramConnection(source: { kind?: string; instance?: bo
     return source.kind === 'uc' || target.kind === 'uc';
   }
   if (/classobject|rolefiller/i.test(archetype)) {
-    return ['cls->cls', 'cls->rol', 'rol->cls', 'obj->rf', 'per->rf', 'plc->rf', 'act->rf', 'rf->obj', 'rf->per', 'rf->plc', 'rf->act', 'rf->rol', 'obj->cls', 'per->cls', 'plc->cls', 'act->uc'].includes(`${source.kind}->${target.kind}`);
+    return ['cls->cls', 'cls->rol', 'rol->cls', 'obj->rf', 'per->rf', 'plc->rf', 'act->rf', 'rf->obj', 'rf->per', 'rf->plc', 'rf->act', 'rf->rol', 'obj->cls', 'per->cls', 'plc->cls', 'act->uc', 'per->act', 'obj->act', 'plc->act', 'act->per', 'act->obj', 'act->plc'].includes(`${source.kind}->${target.kind}`);
   }
   if (/activity/i.test(archetype)) {
-    return ['per->act', 'act->act', 'act->obj', 'obj->act', 'act->rf', 'rf->act', 'obj->rf', 'rf->obj'].includes(`${source.kind}->${target.kind}`);
+    return ['per->act', 'act->act', 'act->obj', 'obj->act', 'plc->act', 'act->plc', 'act->rf', 'rf->act', 'obj->rf', 'rf->obj'].includes(`${source.kind}->${target.kind}`);
   }
   return validateSemanticConnection(source.kind ?? '', target.kind ?? '');
 }

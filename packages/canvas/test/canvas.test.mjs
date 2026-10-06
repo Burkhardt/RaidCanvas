@@ -1,8 +1,12 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 import {
   CascaisPalette,
+  DualityWashStrength,
+  HeraldicWash,
+  withAlpha,
   createOrthogonalPorts,
   createAimNode,
   createAimEdge,
@@ -32,6 +36,13 @@ import {
   getDefaultNodeBounds,
   STATEMENT_KEY_PATTERN,
 } from '../dist/index.js';
+import {
+  resolveStereotypeGlyph,
+  searchStereotypeGlyphs,
+  getStereotypeGlyphUrl,
+  setStereotypeGlyphBaseUrl,
+  STEREOTYPE_GLYPH_CATALOG,
+} from '../dist/index.js';
 
 const jsdom = new JSDOM();
 globalThis.DOMParser = jsdom.window.DOMParser;
@@ -39,7 +50,8 @@ globalThis.XMLSerializer = jsdom.window.XMLSerializer;
 
 describe('RaidCanvas Core Tests', () => {
   test('CascaisPalette contains design tokens', () => {
-    assert.equal(CascaisPalette.NetGold, '#F59E0B');
+    assert.equal(CascaisPalette.NetGold, '#D4AF37');
+    assert.equal(CascaisPalette.NetGoldStroke, '#AB8722');
     assert.equal(CascaisPalette.HeraldicGreen, '#10B981');
     assert.equal(CascaisPalette.WarmGraphite, '#1F2937');
     assert.equal(CascaisPalette.ChalkWhite, '#FFFFFF');
@@ -321,8 +333,8 @@ describe('RaidCanvas Core Tests', () => {
 
     assert.equal(actor.shape, 'aim-per');
     // Initiating actor gets NetGold accent
-    assert.equal(actor.attrs?.torso?.stroke, CascaisPalette.NetGold);
-    assert.equal(actor.attrs?.head?.stroke, CascaisPalette.NetGold);
+    assert.equal(actor.attrs?.torso?.stroke, CascaisPalette.NetGoldStroke);
+    assert.equal(actor.attrs?.head?.stroke, CascaisPalette.NetGoldStroke);
     assert.ok(actor.attrs?.qualifier?.text?.includes('«initiates»') || actor.attrs?.label?.text?.includes('«initiates»'));
     assert.ok(actor.attrs?.label?.text?.includes('Customer'));
 
@@ -591,7 +603,7 @@ describe('RaidCanvas Core Tests', () => {
     assert.equal(torsoPathMatches?.length, 4, 'Emits 4 torso paths for 4 Person nodes');
 
     // Check initiating color on Per_1
-    assert.ok(updatedSvg.includes('stroke="#F59E0B"'), 'Initiating persona uses Cascais Net Gold');
+    assert.ok(updatedSvg.includes('stroke="#AB8722"'), 'Initiating persona uses the Net Gold stroke');
 
     // Check Activity underline
     assert.ok(updatedSvg.includes('text-decoration="underline"'), 'Activity label has text-decoration="underline"');
@@ -1301,7 +1313,7 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(activeAttrs.seam.y1, 0);
     assert.equal(activeAttrs.seam.x2, 70);
     assert.equal(activeAttrs.seam.y2, 60);
-    assert.equal(activeAttrs.seam.stroke, '#F59E0B');
+    assert.equal(activeAttrs.seam.stroke, '#AB8722');
     assert.equal(activeAttrs.chevron.display, 'block');
     assert.equal(activeAttrs.chevron.text, '›');
   });
@@ -1374,7 +1386,7 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(ucAttrs.seam.y1, 0);
     assert.equal(ucAttrs.seam.x2, 70);
     assert.equal(ucAttrs.seam.y2, 70);
-    assert.equal(ucAttrs.seam.stroke, '#F59E0B');
+    assert.equal(ucAttrs.seam.stroke, '#AB8722');
     assert.equal(ucAttrs.chevron.refX, 1);
     assert.equal(ucAttrs.chevron.refDx, -12);
     assert.equal(ucAttrs.chevron.refY, 0.5);
@@ -1414,13 +1426,15 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.ok(!perAttrs.door.d.includes('H 120 v 110'), 'Person must NOT have outer bounding box rect in door path');
     assert.ok(perAttrs.door.d.includes('M 60 8 A 12 12 0 0 1 60 32 Z'), 'Right head semicircle');
     assert.ok(perAttrs.door.d.includes('M 60 38 H 71 a 10 10 0 0 1 10 10 v 6 H 60 Z'), 'Right torso arc');
-    assert.equal(perAttrs.door.fill, 'rgba(16, 185, 129, 0.25)');
+    // The whole flag on the human figure too, at card-level subtlety (CR055, Koyo)
+    assert.equal(perAttrs.door.fill, 'rgba(210, 43, 43, 0.1)');
+    assert.equal(perAttrs.persona.display, 'block');
     assert.equal(perAttrs.seam.display, 'block');
     assert.equal(perAttrs.seam.x1, 60);
     assert.equal(perAttrs.seam.y1, 8);
     assert.equal(perAttrs.seam.x2, 60);
     assert.equal(perAttrs.seam.y2, 54);
-    assert.equal(perAttrs.seam.stroke, '#F59E0B');
+    assert.equal(perAttrs.seam.stroke, '#AB8722');
     assert.equal(perAttrs.chevron.refX, 1);
     assert.equal(perAttrs.chevron.refDx, -12);
     assert.equal(perAttrs.chevron.refY, 0.5);
@@ -1438,13 +1452,13 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(venueAttrs.door.display, 'block');
     assert.ok(!venueAttrs.door.d.includes('H 120 v 110'), 'Venue must NOT have outer bounding box rect in door path');
     assert.ok(venueAttrs.door.d.includes('M 60 9 A 13.5 13.5 0 0 1 73.5 22.5'), 'Venue pin right half teardrop arc');
-    assert.equal(venueAttrs.door.fill, 'rgba(16, 185, 129, 0.25)');
+    assert.equal(venueAttrs.door.fill, 'rgba(210, 43, 43, 0.15)');
     assert.equal(venueAttrs.seam.display, 'block');
     assert.equal(venueAttrs.seam.x1, 60);
     assert.equal(venueAttrs.seam.y1, 6);
     assert.equal(venueAttrs.seam.x2, 60);
     assert.equal(venueAttrs.seam.y2, 60);
-    assert.equal(venueAttrs.seam.stroke, '#F59E0B');
+    assert.equal(venueAttrs.seam.stroke, '#AB8722');
     assert.equal(venueAttrs.chevron.refX, 0.5);
     assert.equal(venueAttrs.chevron.refDx, 34);
     assert.equal(venueAttrs.chevron.refY, 26);
@@ -1461,13 +1475,13 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     }, true);
     assert.equal(stageAttrs.door.display, 'block');
     assert.ok(stageAttrs.door.d.includes('M 60 8.6 H 74.4 L 80.5 15.6 V 46.2 H 60 Z'), 'Stage right half outer silhouette path');
-    assert.equal(stageAttrs.door.fill, 'rgba(16, 185, 129, 0.25)');
+    assert.equal(stageAttrs.door.fill, 'rgba(210, 43, 43, 0.15)');
     assert.equal(stageAttrs.seam.display, 'block');
     assert.equal(stageAttrs.seam.x1, 60);
     assert.equal(stageAttrs.seam.y1, 8.6);
     assert.equal(stageAttrs.seam.x2, 60);
     assert.equal(stageAttrs.seam.y2, 46.2);
-    assert.equal(stageAttrs.seam.stroke, '#F59E0B');
+    assert.equal(stageAttrs.seam.stroke, '#AB8722');
 
     // Bar Place (plc + stereotype="Bar"): Emerald right half of glass bowl
     const barAttrs = computePortalDoorAttrs({
@@ -1480,13 +1494,13 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     }, true);
     assert.equal(barAttrs.door.display, 'block');
     assert.ok(barAttrs.door.d.includes('M 60 14 H 75 L 60 34 Z'), 'Bar right half of glass bowl path');
-    assert.equal(barAttrs.door.fill, 'rgba(16, 185, 129, 0.40)');
+    assert.equal(barAttrs.door.fill, 'rgba(210, 43, 43, 0.18)');
     assert.equal(barAttrs.seam.display, 'block');
     assert.equal(barAttrs.seam.x1, 60);
     assert.equal(barAttrs.seam.y1, 14);
     assert.equal(barAttrs.seam.x2, 60);
     assert.equal(barAttrs.seam.y2, 50);
-    assert.equal(barAttrs.seam.stroke, '#F59E0B');
+    assert.equal(barAttrs.seam.stroke, '#AB8722');
 
     // Class / Object / Place / Role: sharp right rect and vertical seam
     const objAttrs = computePortalDoorAttrs({
@@ -1799,7 +1813,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       stereotype: ['Stage', 'initiates'],
       bounds: { x: 750, y: 100, width: 160, height: 110 },
     });
-    assert.equal(initiatingStage.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Initiating Stage stroke must be Net Gold');
+    assert.equal(initiatingStage.attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke, 'Initiating Stage stroke must be Net Gold');
   });
 
   test('Test 3b2: createAimNode for Place with stereotype="Bar" renders frameless glyph with cocktail glass', () => {
@@ -1833,8 +1847,8 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       stereotype: ['Bar', 'initiates'],
       bounds: { x: 750, y: 100, width: 160, height: 110 },
     });
-    assert.equal(initiatingBar.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Initiating Bar stroke must be Net Gold');
-    assert.equal(initiatingBar.attrs.iconAccent?.fill, CascaisPalette.NetGold, 'Initiating Bar olive must be Net Gold');
+    assert.equal(initiatingBar.attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke, 'Initiating Bar stroke must be Net Gold');
+    assert.equal(initiatingBar.attrs.iconAccent?.fill, CascaisPalette.NetGoldStroke, 'Initiating Bar olive must be Net Gold');
   });
 
   test('Test 3c: createAimNode for Place WITHOUT stereotype or with non-glyph stereotype renders SilverLineDark frame', () => {
@@ -1866,7 +1880,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
 
     const attrs = nodeMeta.attrs;
     assert.ok(attrs, 'Node metadata must have attrs');
-    assert.equal(attrs.torso?.stroke, CascaisPalette.NetGold, 'Initiating actor has Net Gold stroke');
+    assert.equal(attrs.torso?.stroke, CascaisPalette.NetGoldStroke, 'Initiating actor has Net Gold stroke');
     assert.equal(attrs.qualifier?.text, 'Project Director', 'initiates is not injected into qualifier text');
     assert.equal(attrs.qualifier?.refY, 66, 'Qualifier starts at refY=66');
     assert.equal(attrs.label?.refY, 84, 'Label starts safely below qualifier at refY=84 with zero collision');
@@ -1886,7 +1900,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.ok(attrs, 'Node metadata must have attrs');
     assert.equal(attrs.iconFill?.display, 'block', 'Crown fill must be displayed');
     assert.equal(attrs.iconFill?.fill, CascaisPalette.NetGold, 'Crown is NetGold');
-    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Crown stroke is NetGold');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke, 'Crown stroke is NetGold');
     assert.equal(attrs.torso?.stroke, CascaisPalette.WarmGraphite, 'Torso is WarmGraphite');
     assert.equal(attrs.iconAccent?.display, 'block', 'Crown jewels must be displayed in Chalk White');
     // Head cx = 60, crown transform is translate(60-12, -7) = translate(48, -7)
@@ -1901,8 +1915,8 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       bounds: { x: 50, y: 80, width: 120, height: 110 },
     });
     assert.equal(initiatingCustomer.attrs.iconFill?.fill, CascaisPalette.NetGold, 'Crown with initiates is NetGold');
-    assert.equal(initiatingCustomer.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Crown stroke with initiates is NetGold');
-    assert.equal(initiatingCustomer.attrs.torso?.stroke, CascaisPalette.NetGold, 'Customer torso is NetGold when initiating');
+    assert.equal(initiatingCustomer.attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke, 'Crown stroke with initiates is NetGold');
+    assert.equal(initiatingCustomer.attrs.torso?.stroke, CascaisPalette.NetGoldStroke, 'Customer torso is NetGold when initiating');
   });
 
   test('Test 4b: createAimNode for Person with stereotype="AI" centers neural chip directly on head', () => {
@@ -1929,7 +1943,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       stereotype: 'AI, initiates',
       bounds: { x: 50, y: 80, width: 120, height: 110 },
     });
-    assert.equal(initiatingAI.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'AI chip with initiates is NetGold');
+    assert.equal(initiatingAI.attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke, 'AI chip with initiates is NetGold');
   });
 
   test('Test 4c: createAimNode for Person with stereotype="Headliner" places hollow 5-point star on chest', () => {
@@ -1945,7 +1959,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     const attrs = nodeMeta.attrs;
     assert.ok(attrs, 'Node metadata must have attrs');
     assert.equal(attrs.iconStroke?.display, 'block', 'Star stroke must be displayed');
-    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Star stroke is NetGold');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke, 'Star stroke is NetGold');
     assert.equal(attrs.torso?.stroke, CascaisPalette.WarmGraphite, 'Headliner torso is WarmGraphite');
     assert.equal(attrs.iconStroke?.fill, 'none', 'Star is hollow so line and emerald door are visible');
     // Chest center cx = 60, star is 16x16: translate(60-8, 38.5) = translate(52, 38.5)
@@ -1959,8 +1973,8 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       stereotype: ['Headliner', 'initiates'],
       bounds: { x: 50, y: 80, width: 120, height: 110 },
     });
-    assert.equal(initiatingHeadliner.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Star stroke with initiates is NetGold');
-    assert.equal(initiatingHeadliner.attrs.torso?.stroke, CascaisPalette.NetGold, 'Headliner torso is NetGold when initiating');
+    assert.equal(initiatingHeadliner.attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke, 'Star stroke with initiates is NetGold');
+    assert.equal(initiatingHeadliner.attrs.torso?.stroke, CascaisPalette.NetGoldStroke, 'Headliner torso is NetGold when initiating');
   });
 
   test('Test 4d: createAimNode for Person with stereotype="System" replaces head & torso with dual-chassis server rack in WarmGraphite', () => {
@@ -2007,7 +2021,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.ok(dualityAttrs.door.d.includes('H 76 A 4 4 0 0 1 80 15'), 'Door path contours top chassis right half');
     assert.ok(dualityAttrs.door.d.includes('H 69 V 33'), 'Door path contours right neck connector');
     assert.ok(dualityAttrs.door.d.includes('80 37 V 45 A 4 4 0 0 1 76 49 H 60 Z'), 'Door path contours bottom chassis right half');
-    assert.equal(dualityAttrs.door.fill, 'rgba(16, 185, 129, 0.25)', 'Door has standard emerald tint');
+    assert.equal(dualityAttrs.door.fill, 'rgba(210, 43, 43, 0.15)', 'Door carries the Vermelho silhouette wash (CR055, Koyo D8)');
 
     // Net Gold centerline seam
     assert.equal(dualityAttrs.seam.display, 'block');
@@ -2015,7 +2029,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(dualityAttrs.seam.y1, 11);
     assert.equal(dualityAttrs.seam.x2, 60);
     assert.equal(dualityAttrs.seam.y2, 49);
-    assert.equal(dualityAttrs.seam.stroke, CascaisPalette.NetGold);
+    assert.equal(dualityAttrs.seam.stroke, CascaisPalette.NetGoldStroke);
 
     // Chevron
     assert.equal(dualityAttrs.chevron.display, 'block');
@@ -2042,7 +2056,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
 
     // Sketch Offset Helmsman Wheel at (48, 58)
     assert.equal(attrs.iconStroke?.display, 'block', 'Lead wheel stroke must be displayed');
-    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Lead wheel stroke is NetGold');
+    assert.equal(attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke, 'Lead wheel stroke is NetGold');
     assert.equal(attrs.iconStroke?.strokeWidth, 2.0, 'Lead wheel strokeWidth is 2.0');
     assert.equal(attrs.iconStroke?.transform, 'translate(48, 58)', 'Helm hub is offset to (48, 58)');
     assert.equal(attrs.iconFill?.display, 'block', 'Lead wheel pegs must be displayed');
@@ -2064,7 +2078,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     const attrs = nodeMeta.attrs;
     assert.ok(attrs, 'Node metadata must have attrs');
     assert.equal(attrs.iconAccent?.display, 'block', 'Left Lapel Star must be displayed for Lead + Headliner');
-    assert.equal(attrs.iconAccent?.stroke, CascaisPalette.NetGold, 'Lapel star stroke is NetGold');
+    assert.equal(attrs.iconAccent?.stroke, CascaisPalette.NetGoldStroke, 'Lapel star stroke is NetGold');
     assert.equal(attrs.iconAccent?.fill, CascaisPalette.ChalkWhite, 'Lapel star fill is ChalkWhite');
     assert.equal(attrs.iconAccent?.transform, 'translate(48, 58)', 'Lapel star shares transform with hub');
     assert.ok(attrs.iconAccent?.class?.includes('aim-lead-lapel-star'), 'Class indicates lead lapel star');
@@ -2082,7 +2096,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(strAttrs.iconStroke?.strokeWidth, 2.0, 'Wheel strokeWidth is 2.0');
     assert.equal(strAttrs.iconFill?.display, 'block', 'Wheel pegs must be displayed for "Headliner, Lead"');
     assert.equal(strAttrs.iconAccent?.display, 'block', 'Lapel Star must be displayed for "Headliner, Lead"');
-    assert.equal(strAttrs.iconAccent?.stroke, CascaisPalette.NetGold, 'Star stroke is NetGold');
+    assert.equal(strAttrs.iconAccent?.stroke, CascaisPalette.NetGoldStroke, 'Star stroke is NetGold');
     assert.ok(strAttrs.torso?.d.includes('L 68 47'), 'Torso has steering right arm for "Headliner, Lead"');
 
     // computeStereotypeIconAttrs helper returns lapel star for "Headliner, Lead"
@@ -2096,7 +2110,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(stereo.iconStroke.display, 'block');
     assert.equal(stereo.iconFill.display, 'block');
     assert.equal(stereo.iconAccent.display, 'block');
-    assert.equal(stereo.iconAccent.stroke, CascaisPalette.NetGold);
+    assert.equal(stereo.iconAccent.stroke, CascaisPalette.NetGoldStroke);
   });
 
   test('Test 4h: createAimNode for Person with stereotype="Observer" renders supervisory eye and supervisory edge (ADR-0008)', () => {
@@ -2127,8 +2141,8 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       stereotype: ['Observer', 'initiates'],
       bounds: { x: 50, y: 80, width: 120, height: 110 },
     });
-    assert.equal(initiatingObserver.attrs.iconStroke?.stroke, CascaisPalette.NetGold, 'Initiating observer stroke is NetGold');
-    assert.equal(initiatingObserver.attrs.iconFill?.fill, CascaisPalette.NetGold, 'Initiating observer pupil is NetGold');
+    assert.equal(initiatingObserver.attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke, 'Initiating observer stroke is NetGold');
+    assert.equal(initiatingObserver.attrs.iconFill?.fill, CascaisPalette.NetGoldStroke, 'Initiating observer pupil is NetGold');
 
     // Supervisory monitoring edge with stereotype «observes»
     const observesEdge = createAimEdge({
@@ -2246,7 +2260,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       stereotype: 'initiates',
       bounds: { x: 0, y: 0, width: 120, height: 110 },
     });
-    assert.equal(initPer.attrs.torso?.stroke, CascaisPalette.NetGold);
+    assert.equal(initPer.attrs.torso?.stroke, CascaisPalette.NetGoldStroke);
 
     // Customer Actor: crown is ALWAYS NetGold, torso/head remain WarmGraphite even with initiates
     const customerDormant = createAimNode({
@@ -2257,7 +2271,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       bounds: { x: 0, y: 0, width: 120, height: 110 },
     });
     assert.equal(customerDormant.attrs.iconFill?.fill, CascaisPalette.NetGold);
-    assert.equal(customerDormant.attrs.iconStroke?.stroke, CascaisPalette.NetGold);
+    assert.equal(customerDormant.attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke);
     assert.equal(customerDormant.attrs.torso?.stroke, CascaisPalette.WarmGraphite);
 
     const customerInit = createAimNode({
@@ -2268,8 +2282,8 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       bounds: { x: 0, y: 0, width: 120, height: 110 },
     });
     assert.equal(customerInit.attrs.iconFill?.fill, CascaisPalette.NetGold);
-    assert.equal(customerInit.attrs.iconStroke?.stroke, CascaisPalette.NetGold);
-    assert.equal(customerInit.attrs.torso?.stroke, CascaisPalette.NetGold, 'Customer torso is NetGold when initiating');
+    assert.equal(customerInit.attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke);
+    assert.equal(customerInit.attrs.torso?.stroke, CascaisPalette.NetGoldStroke, 'Customer torso is NetGold when initiating');
 
     // Headliner Actor: star is ALWAYS NetGold, torso/head are NetGold with initiates
     const headlinerDormant = createAimNode({
@@ -2279,7 +2293,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       stereotype: 'Headliner',
       bounds: { x: 0, y: 0, width: 120, height: 110 },
     });
-    assert.equal(headlinerDormant.attrs.iconStroke?.stroke, CascaisPalette.NetGold);
+    assert.equal(headlinerDormant.attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke);
     assert.equal(headlinerDormant.attrs.torso?.stroke, CascaisPalette.WarmGraphite);
 
     const headlinerInit = createAimNode({
@@ -2289,8 +2303,8 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       stereotype: ['Headliner', 'initiates'],
       bounds: { x: 0, y: 0, width: 120, height: 110 },
     });
-    assert.equal(headlinerInit.attrs.iconStroke?.stroke, CascaisPalette.NetGold);
-    assert.equal(headlinerInit.attrs.torso?.stroke, CascaisPalette.NetGold, 'Headliner torso is NetGold when initiating');
+    assert.equal(headlinerInit.attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke);
+    assert.equal(headlinerInit.attrs.torso?.stroke, CascaisPalette.NetGoldStroke, 'Headliner torso is NetGold when initiating');
 
     // Venue without initiates is anthracite
     const plainVenue = createAimNode({
@@ -2310,7 +2324,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       stereotype: ['Venue', 'initiates'],
       bounds: { x: 0, y: 0, width: 120, height: 110 },
     });
-    assert.equal(initVenue.attrs.iconStroke?.stroke, CascaisPalette.NetGold);
+    assert.equal(initVenue.attrs.iconStroke?.stroke, CascaisPalette.NetGoldStroke);
   });
 
   test('Test 8: Activity nodes are framed in CascaisRed (#EF4444) line only with no fill (ChalkWhite)', () => {
@@ -2326,7 +2340,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(actNode.attrs.body?.strokeWidth, 2, 'Activity strokeWidth is 2');
   });
 
-  test('Test 9: Bar Duality door shades right half of glass bowl in emerald without tinting olive', () => {
+  test('Test 9: Bar Duality door shades right half of glass bowl in Vermelho without tinting olive', () => {
     const barAwakened = computePortalDoorAttrs({
       id: 'Bar_1',
       kind: 'plc',
@@ -2337,9 +2351,9 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     }, true);
 
     assert.equal(barAwakened.door.display, 'block');
-    assert.ok(barAwakened.door.d.includes('M 60 14 H 75 L 60 34 Z'), 'Right half of V-bowl is shaded green');
+    assert.ok(barAwakened.door.d.includes('M 60 14 H 75 L 60 34 Z'), 'Right half of V-bowl carries the portal wash');
     assert.equal(barAwakened.seam.display, 'block');
-    assert.equal(barAwakened.seam.stroke, CascaisPalette.NetGold);
+    assert.equal(barAwakened.seam.stroke, CascaisPalette.NetGoldStroke);
 
     // Dormant / Awakened node attrs verify olive stays original color
     const barNodeDormant = createAimNode({
@@ -2358,7 +2372,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       stereotype: ['Bar', 'initiates'],
       bounds: { x: 0, y: 0, width: 120, height: 110 },
     });
-    assert.equal(barNodeInit.attrs.iconAccent?.fill, CascaisPalette.NetGold, 'Olive is NetGold with initiates');
+    assert.equal(barNodeInit.attrs.iconAccent?.fill, CascaisPalette.NetGoldStroke, 'Olive is NetGold with initiates');
   });
 });
 
@@ -2513,7 +2527,7 @@ describe('Increment 2 — The Glass (@dr2rai/raid-canvas@0.7.0)', () => {
     assert.equal(boundary.id, 'boundary_meeting');
     assert.equal(boundary.shape, 'aim-boundary-class');
     assert.equal(boundary.zIndex, 0);
-    assert.equal(boundary.attrs.body.stroke, '#C59B27');
+    assert.equal(boundary.attrs.body.stroke, '#AB8722');
     assert.equal(boundary.attrs.body.strokeDasharray, '6,4');
     assert.equal(boundary.attrs.headerBg.fill, 'none', 'Gold badge is removed/none');
     assert.equal(boundary.attrs.headerText.fill, '#1F2937', 'Font color is Cascais Anthracite');
@@ -2534,7 +2548,7 @@ describe('Increment 2 — The Glass (@dr2rai/raid-canvas@0.7.0)', () => {
     assert.equal(awakened.seam.display, 'block');
     assert.equal(awakened.seam.x1, 210);
     assert.equal(awakened.seam.x2, 210);
-    assert.equal(awakened.seam.stroke, '#F59E0B');
+    assert.equal(awakened.seam.stroke, '#AB8722');
     assert.equal(awakened.chevron.display, 'block');
     assert.equal(awakened.chevron.text, '›');
   });
@@ -2563,12 +2577,12 @@ describe('Increment 2 — The Glass (@dr2rai/raid-canvas@0.7.0)', () => {
     const bridge = new RaiBridge();
     const svgWithBoundary = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" aim-archetype="OneUseCaseDiagram">
       <g aim-boundary="Class" id="b_meeting" aim-name="Meeting" aim-package="AIA" aim-elements="uc_schedule" transform="translate(120, 90)">
-        <rect width="380" height="240" fill="rgba(248, 250, 252, 0.70)" stroke="#C59B27" stroke-dasharray="6,4" />
-        <rect class="aim-boundary-badge" x="10" y="10" width="120" height="20" rx="3" fill="#C59B27" />
+        <rect width="380" height="240" fill="rgba(248, 250, 252, 0.70)" stroke="#AB8722" stroke-dasharray="6,4" />
+        <rect class="aim-boundary-badge" x="10" y="10" width="120" height="20" rx="3" fill="#AB8722" />
         <text class="aim-boundary-badge-text" x="16" y="24" fill="#FFFFFF">Class: Meeting</text>
       </g>
       <g aim-node="true" aim-id="uc_schedule" aim-kind="uc" aim-display-name="Schedule Meeting" aim-boundary-id="b_meeting" transform="translate(200, 160)">
-        <ellipse cx="70" cy="35" rx="60" ry="30" fill="#FFFFFF" stroke="#C59B27" />
+        <ellipse cx="70" cy="35" rx="60" ry="30" fill="#FFFFFF" stroke="#AB8722" />
         <text class="aim-label" x="70" y="38">Schedule Meeting</text>
       </g>
       <g aim-node="true" aim-id="per_host" aim-kind="per" aim-display-name="Host" transform="translate(30, 160)">
@@ -2700,42 +2714,43 @@ describe('Increment 2 — The Glass (@dr2rai/raid-canvas@0.7.0)', () => {
     assert.ok(itemIds.includes('boundary-package'), 'Must have Package boundary');
     assert.ok(itemIds.includes('unbound-per'), 'Must have Unbound Person slot');
     assert.ok(itemIds.includes('unbound-obj'), 'Must have Unbound Object slot');
+    // Handover: no RoleFiller widget; the hollow circle is the Generic Role
+    assert.ok(!CANONICAL_PALETTE_ITEMS.some(i => i.kind === 'rf'), 'RoleFiller is not a palette item');
+    assert.equal(CANONICAL_PALETTE_ITEMS.find(i => i.id === 'rol')?.name, 'Generic Role');
   });
 
   test('Palette symmetry: OneUseCaseDiagram and OneActivityDiagram provide exact required elements', () => {
-    // 1. OneUseCaseDiagram items: Actor/Person, UseCase, ClassBoundary, Package
+    // 1. OneUseCaseDiagram (handover): Who / What / Where role slots, Generic Role, UseCase, boundaries
     const ucItems = getPaletteItemsForArchetype('OneUseCaseDiagram');
-    assert.equal(ucItems.length, 4, 'OneUseCaseDiagram must offer exactly 4 elements');
-    assert.deepEqual(ucItems.map(i => i.id), ['per', 'uc', 'boundary-class', 'boundary-package']);
+    assert.deepEqual(ucItems.map(i => i.id), ['per-slot', 'obj-slot', 'plc-slot', 'rol', 'uc', 'boundary-class', 'boundary-package']);
+    for (const [id, kind, restriction] of [['per-slot', 'per', 'Person'], ['obj-slot', 'obj', 'Document'], ['plc-slot', 'plc', 'Place']]) {
+      const item = ucItems.find(i => i.id === id);
+      assert.equal(item.kind, kind);
+      assert.equal(item.customData?.slot, true, `${id} is a type-level role slot`);
+      assert.equal(item.customData?.restriction, restriction);
+      assert.notEqual(item.customData?.instance, true);
+    }
+    assert.equal(ucItems.find(i => i.id === 'rol').name, 'Generic Role');
 
     // Case-insensitivity check
-    const ucItemsLower = getPaletteItemsForArchetype('usecase');
-    assert.equal(ucItemsLower.length, 4);
+    assert.equal(getPaletteItemsForArchetype('usecase').length, ucItems.length);
 
-    // 2. OneActivityDiagram items: Actor/Person (instance), Activity (underlined, qualifier on top, pre/post), Object (RoleFiller)
+    // 2. OneActivityDiagram (RoleFiller view): the Activity, then the instances that fill its roles
     const actItems = getPaletteItemsForArchetype('OneActivityDiagram');
-    assert.equal(actItems.length, 3, 'OneActivityDiagram must offer exactly 3 elements');
-    assert.deepEqual(actItems.map(i => i.id), ['per-instance', 'act', 'obj']);
-
-    const actActor = actItems.find(i => i.id === 'per-instance');
-    assert.ok(actActor);
-    assert.equal(actActor.customData?.instance, true);
-    assert.equal(actActor.customData?.qualifier, 'Customer');
-    assert.equal(actActor.customData?.displayName, 'Signer');
+    assert.deepEqual(actItems.map(i => i.id), ['act', 'per-instance', 'obj-instance', 'plc-instance']);
+    for (const item of actItems) {
+      assert.equal(item.customData?.instance, true, `${item.id} is an instance`);
+      assert.notEqual(item.customData?.slot, true);
+    }
+    assert.ok(!actItems.some(i => i.kind === 'rf'), 'a RoleFiller is drawn as its own archetype, not a circle');
 
     const actActivity = actItems.find(i => i.id === 'act');
-    assert.ok(actActivity);
-    assert.equal(actActivity.customData?.instance, true);
-    assert.equal(actActivity.customData?.qualifier, 'CloseContract');
-    assert.equal(actActivity.customData?.displayName, 'MyContract.CloseContract');
+    assert.equal(actActivity.customData?.qualifier, 'NegotiateContract');
+    assert.equal(actActivity.customData?.displayName, 'NegotiateContract4711');
     assert.ok(Array.isArray(actActivity.customData?.properties?.preconditions));
     assert.ok(Array.isArray(actActivity.customData?.properties?.postconditions));
-
-    const actObject = actItems.find(i => i.id === 'obj');
-    assert.ok(actObject);
-    assert.equal(actObject.customData?.instance, true);
-    assert.equal(actObject.customData?.qualifier, 'RoleFiller');
-    assert.equal(actObject.customData?.displayName, 'Host');
+    // The quiet upper line of a filler is its Class
+    assert.equal(actItems.find(i => i.id === 'per-instance').customData?.qualifier, 'Person');
   });
 
   test('Diagram profiles: isNodeAllowedInDiagram and validateDiagramConnection for OneActivity vs OneUseCase', () => {
@@ -2937,5 +2952,304 @@ describe('0.8.1 per-diagram expression visibility', () => {
   test('legacy diagrams default to visible; data-prefixed metadata is accepted', () => {
     assert.equal(bridge.extractMetamodel('<svg xmlns="http://www.w3.org/2000/svg"/>').showExpressions, true);
     assert.equal(bridge.extractMetamodel('<svg xmlns="http://www.w3.org/2000/svg" data-aim-show-expressions="false"/>').showExpressions, false);
+  });
+});
+
+describe('CR053 Stereotype Glyphs', () => {
+  const bounds = { x: 0, y: 0, width: 160, height: 70 };
+
+  test('the catalog resolves tolerant references and backs the picker search', () => {
+    assert.equal(STEREOTYPE_GLYPH_CATALOG.length, 117);
+    for (const ref of ['Computer.svg', 'computer', ' COMPUTER ', '/stereotypes/Computer.svg']) {
+      assert.equal(resolveStereotypeGlyph(ref)?.file, 'Computer.svg', ref);
+    }
+    assert.equal(resolveStereotypeGlyph('NoSuchGlyph.svg'), undefined);
+    assert.equal(resolveStereotypeGlyph(''), undefined);
+    assert.ok(searchStereotypeGlyphs('artist').some((e) => e.file === 'Artist.svg'));
+    assert.ok(searchStereotypeGlyphs('', 'roles').every((e) => e.category === 'roles'));
+  });
+
+  test('glyph URLs follow the configurable base URL', () => {
+    assert.equal(getStereotypeGlyphUrl('Computer.svg'), '/stereotypes/Computer.svg');
+    setStereotypeGlyphBaseUrl('https://cdn.example/glyphs');
+    try {
+      assert.equal(getStereotypeGlyphUrl('computer'), 'https://cdn.example/glyphs/Computer.svg');
+    } finally {
+      setStereotypeGlyphBaseUrl('/stereotypes/');
+    }
+  });
+
+  test('an Actor glyph substitutes the stick figure as a silhouette', () => {
+    const actor = createAimNode({ id: 'P', kind: 'per', displayName: 'Painter', stereotypeGlyph: 'Artist.svg', bounds: { x: 0, y: 0, width: 120, height: 110 } });
+    assert.equal(actor.attrs?.glyph?.display, 'block');
+    assert.equal(actor.attrs?.glyph?.href, '/stereotypes/Artist.svg');
+    assert.match(actor.attrs?.glyph?.class, /aim-stereotype-glyph-silhouette/);
+    assert.equal(actor.attrs?.torso?.display, 'none');
+    assert.equal(actor.attrs?.head?.display, 'none');
+    const figure = createAimNode({ id: 'P', kind: 'per', displayName: 'Painter', bounds: { x: 0, y: 0, width: 120, height: 110 } });
+    assert.equal(actor.attrs?.label?.refY, figure.attrs?.label?.refY, 'labels keep their place below the 58 px band');
+  });
+
+  test('cards carry the glyph as a header badge in place of the built-in icon', () => {
+    for (const kind of ['uc', 'act', 'cls', 'obj', 'plc']) {
+      const node = createAimNode({ id: kind, kind, displayName: 'Server', stereotype: 'Lead', stereotypeGlyph: 'Computer.svg', bounds });
+      assert.equal(node.attrs?.glyph?.display, 'block', kind);
+      assert.match(node.attrs?.glyph?.class, /aim-stereotype-glyph-badge/, kind);
+      assert.equal(node.attrs?.glyph?.width, 24, kind);
+      assert.equal(node.attrs?.iconStroke?.display, 'none', kind);
+    }
+  });
+
+  test('a frameless Place stays frameless and shows the glyph as a silhouette', () => {
+    const venue = createAimNode({ id: 'V', kind: 'plc', displayName: 'Hall', stereotype: 'Venue', stereotypeGlyph: 'Bridge.svg', bounds });
+    assert.match(venue.attrs?.body?.class, /aim-frameless/);
+    assert.match(venue.attrs?.glyph?.class, /aim-stereotype-glyph-silhouette/);
+  });
+
+  test('without a known glyph every archetype renders exactly as before', () => {
+    const unknown = createAimNode({ id: 'P', kind: 'per', displayName: 'Staff', stereotypeGlyph: 'Missing.svg', bounds });
+    assert.equal(unknown.attrs?.glyph?.display, 'none');
+    assert.equal(unknown.attrs?.torso?.display, 'block');
+    const plain = createAimNode({ id: 'O', kind: 'obj', displayName: 'Thing', bounds });
+    assert.equal(plain.attrs?.glyph?.display, 'none');
+  });
+
+  test('aim-stereotype-glyph round-trips through fresh SVG, hydration and in-place update', () => {
+    const bridge = new RaiBridge();
+    const model = {
+      diagramId: 'Glyphs',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        { id: 'S', kind: 'obj', displayName: 'Server', stereotype: 'ApplicationServer', stereotypeGlyph: 'computer', bounds },
+        { id: 'P', kind: 'per', displayName: 'Painter', stereotypeGlyph: 'Artist.svg', bounds: { x: 200, y: 0, width: 120, height: 110 } },
+        { id: 'X', kind: 'act', displayName: 'Future', stereotypeGlyph: 'FromANewerLibrary.svg', bounds },
+      ],
+      edges: [],
+    };
+
+    const fresh = bridge.generateFreshSvg(model, {});
+    assert.match(fresh, /aim-stereotype-glyph="Computer\.svg"/, 'canonical file name is written');
+    assert.match(fresh, /<image href="\/stereotypes\/Computer\.svg"[^>]*class="aim-stereotype-glyph aim-stereotype-glyph-badge"/);
+    assert.match(fresh, /<image href="\/stereotypes\/Artist\.svg"[^>]*aim-stereotype-glyph-silhouette/);
+    assert.match(fresh, /aim-stereotype-glyph="FromANewerLibrary\.svg"/, 'unknown glyphs are preserved verbatim');
+
+    const hydrated = bridge.extractMetamodel(fresh);
+    const glyphOf = (m, id) => m.nodes.find((n) => n.id === id)?.stereotypeGlyph;
+    assert.equal(glyphOf(hydrated, 'S'), 'Computer.svg');
+    assert.equal(glyphOf(hydrated, 'P'), 'Artist.svg');
+    assert.equal(glyphOf(hydrated, 'X'), 'FromANewerLibrary.svg');
+
+    const { stereotypeGlyph: _cleared, ...serverWithoutGlyph } = hydrated.nodes.find((n) => n.id === 'S');
+    const updated = bridge.updateExistingSvg(fresh, { ...hydrated, nodes: hydrated.nodes.map((n) => (n.id === 'S' ? serverWithoutGlyph : n)) });
+    const after = bridge.extractMetamodel(updated);
+    assert.equal(glyphOf(after, 'S'), undefined, 'clearing the glyph removes the attribute');
+    assert.equal(glyphOf(after, 'P'), 'Artist.svg');
+    assert.equal((updated.match(/<image /g) ?? []).length, 1, 'only the Painter still draws a pictogram');
+  });
+
+  test('saving from the live graph keeps the node glyph', () => {
+    const bridge = new RaiBridge();
+    const data = { id: 'S', kind: 'obj', displayName: 'Server', stereotypeGlyph: 'Computer.svg', bounds };
+    const graph = {
+      getNodes: () => [{
+        id: 'S',
+        shape: 'aim-obj',
+        getPosition: () => ({ x: 10, y: 20 }),
+        getSize: () => ({ width: 160, height: 70 }),
+        getData: () => data,
+        getParent: () => null,
+        getAttrByPath: () => undefined,
+      }],
+      getEdges: () => [],
+    };
+    assert.equal(bridge.metamodelFromGraph(graph).nodes[0].stereotypeGlyph, 'Computer.svg');
+    assert.match(bridge.serializeToSvg(graph), /aim-stereotype-glyph="Computer\.svg"/);
+  });
+
+  test('an edge carries its glyph at the midpoint, stacked above label and pill', () => {
+    const edge = (extra) => createAimEdge({ id: 'E', kind: 'association', sourceId: 'A', targetId: 'B', bendPoints: [], ...extra });
+    const glyphLabel = (meta) => (meta.labels ?? []).find((l) => l.attrs?.glyph);
+
+    const alone = glyphLabel(edge({ stereotypeGlyph: 'semir' }));
+    assert.equal(alone.attrs.glyph.href, '/stereotypes/SemiR.svg');
+    assert.equal(alone.attrs.glyph.width, 20);
+    assert.match(alone.attrs.glyph.class, /aim-stereotype-glyph-edge/);
+    assert.equal(alone.position, 0.5, 'a lone glyph sits on the midpoint');
+    assert.equal(glyphLabel(edge({ stereotypeGlyph: 'SemiR.svg', label: 'ships' })).position.offset, -21);
+    assert.equal(glyphLabel(edge({ stereotypeGlyph: 'SemiR.svg', label: 'ships', expression: 'Truck != null' })).position.offset, -40);
+    assert.equal(edge({ stereotypeGlyph: 'SemiR.svg', label: 'ships' }).labels[0].attrs.text.text, 'ships', 'the text label stays first');
+    assert.equal(glyphLabel(edge({ stereotypeGlyph: 'Missing.svg' })), undefined);
+    assert.equal(edge({}).labels, undefined);
+  });
+
+  test('edge aim-stereotype and aim-stereotype-glyph round-trip through fresh SVG, hydration and in-place update', () => {
+    const bridge = new RaiBridge();
+    const model = {
+      diagramId: 'EdgeGlyphs',
+      archetype: 'InteractiveCanvas',
+      nodes: [
+        { id: 'A', kind: 'act', displayName: 'Prepare', bounds },
+        { id: 'B', kind: 'act', displayName: 'Conclude', bounds: { x: 400, y: 0, width: 160, height: 70 } },
+      ],
+      edges: [{ id: 'E', kind: 'association', sourceId: 'A', targetId: 'B', label: '«ships»', stereotype: '«ships»', stereotypeGlyph: 'semir', bendPoints: [] }],
+    };
+    const fresh = bridge.generateFreshSvg(model, {});
+    assert.match(fresh, /aim-edge="true"[^>]*aim-stereotype-glyph="SemiR\.svg"/);
+    assert.match(fresh, /<image href="\/stereotypes\/SemiR\.svg"[^>]*class="aim-stereotype-glyph aim-stereotype-glyph-edge"/);
+
+    const hydrated = bridge.extractMetamodel(fresh);
+    assert.equal(hydrated.edges[0].stereotypeGlyph, 'SemiR.svg');
+    assert.equal(hydrated.edges[0].stereotype, '«ships»', 'edge stereotypes now survive hydration too');
+
+    const { stereotypeGlyph: _cleared, ...plainEdge } = hydrated.edges[0];
+    const cleared = bridge.updateExistingSvg(fresh, { ...hydrated, edges: [plainEdge] });
+    assert.doesNotMatch(cleared, /aim-stereotype-glyph/);
+    assert.equal((cleared.match(/<image /g) ?? []).length, 0);
+
+    const restored = bridge.updateExistingSvg(cleared, { ...hydrated, edges: [{ ...plainEdge, stereotypeGlyph: 'Eye.svg' }] });
+    assert.equal(bridge.extractMetamodel(restored).edges[0].stereotypeGlyph, 'Eye.svg');
+    assert.equal((restored.match(/<image [^>]*\/stereotypes\/Eye\.svg/g) ?? []).length, 1);
+  });
+
+  test('saving from the live graph keeps the edge glyph', () => {
+    const bridge = new RaiBridge();
+    const node = (id, x) => ({
+      id, shape: 'aim-act', isNode: () => true,
+      getPosition: () => ({ x, y: 0 }), getSize: () => ({ width: 160, height: 70 }),
+      getData: () => ({ id, kind: 'act', displayName: id, bounds: { x, y: 0, width: 160, height: 70 } }),
+      getParent: () => null, getAttrByPath: () => undefined,
+    });
+    const a = node('A', 0); const b = node('B', 400);
+    const graph = {
+      getNodes: () => [a, b],
+      getEdges: () => [{
+        id: 'E', getSourceCell: () => a, getTargetCell: () => b, getVertices: () => [],
+        getData: () => ({ kind: 'association', stereotypeGlyph: 'SemiR.svg' }),
+        getSourcePortId: () => undefined, getTargetPortId: () => undefined,
+        getLabels: () => [], getRouter: () => undefined, getConnector: () => undefined,
+      }],
+    };
+    assert.equal(bridge.metamodelFromGraph(graph).edges[0].stereotypeGlyph, 'SemiR.svg');
+    assert.match(bridge.serializeToSvg(graph), /aim-stereotype-glyph="SemiR\.svg"/);
+  });
+});
+
+describe('CR055 Portuguese heraldic flag: Verde persona on the hoist, Vermelho portal on the fly (Koyo D1–D9)', () => {
+  const linked = {
+    id: 'Linked_Node', kind: 'act', displayName: 'Linked Node', href: '/diagrams/D1',
+    bounds: { x: 50, y: 50, width: 140, height: 60 },
+  };
+  const metamodel = { diagramId: 'CR055', archetype: 'InteractiveCanvas', nodes: [linked], edges: [] };
+
+  test('the flag pair is the Glass chrome bicolour, distinct from the status colours', () => {
+    assert.equal(CascaisPalette.BandeiraVerde, '#1E5631');
+    assert.equal(CascaisPalette.BandeiraVermelho, '#D22B2B');
+    assert.notEqual(CascaisPalette.BandeiraVerde, CascaisPalette.HeraldicGreen);
+    assert.notEqual(CascaisPalette.BandeiraVermelho, CascaisPalette.CascaisRed);
+    assert.equal(withAlpha('#D22B2B', 0.25), 'rgba(210, 43, 43, 0.25)');
+    assert.equal(HeraldicWash.verde(0.1), 'rgba(30, 86, 49, 0.1)');
+  });
+
+  test('wash strengths are one per material (Koyo D8)', () => {
+    assert.deepEqual({ ...DualityWashStrength }, {
+      card: 0.10, boundary: 0.15, silhouette: 0.15, bar: 0.18, person: 0.10, chevron: 0.70, hover: 0.18,
+    });
+    const venue = computePortalDoorAttrs({
+      id: 'V', kind: 'plc', stereotype: 'Venue', displayName: 'Venue', href: '/places/V',
+      bounds: { x: 0, y: 0, width: 120, height: 100 },
+    }, true);
+    assert.equal(venue.persona.fill, HeraldicWash.verde(0.15));
+    assert.equal(venue.door.fill, HeraldicWash.vermelho(0.15));
+    assert.equal(venue.chevron.fill, HeraldicWash.vermelho(0.70));
+  });
+
+  test('the persona mirrors the door across the seam in Verde', () => {
+    const act = computePortalDoorAttrs({ ...linked, bounds: { x: 0, y: 0, width: 150, height: 60 } }, true);
+    assert.equal(act.persona.display, 'block');
+    assert.equal(act.persona.d, act.door.d, 'same geometry, mirrored');
+    assert.equal(act.persona.transform, 'matrix(-1 0 0 1 150 0)', 'mirrored about midX = 75');
+    assert.equal(act.persona.fill, HeraldicWash.verde(0.1));
+    assert.equal(act.door.fill, HeraldicWash.vermelho(0.1));
+
+    const dormant = computePortalDoorAttrs({ ...linked, href: undefined }, false);
+    assert.equal(dormant.persona.display, 'none');
+  });
+
+  test('a person raises the whole flag at card-level subtlety, mirrored across head and torso', () => {
+    const per = computePortalDoorAttrs({
+      id: 'P', kind: 'per', displayName: 'Actor', href: '/actors/P',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    }, true);
+    assert.equal(per.persona.display, 'block');
+    assert.equal(per.persona.d, per.door.d, 'the persona mirrors the right half of head and torso');
+    assert.equal(per.persona.transform, 'matrix(-1 0 0 1 120 0)');
+    assert.equal(per.persona.fill, HeraldicWash.verde(0.10));
+    assert.equal(per.door.fill, HeraldicWash.vermelho(0.10));
+    assert.equal(per.seam.display, 'block');
+    assert.equal(per.chevron.fill, HeraldicWash.vermelho(0.70));
+
+    const system = computePortalDoorAttrs({
+      id: 'S', kind: 'per', stereotype: 'System', displayName: 'Backend', href: '/systems/S',
+      bounds: { x: 0, y: 0, width: 120, height: 110 },
+    }, true);
+    assert.equal(system.persona.fill, HeraldicWash.verde(0.15), 'a System rack is washed as a silhouette');
+  });
+
+  test('the right half drives the feedback: door to 18 %, chevron to full Vermelho, live and exported', () => {
+    const css = readFileSync(new URL('../src/styles/aoaim-theme.css', import.meta.url), 'utf8');
+    assert.match(css, /\.aim-portal-door:hover ~ \.aim-portal-chevron/, 'the chevron takes no pointer events; its sibling door carries the hover');
+    assert.match(css, /\.aim-portal-door:active ~ \.aim-portal-chevron/, 'pressing gives the same feedback on touch glass');
+    assert.doesNotMatch(css, /\.aim-node:hover \./, '.aim-node sits on the body shape, not on an ancestor of the portal or the ports');
+    const svg = new RaiBridge().generateFreshSvg(metamodel, {});
+    assert.ok(svg.includes(`a:active > .aim-portal-door { fill: ${HeraldicWash.vermelho(0.18)}; }`));
+    assert.ok(svg.includes(`a:hover > .aim-portal-door { fill: ${HeraldicWash.vermelho(0.18)}; }`));
+    assert.ok(svg.includes(`a:hover > .aim-portal-chevron { fill: ${CascaisPalette.BandeiraVermelho}; }`));
+  });
+
+  test('the left half answers in Verde, only where a left tap inspects', () => {
+    const css = readFileSync(new URL('../src/styles/aoaim-theme.css', import.meta.url), 'utf8');
+    const verde18 = 'fill: color-mix(in srgb, var(--aim-bandeira-verde) 18%, transparent);';
+    assert.ok(css.includes(`.aim-inspectable .aim-portal-persona:active {\n  ${verde18}`), 'pressing the left half raises the persona to 18 %');
+    assert.ok(css.includes(`.aim-inspectable .aim-portal-persona:hover {\n    ${verde18}`), 'hovering it does the same for a cursor');
+    assert.doesNotMatch(css, /\.aim-portal-persona \{[^}]*pointer-events: none/, 'the persona must take pointer events to answer');
+  });
+
+  test('hover is progressive enhancement: every :hover rule sits behind a mouse-or-trackpad media query', () => {
+    // Strip the gated blocks; no :hover may remain. The iPad has no hover, and ungated :hover sticks after a tap.
+    const ungated = (text) => text.replace(/@media \(hover: hover\) and \(pointer: fine\) \{(?:[^{}]|\{[^{}]*\})*\}/g, '');
+    const css = readFileSync(new URL('../src/styles/aoaim-theme.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.doesNotMatch(ungated(css), /:hover/);
+    const doc = new DOMParser().parseFromString(new RaiBridge().generateFreshSvg(metamodel, {}), 'image/svg+xml');
+    assert.doesNotMatch(ungated(doc.querySelector('style').textContent), /:hover/);
+  });
+
+  test('the SVG export shows a linked node at rest: clear door, Net Gold seam, Vermelho chevron (Koyo D5)', () => {
+    const doc = new DOMParser().parseFromString(new RaiBridge().generateFreshSvg(metamodel, {}), 'image/svg+xml');
+    const group = doc.querySelector('g[aim-id="Linked_Node"]');
+    assert.equal(group.querySelector('.aim-portal-persona'), null, 'no persona wash in a static export');
+    assert.equal(group.querySelector('a .aim-portal-door').getAttribute('fill'), HeraldicWash.vermelho(0), 'clickable, unpainted');
+    assert.equal(group.querySelector('a .aim-portal-seam').getAttribute('stroke'), CascaisPalette.NetGoldStroke);
+    assert.equal(group.querySelector('a .aim-portal-chevron').getAttribute('fill'), HeraldicWash.vermelho(0.70));
+  });
+
+  test('updateExistingSvg heals painted portals to rest, once', () => {
+    const bridge = new RaiBridge();
+    const persona = '<path d="M 0 0 H 10 V 10 Z" fill="rgba(30, 86, 49, 0.1)" class="aim-portal-persona" />';
+    const legacy = bridge.generateFreshSvg(metamodel, {})
+      .replace('<a href=', `${persona}\n      <a href=`)
+      .replace(/fill="rgba\(210, 43, 43, 0\)"/, 'fill="rgba(16, 185, 129, 0.25)"')
+      .replace(/fill="rgba\(210, 43, 43, 0\.7\)"/, 'fill="rgba(16, 185, 129, 0.6)"');
+    assert.match(legacy, /aim-portal-persona/);
+    assert.match(legacy, /16, 185, 129, 0\.25/);
+
+    const healed = bridge.updateExistingSvg(legacy, bridge.extractMetamodel(legacy));
+    const doc = new DOMParser().parseFromString(healed, 'image/svg+xml');
+    assert.equal(doc.querySelectorAll('.aim-portal-persona').length, 0);
+    assert.equal(doc.querySelector('.aim-portal-door').getAttribute('fill'), HeraldicWash.vermelho(0));
+    assert.equal(doc.querySelector('.aim-portal-chevron').getAttribute('fill'), HeraldicWash.vermelho(0.70));
+    assert.doesNotMatch(healed, /16, 185, 129/);
+
+    const again = bridge.updateExistingSvg(healed, bridge.extractMetamodel(healed));
+    assert.equal(again, bridge.updateExistingSvg(again, bridge.extractMetamodel(again)), 'healing is idempotent');
   });
 });

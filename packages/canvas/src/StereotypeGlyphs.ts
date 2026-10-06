@@ -170,6 +170,8 @@ export interface StereotypeGlyphPlacement {
 
 export const GLYPH_SILHOUETTE_BAND = 58;
 export const GLYPH_BADGE_SIZE = 24;
+/** Edge pictogram size: centred on the edge midpoint, stacked above any label and expression pill. */
+export const GLYPH_EDGE_SIZE = 20;
 
 export function computeStereotypeGlyphPlacement(
 	kind: string,

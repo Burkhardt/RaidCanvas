@@ -185,7 +185,9 @@ export const App: React.FC = () => {
     }
     const id = selectedIds[0];
     refreshSelectedEntity(id);
-    setActiveTab('inspector');
+    // Selection is not inspection (CR055, Koyo D9): the Inspector rail updates silently, and a node brings
+    // the Inspector forward through onNodeClick — tap 1 when unlinked, tap 2 on the left half when linked.
+    if (canvasRef.current?.getGraph()?.getCellById(id)?.isEdge()) setActiveTab('inspector');
   };
 
   // Keyboard shortcut listener (Ctrl+Z, Ctrl+Y)

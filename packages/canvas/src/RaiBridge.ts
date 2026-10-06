@@ -1,4 +1,4 @@
-import { projectRoleAttributes, classAttributeLines } from './RoleModel.js';
+import { projectRoleAttributes, classAttributeLines, isInstanceNode, restrictionTag } from './RoleModel.js';
 /**
  * @file RaiBridge.ts
  * @description Bidirectional synchronization bridge between the SVG `aim-*` ontological
@@ -44,6 +44,71 @@ import {
 	renderStereotypeIconSvg,
 	getStereotypePaths,
 } from './StereotypeIcons.js';
+import {
+	resolveStereotypeGlyph,
+	getStereotypeGlyphUrl,
+	computeStereotypeGlyphPlacement,
+	GLYPH_EDGE_SIZE,
+} from './StereotypeGlyphs.js';
+import { DualityWashStrength, HeraldicWash, RoleSlotRing } from './CascaisTheme.js';
+
+/**
+ * Press and hover feedback embedded in exported SVGs, matching the live canvas: the portal anchor raises the door to
+ * the hover wash and the chevron to full Vermelho. Pressing applies to every input; hover only to a mouse or trackpad,
+ * because the iPad has no hover and ungated :hover styles stick after a tap in WebKit.
+ */
+const PORTAL_FEEDBACK_STYLES = [
+	`a:active > .aim-portal-door { fill: ${HeraldicWash.vermelho(DualityWashStrength.hover)}; }`,
+	`a:active > .aim-portal-chevron { fill: ${CascaisPalette.BandeiraVermelho}; }`,
+	'@media (hover: hover) and (pointer: fine) {',
+	'.aim-node:hover { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }',
+	`a:hover > .aim-portal-door { fill: ${HeraldicWash.vermelho(DualityWashStrength.hover)}; }`,
+	`a:hover > .aim-portal-chevron { fill: ${CascaisPalette.BandeiraVermelho}; }`,
+	'}',
+].join(' ');
+
+/**
+ * CR055 (Koyo D5) — a static export shows a linked node at rest: the door is a clear click target, and only
+ * the Net Gold seam and the Vermelho chevron mark the portal. Older SVGs (an emerald door, or a painted
+ * persona) heal on their next save: personas go, doors clear, chevrons turn Vermelho. Idempotent.
+ */
+function healPortalAtRest(doc: Document): void {
+	for (const persona of Array.from(doc.querySelectorAll('.aim-portal-persona'))) {
+		persona.remove();
+	}
+	for (const door of Array.from(doc.querySelectorAll('.aim-portal-door'))) {
+		door.setAttribute('fill', HeraldicWash.vermelho(0));
+	}
+	for (const chevron of Array.from(doc.querySelectorAll('.aim-portal-chevron'))) {
+		chevron.setAttribute('fill', HeraldicWash.vermelho(DualityWashStrength.chevron));
+	}
+}
+
+/**
+ * CR053 — the value written to `aim-stereotype-glyph`: the canonical file name when the library knows
+ * the glyph, otherwise the reference verbatim, so a glyph from a newer library survives a round trip.
+ */
+function stereotypeGlyphAttrValue(cell: { readonly stereotypeGlyph?: string | undefined }): string | undefined {
+	const ref = cell.stereotypeGlyph?.trim();
+	if (!ref) return undefined;
+	return resolveStereotypeGlyph(ref)?.file ?? ref;
+}
+
+/**
+ * CR053 — headless edge pictogram box: centred on the midpoint, or stacked above `stackTop`
+ * (the top of the label / expression pill). `undefined` for no glyph or an unknown one.
+ */
+function edgeGlyphPlacement(
+	edge: RaidEdgeData,
+	mid: { x: number; y: number },
+	stackTop: number | undefined,
+): { url: string; x: number; y: number; size: number } | undefined {
+	const entry = resolveStereotypeGlyph(edge.stereotypeGlyph);
+	const url = entry ? getStereotypeGlyphUrl(entry.file) : undefined;
+	if (!url) return undefined;
+	const size = GLYPH_EDGE_SIZE;
+	return { url, x: mid.x - size / 2, y: stackTop === undefined ? mid.y - size / 2 : stackTop - 2 - size, size };
+}
 
 /**
  * Escapes XML special characters for safe inclusion in XML text nodes.
@@ -238,13 +303,16 @@ export class RaiBridge {
 			const id = node.id;
 			const kind = (customData.kind ?? this.kindFromShape(node.shape)) as AimOntologyKind;
 			const displayName = customData.displayName ?? (node.getAttrByPath('label/text') as string) ?? id;
-			const qualifier = customData.qualifier ?? (node.getAttrByPath('qualifier/text') as string) ?? undefined;
-			const isInstance =
-				customData.instance ??
-				(node.getAttrByPath('label/textDecoration') === 'underline' ||
-				node.getAttrByPath('title/textDecoration') === 'underline'
-					? true
-					: undefined);
+			const isSlot = customData.slot === true;
+			// A slot's qualifier element shows `: <Class>`, which is the restriction, not a qualifier
+			const qualifier = customData.qualifier ?? (isSlot ? undefined : (node.getAttrByPath('qualifier/text') as string)) ?? undefined;
+			const isInstance = isSlot
+				? undefined
+				: customData.instance ??
+					(node.getAttrByPath('label/textDecoration') === 'underline' ||
+					node.getAttrByPath('title/textDecoration') === 'underline'
+						? true
+						: undefined);
 			const parentNode = node.getParent();
 			const boundaryId =
 				parentNode &&
@@ -260,8 +328,11 @@ export class RaiBridge {
 				...(qualifier ? { qualifier } : {}),
 				...(isInstance !== undefined ? { instance: isInstance } : {}),
 				...(customData.unbound === true ? { unbound: true } : {}),
+				...(isSlot ? { slot: true } : {}),
+				...(customData.restriction ? { restriction: customData.restriction } : {}),
 				...(boundaryId ? { boundaryId } : {}),
 				...(customData.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
+				...(customData.stereotypeGlyph ? { stereotypeGlyph: customData.stereotypeGlyph } : {}),
 				...(customData.namespace !== undefined ? { namespace: customData.namespace } : {}),
 				...(customData.description !== undefined ? { description: customData.description } : {}),
 				...(customData.descriptionWidth !== undefined ? { descriptionWidth: customData.descriptionWidth } : {}),
@@ -350,6 +421,7 @@ export class RaiBridge {
 				...(routing !== undefined ? { routing } : {}),
 				...(label !== undefined ? { label } : {}),
 				...(customData.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
+				...(customData.stereotypeGlyph ? { stereotypeGlyph: customData.stereotypeGlyph } : {}),
 				...(customData.sourceCardinality !== undefined ? { sourceCardinality: customData.sourceCardinality } : {}),
 				...(customData.targetCardinality !== undefined ? { targetCardinality: customData.targetCardinality } : {}),
 				...(customData.expression !== undefined ? { expression: customData.expression } : {}),
@@ -531,7 +603,9 @@ export class RaiBridge {
 				id;
 
 			const qualifier = el.getAttribute(AimSvgContract.ATTR_QUALIFIER) ?? undefined;
-			const isInstance = el.getAttribute(AimSvgContract.ATTR_INSTANCE) === 'true' || kind === 'obj' || kind === 'rf' ? true : undefined;
+			const slot = el.getAttribute(AimSvgContract.ATTR_SLOT) === 'true' || undefined;
+			const restriction = el.getAttribute(AimSvgContract.ATTR_RESTRICTION)?.trim() || undefined;
+			const isInstance = isInstanceNode({ kind, instance: el.getAttribute(AimSvgContract.ATTR_INSTANCE) === 'true', ...(slot ? { slot } : {}) }) ? true : undefined;
 			const href =
 				el.getAttribute(AimSvgContract.ATTR_HREF) ??
 				el.querySelector('a')?.getAttribute('href') ??
@@ -540,6 +614,7 @@ export class RaiBridge {
 				undefined;
 
 			const stereotype = el.getAttribute(AimSvgContract.ATTR_STEREOTYPE) ?? undefined;
+			const stereotypeGlyph = el.getAttribute(AimSvgContract.ATTR_STEREOTYPE_GLYPH)?.trim() || undefined;
 			const bounds = this.extractBounds(el, options.defaultNodeSize);
 
 			const unbound = el.getAttribute(AimSvgContract.ATTR_UNBOUND) === 'true' || undefined;
@@ -552,9 +627,12 @@ export class RaiBridge {
 				...(qualifier !== undefined ? { qualifier } : {}),
 				...(isInstance !== undefined ? { instance: isInstance } : {}),
 				...(unbound ? { unbound: true } : {}),
+				...(slot ? { slot: true } : {}),
+				...(restriction ? { restriction } : {}),
 				...(boundaryId ? { boundaryId } : {}),
 				...(href !== undefined && href.trim().length > 0 ? { href: href.trim() } : {}),
 				...(stereotype !== undefined ? { stereotype } : {}),
+				...(stereotypeGlyph ? { stereotypeGlyph } : {}),
 				...(el.getAttribute('aim-description') ? { description: JSON.parse(el.getAttribute('aim-description')!) } : {}),
 				...(el.getAttribute('aim-descriptionWidth') ? { descriptionWidth: JSON.parse(el.getAttribute('aim-descriptionWidth')!) } : {}),
 				...(el.getAttribute('aim-visibility') ? { visibility: JSON.parse(el.getAttribute('aim-visibility')!) } : {}),
@@ -690,6 +768,8 @@ export class RaiBridge {
 				el.getAttribute('aim-routing') ??
 				undefined;
 			const routing = rawRouting ? this.normalizeRouting(rawRouting) : undefined;
+			const edgeStereotype = el.getAttribute(AimSvgContract.ATTR_STEREOTYPE) ?? undefined;
+			const edgeGlyph = el.getAttribute(AimSvgContract.ATTR_STEREOTYPE_GLYPH)?.trim() || undefined;
 
 			edges.push({
 				id,
@@ -700,6 +780,8 @@ export class RaiBridge {
 				...(targetPort !== undefined ? { targetPort } : {}),
 				...(routing !== undefined ? { routing } : {}),
 				...(label !== undefined ? { label } : {}),
+				...(edgeStereotype !== undefined ? { stereotype: edgeStereotype } : {}),
+				...(edgeGlyph ? { stereotypeGlyph: edgeGlyph } : {}),
 				...(expression !== undefined ? { expression } : {}),
 				...(expressionColor !== undefined ? { expressionColor } : {}),
 				...(satisfied !== undefined ? { satisfied } : {}),
@@ -842,8 +924,8 @@ export class RaiBridge {
 		if (style && !style.textContent?.includes('aim-instance="true"')) {
 			style.textContent = (style.textContent ? style.textContent + '\n' : '') + `
 			.aim-node { cursor: pointer; transition: filter 0.15s ease; }
-			.aim-node:hover { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
-			.aim-portal-seam { stroke: ${CascaisPalette.NetGold}; stroke-width: 1.5; pointer-events: none; }
+			.aim-portal-seam { stroke: ${CascaisPalette.NetGoldStroke}; stroke-width: 1.5; pointer-events: none; }
+			${PORTAL_FEEDBACK_STYLES}
 			.aim-edge { fill: none; stroke: ${CascaisPalette.WarmGraphite}; stroke-width: 1.5; }
 			text { font-family: Inter, system-ui, sans-serif; }
 			.aim-node[aim-instance="true"] text.aim-name, .aim-node[aim-instance="true"] tspan.aim-name { text-decoration: underline; }
@@ -972,7 +1054,7 @@ export class RaiBridge {
 			} else {
 				el.removeAttribute(AimSvgContract.ATTR_QUALIFIER);
 			}
-			if (node.instance === true || node.kind === 'obj' || node.kind === 'rf') {
+			if (isInstanceNode(node)) {
 				el.setAttribute(AimSvgContract.ATTR_INSTANCE, 'true');
 			} else {
 				el.removeAttribute(AimSvgContract.ATTR_INSTANCE);
@@ -983,11 +1065,27 @@ export class RaiBridge {
 			} else {
 				el.removeAttribute(AimSvgContract.ATTR_STEREOTYPE);
 			}
+			const glyphRef = stereotypeGlyphAttrValue(node);
+			if (glyphRef) {
+				el.setAttribute(AimSvgContract.ATTR_STEREOTYPE_GLYPH, glyphRef);
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_STEREOTYPE_GLYPH);
+			}
 
 			if (node.unbound === true) {
 				el.setAttribute(AimSvgContract.ATTR_UNBOUND, 'true');
 			} else {
 				el.removeAttribute(AimSvgContract.ATTR_UNBOUND);
+			}
+			if (node.slot === true) {
+				el.setAttribute(AimSvgContract.ATTR_SLOT, 'true');
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_SLOT);
+			}
+			if (node.restriction) {
+				el.setAttribute(AimSvgContract.ATTR_RESTRICTION, node.restriction);
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_RESTRICTION);
 			}
 			if (node.boundaryId) {
 				el.setAttribute('aim-boundary-id', node.boundaryId);
@@ -1042,7 +1140,7 @@ export class RaiBridge {
 				}
 
 				const isPackage = (b.kind ?? '').toLowerCase() === 'package';
-				const primaryColor = isPackage ? '#1E293B' : '#C59B27';
+				const primaryColor = isPackage ? '#1E293B' : CascaisPalette.NetGoldStroke;
 				const label = `${b.kind || (isPackage ? 'Package' : 'Class')}: ${b.name || b.id}`;
 				const tabWidth = Math.max(80, label.length * 7.5 + 20);
 
@@ -1071,7 +1169,7 @@ export class RaiBridge {
 					// UML Tabbed Folder: Protruding tab on top-left outside main rectangle per media_1789883224444.png
 					const tab = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
 					tab.setAttribute('d', `M 0 26 L 0 6 A 6 6 0 0 1 6 0 L ${tabWidth - 18} 0 L ${tabWidth} 26 Z`);
-					tab.setAttribute('fill', '#FFFFFF');
+					tab.setAttribute('fill', CascaisPalette.ChalkWhite);
 					tab.setAttribute('stroke', primaryColor);
 					tab.setAttribute('stroke-width', '1.5');
 					tab.setAttribute('class', 'aim-boundary-tab');
@@ -1117,7 +1215,7 @@ export class RaiBridge {
 					const headerText = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
 					headerText.setAttribute('x', '14');
 					headerText.setAttribute('y', '22');
-					headerText.setAttribute('fill', '#1F2937');
+					headerText.setAttribute('fill', CascaisPalette.WarmGraphite);
 					headerText.setAttribute('font-family', 'Inter, system-ui, sans-serif');
 					headerText.setAttribute('font-size', '12');
 					headerText.setAttribute('font-weight', 'bold');
@@ -1180,6 +1278,12 @@ export class RaiBridge {
 			}
 			if (edge.stereotype !== undefined) {
 				el.setAttribute(AimSvgContract.ATTR_STEREOTYPE, edge.stereotype);
+			}
+			const edgeGlyphRef = stereotypeGlyphAttrValue(edge);
+			if (edgeGlyphRef) {
+				el.setAttribute(AimSvgContract.ATTR_STEREOTYPE_GLYPH, edgeGlyphRef);
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_STEREOTYPE_GLYPH);
 			}
 			if (edge.sourceCardinality !== undefined) {
 				el.setAttribute('aim-source-cardinality', edge.sourceCardinality);
@@ -1296,7 +1400,29 @@ export class RaiBridge {
 			} else {
 				el.querySelector('g.aim-expression-pill')?.remove();
 			}
+
+			// CR053: edge pictogram above the label / pill
+			el.querySelector('image.aim-stereotype-glyph')?.remove();
+			const pillShown = Boolean(edge.expression && model.showExpressions !== false);
+			const glyphBox = edgeGlyphPlacement(
+				edge,
+				midPoint,
+				edge.label ? midPoint.y - (pillShown ? 14 : 8) - 11 : pillShown ? midPoint.y - 9 : undefined,
+			);
+			if (glyphBox) {
+				const imageEl = doc.createElementNS('http://www.w3.org/2000/svg', 'image');
+				imageEl.setAttribute('href', glyphBox.url);
+				imageEl.setAttribute('x', `${glyphBox.x}`);
+				imageEl.setAttribute('y', `${glyphBox.y}`);
+				imageEl.setAttribute('width', `${glyphBox.size}`);
+				imageEl.setAttribute('height', `${glyphBox.size}`);
+				imageEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+				imageEl.setAttribute('class', 'aim-stereotype-glyph aim-stereotype-glyph-edge');
+				el.appendChild(imageEl);
+			}
 		}
+
+		healPortalAtRest(doc);
 
 		return new XMLSerializer().serializeToString(doc);
 	}
@@ -1311,6 +1437,7 @@ export class RaiBridge {
 		underline: boolean = false,
 		qualifier?: string,
 		boxWidth?: number,
+		tag?: string,
 	): string {
 		const wrapLength = boxWidth ? computeMaxLineLength(boxWidth, fontSize) : 18;
 		const nameWrapped = wrapAimText(text, wrapLength);
@@ -1319,7 +1446,9 @@ export class RaiBridge {
 		const hasQualifier = Boolean(qualifier && qualifier.trim().length > 0);
 		const qualifierLines = hasQualifier ? wrapAimText(qualifier!, wrapLength).split('\n') : [];
 
-		const totalLines = qualifierLines.length + nameLines.length;
+		// A role slot's expected Class (`: Person`) sits quietly below the role name
+		const tagLines = tag && tag.trim().length > 0 ? [tag] : [];
+		const totalLines = qualifierLines.length + nameLines.length + tagLines.length;
 		const underlineAttr = underline ? ' text-decoration="underline"' : '';
 		const weightAttr = fontWeight !== 'normal' ? ` font-weight="${fontWeight}"` : '';
 
@@ -1342,6 +1471,11 @@ export class RaiBridge {
 			tspans += `<tspan class="aim-name" x="${cx}" y="${y}" font-size="${fontSize}"${weightAttr} fill="${fill}"${underlineAttr}>${escapeXmlText(nLine)}</tspan>`;
 		});
 
+		tagLines.forEach((tLine, idx) => {
+			const y = Math.round(startY + (qualifierLines.length + nameLines.length + idx) * lineHeight);
+			tspans += `<tspan class="aim-restriction" x="${cx}" y="${y}" font-size="${fontSize - 1}" font-style="italic" fill="${CascaisPalette.TextSecondary}">${escapeXmlText(tLine)}</tspan>`;
+		});
+
 		return `      <text font-size="${fontSize}" fill="${fill}" text-anchor="middle" dominant-baseline="central">${tspans}</text>\n`;
 	}
 
@@ -1352,12 +1486,28 @@ export class RaiBridge {
 	public renderNodeInnerSvg(node: RaidNodeData): string {
 		let svg = '';
 		node = layoutDescription(node);
-		const isInstance = node.instance === true || node.kind === 'obj' || node.kind === 'rf';
+		const isInstance = isInstanceNode(node);
 		const isUnbound = node.unbound === true;
 		const width = node.bounds.width;
 		const height = node.bounds.height;
+		// 1UCC role slot: the role name is prominent, the expected Class is the quiet tag below it, and
+		// the slot ring replaces any qualifier line.
+		const isSlot = node.slot === true && (node.kind === 'per' || node.kind === 'obj' || node.kind === 'plc');
+		const qualifierText = isSlot ? undefined : node.qualifier;
+		const slotTag = isSlot ? restrictionTag(node.restriction) : undefined;
+		const slotRingAttrs = `fill="none" stroke="${RoleSlotRing.stroke}" stroke-width="${RoleSlotRing.strokeWidth}" stroke-dasharray="${RoleSlotRing.dash}" class="aim-slot-ring"`;
+		const slotHalo = (): string => {
+			const i = RoleSlotRing.inset;
+			return `      <rect x="${-i}" y="${-i}" width="${width + 2 * i}" height="${height + 2 * i}" rx="6" ry="6" ${slotRingAttrs} />\n`;
+		};
 		const resolvedStereo = resolveStereotype(node.stereotype);
-		const hasStereoIcon = Boolean(resolvedStereo && resolvedStereo !== 'initiates');
+		// CR053: a known pictogram replaces the built-in stereotype icon (and the Person's stick figure),
+		// exactly as on the live canvas. Description cards and roles carry no glyph.
+		const glyph = ['uc', 'act', 'cls', 'obj', 'per', 'plc'].includes(node.kind) && !(node.kind === 'obj' && node.description)
+			? resolveStereotypeGlyph(node.stereotypeGlyph)
+			: undefined;
+		const hasStereoIcon = Boolean(glyph) || Boolean(resolvedStereo && resolvedStereo !== 'initiates');
+		const drawBuiltInIcon = hasStereoIcon && !glyph;
 		const cardTextCx = hasStereoIcon ? Math.round(width * 0.62) : width / 2;
 		const cardTextWidth = hasStereoIcon ? Math.max(40, width - 52) : width;
 		const iconY = Math.max(6, Math.round((height - 24) / 2));
@@ -1371,14 +1521,14 @@ export class RaiBridge {
 		if (node.kind === 'uc') {
 			const rx = width / 2;
 			const ry = height / 2;
-			svg += `      <ellipse cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGold}" stroke-width="2"${unboundAttrs} />\n`;
-			if (hasStereoIcon) {
+			svg += `      <ellipse cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGoldStroke}" stroke-width="2"${unboundAttrs} />\n`;
+			if (drawBuiltInIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
 			}
 			svg += this.renderSvgText(rawDisplayName, cardTextCx, ry, 13, 'bold', textColor, isInstance, node.qualifier, cardTextWidth);
 		} else if (node.kind === 'act') {
 			svg += `      <rect width="${width}" height="${height}" rx="12" ry="12" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.CascaisRed}" stroke-width="2"${unboundAttrs} />\n`;
-			if (hasStereoIcon) {
+			if (drawBuiltInIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
 			}
 			svg += this.renderSvgText(rawDisplayName, cardTextCx, height / 2, 13, '600', textColor, isInstance, node.qualifier, cardTextWidth);
@@ -1386,7 +1536,7 @@ export class RaiBridge {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
 			svg += `      <rect width="${width}" height="28" fill="${CascaisPalette.CanvasCream}" stroke="none" />\n`;
 			svg += `      <line x1="0" y1="28" x2="${width}" y2="28" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5" />\n`;
-			if (hasStereoIcon) {
+			if (drawBuiltInIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 8, 2);
 			}
 			svg += this.renderSvgText(rawDisplayName, cardTextCx, 14, 12, 'bold', textColor, isInstance, undefined, cardTextWidth);
@@ -1394,25 +1544,28 @@ export class RaiBridge {
                 svg += `<text x="8" y="${46 + i * 16}" font-size="11" fill="#475569">${escapeXmlText(line)}</text>`;
             });
 		} else if (node.kind === 'obj' && node.description) {
-            svg += `<rect width="${width}" height="${height}" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"${unboundAttrs} />`;
+            svg += `<rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="#CBD5E1" stroke-width="1.5"${unboundAttrs} />`;
             svg += this.renderSvgText(rawDisplayName, width / 2, 22, 13, '600', textColor, true, undefined, width);
             wrapDescription(node.description, node.descriptionWidth).split('\n').forEach((line, i) => {
                 svg += `<text x="14" y="${62 + i * 18}" font-size="12" fill="#475569">${escapeXmlText(line)}</text>`;
             });
         } else if (node.kind === 'obj') {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
-			if (hasStereoIcon) {
+			if (drawBuiltInIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
 			}
-			svg += this.renderSvgText(rawDisplayName, cardTextCx, height / 2, 12, 'normal', textColor, isInstance, node.qualifier, cardTextWidth);
+			if (isSlot) svg += slotHalo();
+			svg += this.renderSvgText(rawDisplayName, cardTextCx, height / 2, 12, 'normal', textColor, isInstance, qualifierText, cardTextWidth, slotTag);
 		} else if (node.kind === 'per') {
 			const isInitiating = isInitiatingStereotype(node.stereotype);
 			const isLead = resolvedStereo === 'lead';
-			const strokeColor = (isInitiating && !isLead) ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+			const strokeColor = (isInitiating && !isLead) ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
 			const cx = Math.round(width / 2);
 			svg += `      <rect width="${width}" height="${height}" fill="none" stroke="none" />\n`;
-			if (resolvedStereo === 'system') {
-				const sysColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+			if (glyph) {
+				// The pictogram silhouette, emitted below, takes the figure's place.
+			} else if (resolvedStereo === 'system') {
+				const sysColor = isInitiating ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
 				svg += renderStereotypeIconSvg('system', cx - 22, 8, sysColor, sysColor);
 			} else {
 				const torsoD = isLead
@@ -1421,21 +1574,24 @@ export class RaiBridge {
 				svg += `      <path d="${torsoD}" fill="none" stroke="${strokeColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"${unboundAttrs} />\n`;
 				svg += `      <circle cx="${cx}" cy="20" r="12" fill="${CascaisPalette.ChalkWhite}" stroke="${strokeColor}" stroke-width="2.2"${unboundAttrs} />\n`;
 				if (resolvedStereo === 'customer') {
-					svg += renderStereotypeIconSvg('customer', cx - 12, -7, CascaisPalette.NetGold, CascaisPalette.NetGold);
+					svg += renderStereotypeIconSvg('customer', cx - 12, -7, CascaisPalette.NetGoldStroke, CascaisPalette.NetGold);
 				} else if (resolvedStereo === 'headliner') {
-					svg += renderStereotypeIconSvg('headliner', cx - 8, 38.5, CascaisPalette.NetGold, CascaisPalette.NetGold);
+					svg += renderStereotypeIconSvg('headliner', cx - 8, 38.5, CascaisPalette.NetGoldStroke, CascaisPalette.NetGold);
 				} else if (resolvedStereo === 'ai') {
-					const aiColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+					const aiColor = isInitiating ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
 					svg += renderStereotypeIconSvg('ai', cx - 12, 8, aiColor, aiColor);
 				} else if (resolvedStereo === 'lead') {
-					svg += renderStereotypeIconSvg(node.stereotype, cx - 12, 58, CascaisPalette.NetGold, CascaisPalette.NetGold);
+					svg += renderStereotypeIconSvg(node.stereotype, cx - 12, 58, CascaisPalette.NetGoldStroke, CascaisPalette.NetGold);
 				} else if (resolvedStereo === 'observer') {
-					const obsColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+					const obsColor = isInitiating ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
 					const cyclopsTransform = `translate(${cx}, 20) scale(0.85) translate(-12, -9.5)`;
 					svg += renderStereotypeIconSvg(node.stereotype, cx - 12, 11, obsColor, CascaisPalette.NetGold, cyclopsTransform);
 				}
 			}
-			svg += this.renderSvgText(rawDisplayName, cx, 80, 12, '500', textColor, isInstance, node.qualifier, width);
+			if (isSlot) {
+				svg += `      <circle cx="${cx}" cy="31" r="31" ${slotRingAttrs} />\n`;
+			}
+			svg += this.renderSvgText(rawDisplayName, cx, 80, 12, '500', textColor, isInstance, qualifierText, width, slotTag);
 		} else if (node.kind === 'plc') {
 			const isFramelessPlc = ['venue', 'stage', 'bar'].includes(resolvedStereo ?? '');
 			if (isFramelessPlc && resolvedStereo) {
@@ -1446,32 +1602,48 @@ export class RaiBridge {
 				const iconY = 6;
 				svg += `      <rect width="${width}" height="${height}" fill="none" stroke="none" />\n`;
 				const isInitiating = isInitiatingStereotype(node.stereotype);
-				const strokeColor = isInitiating ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+				const strokeColor = isInitiating ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
 				const accentColor = strokeColor;
-				svg += renderStereotypeIconSvg(resolvedStereo, iconX, iconY, strokeColor, accentColor);
-				svg += this.renderSvgText(rawDisplayName, cx, 84, 12, '500', textColor, isInstance, node.qualifier, width);
-			} else if (hasStereoIcon && resolvedStereo) {
+				if (!glyph) {
+					svg += renderStereotypeIconSvg(resolvedStereo, iconX, iconY, strokeColor, accentColor);
+				}
+				if (isSlot) {
+					svg += `      <circle cx="${cx}" cy="${iconY + Math.round(paths.height / 2)}" r="${Math.round(Math.max(paths.width, paths.height) / 2) + 6}" ${slotRingAttrs} />\n`;
+				}
+				svg += this.renderSvgText(rawDisplayName, cx, 84, 12, '500', textColor, isInstance, qualifierText, width, slotTag);
+			} else if (hasStereoIcon) {
 				const cx = Math.round(width / 2);
-				const paths = getStereotypePaths(resolvedStereo);
-				const iconX = cx - Math.round(paths.width / 2);
 				svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
-				svg += renderStereotypeIconSvg(node.stereotype, iconX, 8, CascaisPalette.NetGold, CascaisPalette.NetGold);
-				svg += this.renderSvgText(rawDisplayName, cx, 56, 12, '600', textColor, isInstance, node.qualifier, width);
+				if (!glyph && resolvedStereo) {
+					const iconX = cx - Math.round(getStereotypePaths(resolvedStereo).width / 2);
+					svg += renderStereotypeIconSvg(node.stereotype, iconX, 8, CascaisPalette.NetGoldStroke, CascaisPalette.NetGold);
+				}
+				if (isSlot) svg += slotHalo();
+				svg += this.renderSvgText(rawDisplayName, cx, 56, 12, '600', textColor, isInstance, qualifierText, width, slotTag);
 			} else {
 				svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
-				svg += this.renderSvgText(rawDisplayName, width / 2, height / 2, 12, '600', textColor, isInstance, node.qualifier, width);
+				if (isSlot) svg += slotHalo();
+				svg += this.renderSvgText(rawDisplayName, width / 2, height / 2, 12, '600', textColor, isInstance, qualifierText, width, slotTag);
 			}
 		} else if (node.kind === 'rol' || node.kind === 'rf') {
-            const fill = node.kind === 'rf' ? String(node.properties?.color ?? '#2563EB') : '#FFFFFF';
-            svg += `<circle cx="${width / 2}" cy="${height / 2}" r="${Math.min(width, height) / 2}" fill="${escapeXmlAttr(fill)}" stroke="#334155" stroke-width="2"${unboundAttrs} />`;
+            const fill = node.kind === 'rf' ? String(node.properties?.color ?? CascaisPalette.AccentBlue) : CascaisPalette.ChalkWhite;
+            svg += `<circle cx="${width / 2}" cy="${height / 2}" r="${Math.min(width, height) / 2}" fill="${escapeXmlAttr(fill)}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="2"${unboundAttrs} />`;
             svg += this.renderSvgText(rawDisplayName, width / 2, -14, 13, '600', textColor, isInstance, undefined, 240);
 
 		} else {
 			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" />\n`;
-			if (hasStereoIcon) {
+			if (drawBuiltInIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
 			}
 			svg += this.renderSvgText(node.displayName, cardTextCx, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
+		}
+
+		if (glyph) {
+			const frameless = node.kind === 'plc' && ['venue', 'stage', 'bar'].includes(resolvedStereo ?? '');
+			const boxWidth = frameless ? (width > 140 ? 120 : (width < 120 ? 120 : width)) : width;
+			const p = computeStereotypeGlyphPlacement(node.kind, boxWidth, height, { frameless });
+			const url = getStereotypeGlyphUrl(glyph.file) ?? '';
+			svg += `      <image href="${escapeXmlAttr(url)}" x="${p.x}" y="${p.y}" width="${p.width}" height="${p.height}" preserveAspectRatio="xMidYMid meet" class="aim-stereotype-glyph aim-stereotype-glyph-${p.mode}"${isUnbound ? ' opacity="0.70"' : ''} />\n`;
 		}
 
 		// The Duality of the Object: Portuguese Bicolor Seam & Portal Door
@@ -1480,78 +1652,67 @@ export class RaiBridge {
 			const midX = Math.round(width / 2);
 
 			let doorPath = `M ${midX} 0 H ${width} v ${height} H ${midX} Z`;
-			let doorFill = 'rgba(16, 185, 129, 0.10)';
 			let seamX1 = midX;
 			let seamY1 = 0;
 			let seamX2 = midX;
 			let seamY2 = height;
 			let chevronX = width - 12;
 			let chevronY = Math.round(height / 2);
-			let chevronFill = 'rgba(16, 185, 129, 0.70)';
+			const chevronFill = HeraldicWash.vermelho(DualityWashStrength.chevron);
 
 			if (node.kind === 'per') {
 				const cx = Math.round(width / 2);
 				if (resolvedStereo === 'system') {
 					doorPath = `M ${cx} 11 H ${cx + 16} A 4 4 0 0 1 ${cx + 20} 15 V 23 A 4 4 0 0 1 ${cx + 16} 27 H ${cx + 9} V 33 H ${cx + 16} A 4 4 0 0 1 ${cx + 20} 37 V 45 A 4 4 0 0 1 ${cx + 16} 49 H ${cx} Z`;
-					doorFill = 'rgba(16, 185, 129, 0.25)';
 					seamX1 = cx;
 					seamY1 = 11;
 					seamX2 = cx;
 					seamY2 = 49;
 					chevronX = cx + 32;
 					chevronY = 30;
-					chevronFill = 'rgba(16, 185, 129, 0.75)';
 				} else {
 					const headRight = `M ${cx} 8 A 12 12 0 0 1 ${cx} 32 Z`;
 					const torsoRight = `M ${cx} 38 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 H ${cx} Z`;
 					doorPath = `${headRight} ${torsoRight}`;
-					doorFill = 'rgba(16, 185, 129, 0.25)';
 					seamX1 = cx;
 					seamY1 = 8;
 					seamX2 = cx;
 					seamY2 = 54;
 					chevronX = width - 10;
 					chevronY = Math.round(height / 2);
-					chevronFill = 'rgba(16, 185, 129, 0.75)';
 				}
 			} else if (node.kind === 'plc' && resolvedStereo === 'venue') {
 				const effectiveW = width > 140 ? 120 : (width < 120 ? 120 : width);
 				const cx = Math.round(effectiveW / 2);
 				const iconY = 6;
 				doorPath = `M ${cx} 9 A 13.5 13.5 0 0 1 ${cx + 13.5} 22.5 C ${cx + 13.5} 32.25 ${cx + 7.5} 39.75 ${cx} 49.5 Z M ${cx} 27.75 A 5.25 5.25 0 0 0 ${cx} 17.25 Z`;
-				doorFill = 'rgba(16, 185, 129, 0.25)';
 				seamX1 = cx;
 				seamY1 = iconY;
 				seamX2 = cx;
 				seamY2 = iconY + 54;
 				chevronX = cx + 34;
 				chevronY = 26;
-				chevronFill = 'rgba(16, 185, 129, 0.75)';
 			} else if (node.kind === 'plc' && resolvedStereo === 'stage') {
 				const effectiveW = width > 140 ? 120 : (width < 120 ? 120 : width);
 				const cx = Math.round(effectiveW / 2);
 				const iconY = 6;
 				doorPath = `M ${cx} ${iconY + 2.6} H ${cx + 14.4} L ${cx + 20.5} ${iconY + 9.6} V ${iconY + 40.2} H ${cx} Z`;
-				doorFill = 'rgba(16, 185, 129, 0.25)';
 				seamX1 = cx;
 				seamY1 = iconY + 2.6;
 				seamX2 = cx;
 				seamY2 = iconY + 40.2;
 				chevronX = cx + 34;
 				chevronY = 26;
-				chevronFill = 'rgba(16, 185, 129, 0.75)';
 			} else if (node.kind === 'plc' && resolvedStereo === 'bar') {
 				const effectiveW = width > 140 ? 120 : (width < 120 ? 120 : width);
 				const cx = Math.round(effectiveW / 2);
 				doorPath = `M ${cx} ${iconY + 8} H ${cx + 15} L ${cx} ${iconY + 28} Z`;
-				doorFill = 'rgba(16, 185, 129, 0.40)';
 				seamX1 = cx;
 				seamY1 = iconY + 8;
 				seamX2 = cx;
 				seamY2 = iconY + 44;
 				chevronX = cx + 32;
 				chevronY = 26;
-				chevronFill = 'rgba(16, 185, 129, 0.75)';
 			} else if (node.kind === 'uc') {
 				const rx = Math.round(width / 2);
 				const ry = Math.round(height / 2);
@@ -1561,9 +1722,10 @@ export class RaiBridge {
 				doorPath = `M ${midX} 0 H ${width - r} a ${r} ${r} 0 0 1 ${r} ${r} v ${height - 2 * r} a ${r} ${r} 0 0 1 -${r} ${r} H ${midX} Z`;
 			}
 
+			// CR055 (Koyo D5): exported at rest — the door is a clear click target; seam and chevron mark the portal
 			svg += `      <a href="${escapedHref}" target="_blank">\n`;
-			svg += `        <path d="${doorPath}" fill="${doorFill}" fill-rule="evenodd" class="aim-portal-door" />\n`;
-			svg += `        <line x1="${seamX1}" y1="${seamY1}" x2="${seamX2}" y2="${seamY2}" stroke="${CascaisPalette.NetGold}" stroke-width="1.5" class="aim-portal-seam" />\n`;
+			svg += `        <path d="${doorPath}" fill="${HeraldicWash.vermelho(0)}" fill-rule="evenodd" class="aim-portal-door" />\n`;
+			svg += `        <line x1="${seamX1}" y1="${seamY1}" x2="${seamX2}" y2="${seamY2}" stroke="${CascaisPalette.NetGoldStroke}" stroke-width="1.5" class="aim-portal-seam" />\n`;
 			svg += `        <text x="${chevronX}" y="${chevronY}" fill="${chevronFill}" font-size="14" font-weight="bold" font-family="Inter, system-ui, -apple-system, sans-serif" text-anchor="middle" dominant-baseline="central" class="aim-portal-chevron">›</text>\n`;
 			svg += `      </a>\n`;
 		}
@@ -1592,8 +1754,8 @@ export class RaiBridge {
 		if (options.embedStyles !== false) {
 			svg += `    <style>\n`;
 			svg += `      .aim-node { cursor: pointer; transition: filter 0.15s ease; }\n`;
-			svg += `      .aim-node:hover { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }\n`;
-			svg += `      .aim-portal-seam { stroke: ${CascaisPalette.NetGold}; stroke-width: 1.5; pointer-events: none; }\n`;
+			svg += `      .aim-portal-seam { stroke: ${CascaisPalette.NetGoldStroke}; stroke-width: 1.5; pointer-events: none; }\n`;
+			svg += `      ${PORTAL_FEEDBACK_STYLES}\n`;
 			svg += `      .aim-edge { fill: none; stroke: ${CascaisPalette.WarmGraphite}; stroke-width: 1.5; }\n`;
 			svg += `      text { font-family: Inter, system-ui, sans-serif; }\n`;
 			svg += `      .aim-node[aim-instance="true"] text.aim-name, .aim-node[aim-instance="true"] tspan.aim-name { text-decoration: underline; }\n`;
@@ -1625,29 +1787,41 @@ export class RaiBridge {
 			const targetPortAttr = edge.targetPort && edge.targetPort !== 'auto' ? ` ${AimSvgContract.ATTR_TARGET_PORT}="${escapeXmlAttr(edge.targetPort)}"` : '';
 			const routingAttr = edge.routing ? ` ${AimSvgContract.ATTR_ROUTING}="${escapeXmlAttr(edge.routing)}"` : '';
 			const stereotypeAttr = edge.stereotype ? ` ${AimSvgContract.ATTR_STEREOTYPE}="${escapeXmlAttr(edge.stereotype)}"` : '';
+			const edgeGlyphRef = stereotypeGlyphAttrValue(edge);
+			const glyphAttr = edgeGlyphRef ? ` ${AimSvgContract.ATTR_STEREOTYPE_GLYPH}="${escapeXmlAttr(edgeGlyphRef)}"` : '';
 			const sourceCardAttr = edge.sourceCardinality ? ` aim-source-cardinality="${escapeXmlAttr(edge.sourceCardinality)}"` : '';
 			const targetCardAttr = edge.targetCardinality ? ` aim-target-cardinality="${escapeXmlAttr(edge.targetCardinality)}"` : '';
 
-			svg += `    <g ${AimSvgContract.ATTR_EDGE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(edge.id)}" ${AimSvgContract.ATTR_EDGE_KIND}="${escapeXmlAttr(edge.kind)}" ${AimSvgContract.ATTR_SOURCE}="${escapeXmlAttr(edge.sourceId)}" ${AimSvgContract.ATTR_TARGET}="${escapeXmlAttr(edge.targetId)}" aim-directed="${edge.directed !== false}"${sourcePortAttr}${targetPortAttr}${routingAttr}${edge.expression !== undefined ? ` aim-expression="${escapeXmlAttr(edge.expression)}"` : ''}${edge.expressionColor !== undefined ? ` aim-expression-color="${escapeXmlAttr(edge.expressionColor)}"` : ''}${edge.satisfied !== undefined ? ` aim-satisfied="${edge.satisfied}"` : ''}${stereotypeAttr}${sourceCardAttr}${targetCardAttr} ${AimSvgContract.ATTR_BENDS}="${escapeXmlAttr(bendsFormatted)}">\n`;
+			svg += `    <g ${AimSvgContract.ATTR_EDGE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(edge.id)}" ${AimSvgContract.ATTR_EDGE_KIND}="${escapeXmlAttr(edge.kind)}" ${AimSvgContract.ATTR_SOURCE}="${escapeXmlAttr(edge.sourceId)}" ${AimSvgContract.ATTR_TARGET}="${escapeXmlAttr(edge.targetId)}" aim-directed="${edge.directed !== false}"${sourcePortAttr}${targetPortAttr}${routingAttr}${edge.expression !== undefined ? ` aim-expression="${escapeXmlAttr(edge.expression)}"` : ''}${edge.expressionColor !== undefined ? ` aim-expression-color="${escapeXmlAttr(edge.expressionColor)}"` : ''}${edge.satisfied !== undefined ? ` aim-satisfied="${edge.satisfied}"` : ''}${stereotypeAttr}${glyphAttr}${sourceCardAttr}${targetCardAttr} ${AimSvgContract.ATTR_BENDS}="${escapeXmlAttr(bendsFormatted)}">\n`;
 			if (pathD) {
 				svg += `      <path d="${pathD}" class="aim-edge" fill="none" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5"${strokeDash}${markerEnd} />\n`;
 			}
+			const midPoint =
+				edge.bendPoints.length > 0
+					? (edge.bendPoints[Math.floor(edge.bendPoints.length / 2)] ?? { x: 50, y: 50 })
+					: (() => {
+							const s = model.nodes.find((n) => n.id === edge.sourceId);
+							const t = model.nodes.find((n) => n.id === edge.targetId);
+							if (s && t) {
+								return {
+									x: Math.round((s.bounds.x + s.bounds.width / 2 + t.bounds.x + t.bounds.width / 2) / 2),
+									y: Math.round((s.bounds.y + s.bounds.height / 2 + t.bounds.y + t.bounds.height / 2) / 2),
+								};
+							}
+							return { x: 50, y: 50 };
+						})();
+			const pillShown = Boolean(edge.expression && model.showExpressions !== false);
 			if (edge.label) {
-				const midPoint =
-					edge.bendPoints.length > 0
-						? (edge.bendPoints[Math.floor(edge.bendPoints.length / 2)] ?? { x: 50, y: 50 })
-						: (() => {
-								const s = model.nodes.find((n) => n.id === edge.sourceId);
-								const t = model.nodes.find((n) => n.id === edge.targetId);
-								if (s && t) {
-									return {
-										x: Math.round((s.bounds.x + s.bounds.width / 2 + t.bounds.x + t.bounds.width / 2) / 2),
-										y: Math.round((s.bounds.y + s.bounds.height / 2 + t.bounds.y + t.bounds.height / 2) / 2),
-									};
-								}
-								return { x: 50, y: 50 };
-							})();
-				svg += `      <text x="${midPoint.x}" y="${midPoint.y - (edge.expression && model.showExpressions !== false ? 20 : 8)}" font-size="11" fill="${CascaisPalette.TextSecondary}" text-anchor="middle">${escapeXmlText(edge.label)}</text>\n`;
+				svg += `      <text x="${midPoint.x}" y="${midPoint.y - (pillShown ? 20 : 8)}" font-size="11" fill="${CascaisPalette.TextSecondary}" text-anchor="middle">${escapeXmlText(edge.label)}</text>\n`;
+			}
+			// CR053: edge pictogram above the label / pill
+			const glyphBox = edgeGlyphPlacement(
+				edge,
+				midPoint,
+				edge.label ? midPoint.y - (pillShown ? 20 : 8) - 11 : pillShown ? midPoint.y - 10 : undefined,
+			);
+			if (glyphBox) {
+				svg += `      <image href="${escapeXmlAttr(glyphBox.url)}" x="${glyphBox.x}" y="${glyphBox.y}" width="${glyphBox.size}" height="${glyphBox.size}" preserveAspectRatio="xMidYMid meet" class="aim-stereotype-glyph aim-stereotype-glyph-edge" />\n`;
 			}
 			if (edge.expression && model.showExpressions !== false) {
                 const source = model.nodes.find(n => n.id === edge.sourceId);
@@ -1668,10 +1842,16 @@ export class RaiBridge {
 			const hrefAttr = node.href && node.href.trim().length > 0 ? ` ${AimSvgContract.ATTR_HREF}="${escapeXmlAttr(node.href.trim())}"` : '';
 			const stereoVal: string = node.stereotype ? (Array.isArray(node.stereotype) ? (node.stereotype as readonly string[]).join(', ') : String(node.stereotype)) : '';
 			const stereotypeAttr = stereoVal ? ` ${AimSvgContract.ATTR_STEREOTYPE}="${escapeXmlAttr(stereoVal)}"` : '';
+			const glyphRef = stereotypeGlyphAttrValue(node);
+			const glyphAttr = glyphRef ? ` ${AimSvgContract.ATTR_STEREOTYPE_GLYPH}="${escapeXmlAttr(glyphRef)}"` : '';
 			const qualifierAttr = node.qualifier ? ` ${AimSvgContract.ATTR_QUALIFIER}="${escapeXmlAttr(node.qualifier)}"` : '';
 			const extraAttrs = (["description", "descriptionWidth", "visibility", "attributes", "methods", "properties", "namespace"] as const).map(field => node[field] !== undefined ? ` aim-${field}="${escapeXmlAttr(field === 'namespace' ? String(node[field]) : JSON.stringify(node[field]))}"` : '').join('');
-			const instanceAttr = (node.instance || node.kind === 'obj' || node.kind === 'rf') ? ` ${AimSvgContract.ATTR_INSTANCE}="true"` : '';
-			svg += `    <g ${AimSvgContract.ATTR_NODE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(node.id)}" ${AimSvgContract.ATTR_KIND}="${escapeXmlAttr(node.kind)}" ${AimSvgContract.ATTR_DISPLAY_NAME}="${escapeXmlAttr(node.displayName)}"${hrefAttr}${qualifierAttr}${instanceAttr}${stereotypeAttr}${extraAttrs} transform="translate(${node.bounds.x}, ${node.bounds.y})">\n`;
+			const instanceAttr = isInstanceNode(node) ? ` ${AimSvgContract.ATTR_INSTANCE}="true"` : '';
+			const roleAttrs =
+				(node.unbound === true ? ` ${AimSvgContract.ATTR_UNBOUND}="true"` : '') +
+				(node.slot === true ? ` ${AimSvgContract.ATTR_SLOT}="true"` : '') +
+				(node.restriction ? ` ${AimSvgContract.ATTR_RESTRICTION}="${escapeXmlAttr(node.restriction)}"` : '');
+			svg += `    <g ${AimSvgContract.ATTR_NODE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(node.id)}" ${AimSvgContract.ATTR_KIND}="${escapeXmlAttr(node.kind)}" ${AimSvgContract.ATTR_DISPLAY_NAME}="${escapeXmlAttr(node.displayName)}"${hrefAttr}${qualifierAttr}${instanceAttr}${roleAttrs}${stereotypeAttr}${glyphAttr}${extraAttrs} transform="translate(${node.bounds.x}, ${node.bounds.y})">\n`;
 			svg += this.renderNodeInnerSvg(node);
 			svg += `    </g>\n`;
 		}

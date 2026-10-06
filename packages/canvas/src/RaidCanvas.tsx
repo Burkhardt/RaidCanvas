@@ -33,7 +33,10 @@ import {
 	setNodeDualityActive,
 	computeStereotypeIconAttrs,
 } from './X6Shapes.js';
+import { withAlpha } from './CascaisTheme.js';
 import { resolveStereotype, isInitiatingStereotype } from './StereotypeIcons.js';
+import { hasStereotypeGlyph } from './StereotypeGlyphs.js';
+import { isInstanceNode } from './RoleModel.js';
 import {
 	validateDiagramConnection,
 	isNodeAllowedInDiagram,
@@ -77,6 +80,12 @@ export interface RaidCanvasProps {
 	onSelectionChange?: (selectedIds: string[]) => void;
 	/** Callback fired when a stencil is dropped onto the canvas */
 	onDropStencil?: (kind: AimOntologyKind, point: { x: number; y: number }) => void;
+	/**
+	 * Asked before `updateNode` changes a node's archetype (kind), ahead of the debounced `onChange`.
+	 * Return `false` to refuse; a promise is applied at once and reverted when it resolves `false` or
+	 * rejects. Hosts use it to move a 1UCC role between Who / What / Where, or to refuse the move.
+	 */
+	onNodeArchetypeChange?: (node: RaidNodeData, from: AimOntologyKind, to: AimOntologyKind) => boolean | Promise<boolean>;
 	/** Callback fired when the active routing mode changes (e.g. hydrated from SVG or switched by user) */
 	onRoutingModeChange?: (mode: AimRoutingMode) => void;
     /** Event-driven toolbar state, including mixed routing and undo/redo. */
@@ -108,9 +117,9 @@ export interface RaidCanvasHandle {
 		y?: number,
 		customData?: Partial<RaidNodeData>,
 	) => string;
-	/** Update properties of an existing node (label, stereotype, dimensions, etc.) */
+	/** Update properties of an existing node (label, stereotype, dimensions, etc.). `stereotypeGlyph: ''` clears the pictogram. */
 	updateNode: (id: string, updates: Partial<RaidNodeData>) => void;
-	/** Update properties of an existing edge (kind, label, stereotype, routing, ports) */
+	/** Update properties of an existing edge (kind, label, stereotype, routing, ports). `stereotypeGlyph: ''` clears the pictogram. */
 	updateEdge: (id: string, updates: Partial<RaidEdgeData>) => void;
 	/** Set routing mode across the canvas or for new edges */
 	setRoutingMode: (mode: AimRoutingMode, applyToAllEdges?: boolean) => void;
@@ -181,6 +190,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			onSelect,
 			onSelectionChange,
 			onDropStencil,
+			onNodeArchetypeChange,
 			onRoutingModeChange,
 			onNodeClick,
 			onNodePortalClick,
@@ -227,6 +237,10 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 		const onDropStencilRef = useRef(onDropStencil);
 		onDropStencilRef.current = onDropStencil;
+
+		const onNodeArchetypeChangeRef = useRef(onNodeArchetypeChange);
+		onNodeArchetypeChangeRef.current = onNodeArchetypeChange;
+		const archetypeRevertRef = useRef(false);
 
         const onCanvasStateChangeRef = useRef(onCanvasStateChange);
         onCanvasStateChangeRef.current = onCanvasStateChange;
@@ -377,7 +391,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 		// --------------------------------------------------------------------------
 		useImperativeHandle(
 			ref,
-			() => ({
+			() => {
+				const handle: RaidCanvasHandle = {
 				getGraph: () => graphRef.current,
                 setShowExpressions: visible => {
                     const graph = graphRef.current;
@@ -410,7 +425,9 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						kind,
 						displayName: customData?.displayName ?? defaultName,
 						...(customData?.qualifier !== undefined ? { qualifier: customData.qualifier } : {}),
-						instance: kind === 'obj' || kind === 'rf' || customData?.instance === true,
+						instance: isInstanceNode({ kind, ...(customData?.instance !== undefined ? { instance: customData.instance } : {}), ...(customData?.slot ? { slot: true } : {}) }),
+						...(customData?.slot === true ? { slot: true } : {}),
+						...(customData?.restriction ? { restriction: customData.restriction } : {}),
 						...(customData?.description !== undefined ? { description: customData.description } : {}),
 						...(customData?.descriptionWidth !== undefined ? { descriptionWidth: customData.descriptionWidth } : {}),
 						...(customData?.stereotype !== undefined ? { stereotype: customData.stereotype } : (kind === 'plc' ? { stereotype: 'Venue' } : {})),
@@ -419,6 +436,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						...(customData?.properties !== undefined ? { properties: customData.properties } : {}),
 						...(customData?.unbound !== undefined ? { unbound: customData.unbound } : {}),
 						...(customData?.href !== undefined ? { href: customData.href } : {}),
+						...(customData?.stereotypeGlyph ? { stereotypeGlyph: customData.stereotypeGlyph } : {}),
 						bounds: {
 							...defaultBounds,
 							...(customData?.bounds ?? {}),
@@ -443,7 +461,33 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					if (!node || !node.isNode()) return;
 
 					const currentData = (node.getData() ?? {}) as RaidNodeData;
-					const nextData: RaidNodeData = {
+					// The host may refuse an archetype change (e.g. a role still bound by a live Activity).
+					// A synchronous `false` leaves the node untouched; a promise applies at once and reverts on
+					// `false` or rejection.
+					const archetypeGuard = onNodeArchetypeChangeRef.current;
+					if (archetypeGuard && updates.kind !== undefined && updates.kind !== currentData.kind && !archetypeRevertRef.current) {
+						const from = currentData.kind;
+						let verdict: boolean | Promise<boolean>;
+						try {
+							verdict = archetypeGuard(currentData, from, updates.kind);
+						} catch {
+							return;
+						}
+						if (verdict === false) return;
+						if (verdict && typeof (verdict as Promise<boolean>).then === 'function') {
+							const revert = () => {
+								if (!graphRef.current?.getCellById(id)) return;
+								archetypeRevertRef.current = true;
+								try {
+									handle.updateNode(id, { kind: from, slot: currentData.slot === true });
+								} finally {
+									archetypeRevertRef.current = false;
+								}
+							};
+							(verdict as Promise<boolean>).then(ok => { if (ok === false) revert(); }, revert);
+						}
+					}
+					let nextData: RaidNodeData = {
 						...currentData,
 						...updates,
 						id: updates.id ?? currentData.id ?? id,
@@ -474,9 +518,20 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 								? { stereotype: currentData.stereotype }
 								: {}),
 					};
+					// CR053: `stereotypeGlyph: ''` clears the pictogram.
+					if (nextData.stereotypeGlyph === '') {
+						const { stereotypeGlyph: _cleared, ...withoutGlyph } = nextData;
+						nextData = withoutGlyph;
+					}
                     if (!isNodeAllowedInDiagram(nextData, new DOMParser().parseFromString(svgPropRef.current, 'image/svg+xml').documentElement.getAttribute('aim-archetype') ?? '')) return;
-                    if (nextData.kind !== currentData.kind || nextData.kind === 'rol' || nextData.kind === 'rf' || nextData.kind === 'obj' || currentData.description) {
-                        const canonical = createAimNode({ ...nextData, bounds: { ...nextData.bounds, ...node.getPosition() } });
+					// CR053: glyph nodes always re-render canonically — the incremental patch below knows nothing
+					// of pictograms and would repaint the built-in icon or stick figure over them.
+					const glyphRender = updates.stereotypeGlyph !== undefined || hasStereotypeGlyph(nextData);
+                    // Role slots re-render canonically too: their ring and `: <Class>` tag live outside the incremental patch.
+                    if (glyphRender || nextData.slot === true || currentData.slot === true || nextData.kind !== currentData.kind || nextData.kind === 'rol' || nextData.kind === 'rf' || nextData.kind === 'obj' || currentData.description) {
+                        // Glyph placement depends on the live size, which resizing does not sync into data.bounds.
+                        const liveSize = glyphRender ? { ...node.getSize(), ...(updates.bounds ?? {}) } : {};
+                        const canonical = createAimNode({ ...nextData, bounds: { ...nextData.bounds, ...node.getPosition(), ...liveSize } });
                         node.setData(canonical.data);
                         const fresh = graph.createNode(canonical);
                         node.prop('shape', canonical.shape);
@@ -555,7 +610,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						const isInitiating = isInitiatingStereotype(nextData.stereotype);
 						const isSystem = resolvedStereotype === 'system';
 						const isLead = resolvedStereotype === 'lead';
-						const strokeColor = (isInitiating && !isLead) ? CascaisPalette.NetGold : CascaisPalette.WarmGraphite;
+						const strokeColor = (isInitiating && !isLead) ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
 						const cx = Math.round(boxWidth / 2);
 						const torsoD = isLead
 							? `M ${cx - 21} 54 v -6 a 10 10 0 0 1 10 -10 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 L ${cx + 8} 47`
@@ -584,7 +639,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					} else if (nextData.kind === 'plc') {
 						node.setAttrByPath('header/display', 'none');
 						if (isFramelessPlc) {
-							// Frameless Place glyphs: Venue, Stage, Bar in Net Gold (#F59E0B)
+							// Frameless Place glyphs: Venue, Stage, Bar in Net Gold (NetGoldStroke)
 							node.setAttrByPath('body/fill', 'transparent');
 							node.setAttrByPath('body/stroke', 'none');
 							node.setAttrByPath('body/strokeWidth', 0);
@@ -686,6 +741,8 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 					const currentData = (edge.getData() ?? {}) as RaidEdgeData;
 					const mutableData: Record<string, unknown> = { ...currentData, ...updates };
+					// CR053: `stereotypeGlyph: ''` clears the pictogram.
+					if (mutableData['stereotypeGlyph'] === '') delete mutableData['stereotypeGlyph'];
 
 					if (updates.bendPoints !== undefined) {
                         selectedWaypointRef.current = null;
@@ -749,6 +806,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					if (
 						updates.label !== undefined ||
 						updates.stereotype !== undefined ||
+						updates.stereotypeGlyph !== undefined ||
 						updates.expression !== undefined ||
 						updates.expressionColor !== undefined ||
 						updates.satisfied !== undefined
@@ -938,18 +996,18 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						node.setAttrByPath('body/refY', 26);
 						node.setAttrByPath('body/refHeight2', -26);
 						node.setAttrByPath('folderTab/d', `M 0 26 L 0 6 A 6 6 0 0 1 6 0 L ${tabWidth - 18} 0 L ${tabWidth} 26 Z`);
-						node.setAttrByPath('folderTab/fill', '#FFFFFF');
+						node.setAttrByPath('folderTab/fill', CascaisPalette.ChalkWhite);
 						node.setAttrByPath('folderTab/stroke', primaryColor);
 						node.setAttrByPath('headerText/fill', '#1E293B');
 						node.setAttrByPath('headerText/refX', 12);
 						node.setAttrByPath('headerText/refY', 14);
 					} else {
-						const primaryColor = '#C59B27';
+						const primaryColor = CascaisPalette.NetGoldStroke;
 						node.setAttrByPath('body/stroke', primaryColor);
 						node.setAttrByPath('body/strokeDasharray', '6,4');
 						node.setAttrByPath('body/refY', 0);
 						node.setAttrByPath('body/refHeight2', 0);
-						node.setAttrByPath('headerText/fill', '#1F2937');
+						node.setAttrByPath('headerText/fill', CascaisPalette.WarmGraphite);
 						node.setAttrByPath('headerText/refX', 14);
 						node.setAttrByPath('headerText/refY', 18);
 					}
@@ -959,7 +1017,9 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					}
 					triggerDebouncedChange();
 				},
-			}),
+				};
+				return handle;
+			},
 			[
 				handleCenter,
 				handleFitToContent,
@@ -1213,7 +1273,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 								attrs: {
 									d: isDirected ? 'M 10 -8 -10 0 10 8 Z' : circleHandleD,
 									fill: CascaisPalette.NetGold,
-									stroke: '#FFFFFF',
+									stroke: CascaisPalette.ChalkWhite,
 									strokeWidth: 2,
 									cursor: 'grab',
 								},
@@ -1225,7 +1285,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 								attrs: {
 									d: isDirected ? 'M -10 -8 10 0 -10 8 Z' : circleHandleD,
 									fill: CascaisPalette.NetGold,
-									stroke: '#FFFFFF',
+									stroke: CascaisPalette.ChalkWhite,
 									strokeWidth: 2,
 									cursor: 'grab',
 								},
@@ -1238,7 +1298,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 								attrs: {
                                     r: 8,
 									fill: CascaisPalette.WarmGraphite,
-									stroke: '#FFFFFF',
+									stroke: CascaisPalette.ChalkWhite,
 									strokeWidth: 1.5,
 								},
 								processHandle: (handle: any) => {
@@ -1863,7 +1923,9 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				kind,
 				displayName: customData?.displayName ?? defaultName,
 				...(customData?.qualifier !== undefined ? { qualifier: customData.qualifier } : {}),
-				instance: kind === 'obj' || kind === 'rf' || customData?.instance === true,
+				instance: isInstanceNode({ kind, ...(customData?.instance !== undefined ? { instance: customData.instance } : {}), ...(customData?.slot ? { slot: true } : {}) }),
+				...(customData?.slot === true ? { slot: true } : {}),
+				...(customData?.restriction ? { restriction: customData.restriction } : {}),
 				...(customData?.description !== undefined ? { description: customData.description } : {}),
 				...(customData?.descriptionWidth !== undefined ? { descriptionWidth: customData.descriptionWidth } : {}),
 				...(customData?.stereotype !== undefined ? { stereotype: customData.stereotype } : (kind === 'plc' ? { stereotype: 'Venue' } : {})),
@@ -1872,6 +1934,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				...(customData?.properties !== undefined ? { properties: customData.properties } : {}),
 				...(customData?.unbound !== undefined ? { unbound: customData.unbound } : {}),
 				...(customData?.href !== undefined ? { href: customData.href } : {}),
+				...(customData?.stereotypeGlyph ? { stereotypeGlyph: customData.stereotypeGlyph } : {}),
 				bounds,
 			};
 
@@ -1888,7 +1951,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 		return (
 			<div
 				ref={wrapperRef}
-				className={`raid-canvas-wrapper ${className ?? ''}`.trim()}
+				className={`raid-canvas-wrapper ${onNodeClick ? 'aim-inspectable' : ''} ${className ?? ''}`.replace(/\s+/g, ' ').trim()}
 				onDragOver={handleDragOver}
 				onDragLeave={handleDragLeave}
 				onDrop={handleDrop}
@@ -1898,7 +1961,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					height: '100%',
 					minHeight: 300,
 					overflow: 'hidden',
-					background: isDragOver ? '#F0FDF4' : CascaisPalette.ChalkWhite,
+					background: isDragOver ? CascaisPalette.EmeraldWhisper : CascaisPalette.ChalkWhite,
 					outline: isDragOver ? `2px dashed ${CascaisPalette.HeraldicGreen}` : 'none',
 					outlineOffset: -4,
 					transition: 'background-color 0.2s ease, outline 0.2s ease',
@@ -1926,12 +1989,12 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							transform: 'translateX(-50%)',
 							zIndex: 20,
 							padding: '6px 16px',
-							background: '#10B981',
-							color: '#FFFFFF',
+							background: CascaisPalette.HeraldicGreen,
+							color: CascaisPalette.ChalkWhite,
 							borderRadius: 20,
 							fontSize: 12,
 							fontWeight: 600,
-							boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+							boxShadow: `0 4px 12px ${withAlpha(CascaisPalette.HeraldicGreen, 0.3)}`,
 							pointerEvents: 'none',
 						}}
 					>

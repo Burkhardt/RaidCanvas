@@ -25,6 +25,45 @@ pnpm add @dr2rai/raid-canvas
 
 The npm package provides reusable React components and styles for your application. **RaidCanvas Studio**, the standalone web preview and reference application, is maintained in [apps/playground on GitHub](https://github.com/Burkhardt/RaidCanvas/tree/main/apps/playground) and is not included in the npm package. Run Studio from a repository checkout to explore and test the components.
 
+## 0.11.0 — Portuguese heraldic flag alignment (CR055)
+
+Art direction: Koyo's decisions D1–D9 (`doc/PROMPT_ALAN_TO_KOYO_CR055_Heraldic_Flag_Alignment.md` and her reply).
+
+- **The awakened duality reads like the flag of Portugal**, left to right:
+  - a **Verde Esperança** persona wash (`<path class="aim-portal-persona">`, the door outline mirrored across the seam)
+  - the **Net Gold** seam
+  - the **Vermelho Coragem** portal door and `›` chevron
+
+  Until 0.10.0 the right-hand door was emerald and the left half had no wash, so the flag read backwards.
+- **Taps are unchanged.** Tap 1 awakens the whole flag. Tap 2 on the left fires `onNodeClick` (Inspector); on the right it fires `onNodePortalClick`. Hosts should bring the Inspector forward on `onNodeClick`, not on selection.
+- **One wash per material**, from `DualityWashStrength`:
+  - cards and Person (head and torso): 10 %
+  - Class boundary: 15 %
+  - System, Venue and Stage silhouettes: 15 %
+  - Bar glass: 18 %
+  - door hover: 18 %
+  - chevron: 70 % at rest, full Vermelho on hover
+- **Hover is never load-bearing; the iPad comes first.** Everything a node offers is visible after tap 1. Pressing the door (`:active`) raises it to 18 % and the chevron to full Vermelho, on the canvas and in exports; that is the feedback on touch glass. With a mouse or trackpad, hovering the door does the same. The left half answers in Verde: pressing or hovering it raises the persona to 18 %, but only when the host passes `onNodeClick` (RaidCanvas then marks its wrapper `aim-inspectable`), since otherwise a left tap changes nothing. Every `:hover` rule in `aoaim-theme.css` and in exported SVGs sits behind `@media (hover: hover) and (pointer: fine)`, because WebKit keeps ungated hover styles after a tap. The Palette's hover tint reacts to `pointerType === 'mouse'` only.
+- **SVG exports show a linked node at rest.** The door inside `<a>` is an unpainted click target, with the Net Gold seam and the Vermelho chevron, and there is no persona. `updateExistingSvg` heals older diagrams on their next save: it clears emerald doors, recolours chevrons and removes any persona.
+- **One gold family.**
+  - `NetGold` is now `#D4AF37`, the chrome's heraldic gold, used for fills (was Tailwind amber `#F59E0B`).
+  - The new `NetGoldStroke #AB8722` draws seams, outlines, initiating-actor glyphs and boundaries. At 3.06:1 on Calçada it meets the WCAG 3:1 minimum for lines.
+- **Cascais theme.** Every heraldic colour is defined once:
+  - in `CascaisTheme.ts`: `CascaisPalette`, `withAlpha`, `HeraldicWash`, `DualityWashStrength`
+  - mirrored as `--aim-*` variables in `aoaim-theme.css`: `--aim-net-gold`, `--aim-net-gold-stroke`, `--aim-bandeira-verde`, `--aim-bandeira-vermelho`
+
+  The status colours `HeraldicGreen #10B981` and `CascaisRed #EF4444` stay distinct from the flag pair. `raid-ui.css` now uses them for daisyUI `success` and `error`.
+- **Breaking for restyling hosts.** The theme CSS no longer sets a base fill on `.aim-portal-persona` or `.aim-portal-door`; the per-material washes come from the shape attributes. Hosts that restyle these should not force a single fill. The dead `.aim-node:hover .aim-portal-*` rules are gone: `.aim-node` is on the body shape, not on an ancestor of the portal, so they never matched.
+
+## 0.10.0 — stereotype glyphs (CR053)
+
+- 117 stereotype pictograms ship as SVG files in `assets/stereotypes/` (also exported as `@dr2rai/raid-canvas/stereotypes/*`). They are referenced by URL, never bundled. Serve that folder and call `setStereotypeGlyphBaseUrl('/your/path/')` once before the first render (default `/stereotypes/`), or supply a full `setStereotypeGlyphResolver(entry => url)`.
+- Set `stereotypeGlyph` on a node (`addNode` / `updateNode`); `updateNode(id, { stereotypeGlyph: '' })` clears it. The value serializes as `aim-stereotype-glyph`, and the headless SVG export draws the same `<image class="aim-stereotype-glyph">`.
+- `RaidInspector` adds a glyph picker under **Stereotype / Facet**: category tabs, search (English, German, aliases), and **Clear**. Choosing a glyph also sets the stereotype to the glyph name when none is set.
+- **Edges** carry glyphs too: `updateEdge(id, { stereotypeGlyph: 'SemiR.svg' })` draws a 20 × 20 pictogram at the edge midpoint, stacked above the label and expression pill; `''` clears it. The edge Inspector offers the same picker under **Edge Label / Stereotype**; it sets only the pictogram and leaves the label text alone.
+- Edge `aim-stereotype` now survives SVG hydration (it was written but not read back before).
+- `resolveStereotypeGlyph`, `searchStereotypeGlyphs`, `STEREOTYPE_GLYPH_CATALOG` and `STEREOTYPE_GLYPH_CATEGORIES` are exported for custom pickers.
+
 ## 0.8.1 — routing, waypoints and expression visibility
 
 - Select a bend point on the canvas, then use **Delete Bend Point** in `RaidInspector`. Individual point deletion, **Clear All Bend Points**, and native undo/redo are supported. Hover enlarges the hit target without moving the point; the selected point stays gold/green.
@@ -131,7 +170,8 @@ RaidCanvas treats SVG as a **first-class semantic document**, not a dumb pixel d
 | `aim-qualifier` | `string?` | Optional upper qualifier line, styled quietly (italic, never underlined). |
 | `aim-instance` | `boolean?` | When `"true"`, underlines the entity name. No archetype implies instance. |
 | `aim-stereotype` | `string?` | Optional ontological stereotype (e.g. `«initiates»`, `«executes»`). |
-| `aim-href` | `string?` | Target URI for navigation and deep linking; renders Portuguese Bicolor Portal Door `<path class="aim-portal-door">` and `<a href="..." target="_blank">` in standalone vector SVG. |
+| `aim-stereotype-glyph` | `string?` | Optional pictogram from the stereotype library (e.g. `Computer.svg`). Replaces the stick figure / pin on `per` and frameless `plc`; a 24 × 24 badge on `uc`, `act`, `cls`, `obj` and framed `plc`. On edges (`aim-edge` groups), a 20 × 20 pictogram at the midpoint. Unknown names round-trip verbatim and render the plain archetype. |
+| `aim-href` | `string?` | Target URI for navigation and deep linking; renders the Portuguese bicolour: Verde persona `<path class="aim-portal-persona">` on the left, Vermelho portal door `<path class="aim-portal-door">` inside `<a href="..." target="_blank">` on the right, in standalone vector SVG. |
 
 #### The 7 Canonical `AimOntologyKind` Archetypes
 1. **`uc` (UseCase):** Elliptical boundary with **Cascais Net Gold** accent border (`#F59E0B`), Chalk White fill, bold centered title.
@@ -312,7 +352,7 @@ export function DiagramEditor({ svgContent }: { svgContent: string }) {
 
 #### The Duality of the Object & Ontological Navigation (CR033)
 * **The Master Treatise:** Formalized in [`doc/DualityOfTheObject.md`](file:///Users/RSB/Projects/GitHub/RaidCanvas/doc/DualityOfTheObject.md).
-* **The Portuguese Bicolor Seam:** When a node carries `aim-href`, its right half ($x \ge \text{midX}$) renders a translucent Cascais Heraldic Green portal wash (`fill="rgba(16, 185, 129, 0.10)"`, class `.aim-portal-door`) and quiet doorway chevron (`<text class="aim-portal-chevron">›</text>`).
+* **The Portuguese Bicolor Seam (CR055):** When a node carries `aim-href` and is awakened, it reads like the flag of Portugal: its left half renders a translucent Verde Esperança persona wash (`HeraldicWash.verde(0.10)`, class `.aim-portal-persona`), the Net Gold seam runs down $x = \text{midX}$, and its right half ($x \ge \text{midX}$) renders a translucent Vermelho Coragem portal wash (`HeraldicWash.vermelho(0.10)`, class `.aim-portal-door`) with a quiet doorway chevron (`<text class="aim-portal-chevron">›</text>`).
 * **Selective Revelation:** Unlinked nodes omit the portal door and chevron entirely, remaining monolithic archetypes.
 * **Touch-First iPad Ergonomics:** Replaces desktop double-clicks with single-tap hemisphere disambiguation:
   - **Left Tap (`onNodeClick`):** Opens the DaisyUI Inspector Drawer beside the canvas without unmounting or losing canvas state.

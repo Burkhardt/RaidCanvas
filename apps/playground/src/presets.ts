@@ -171,11 +171,11 @@ export const PRESETS: DiagramPreset[] = [
     <!-- 1. Person: Dr. Rainer Burkhardt with Customer Crown on Head -->
     <g aim-node="true" aim-id="Customer_Actor" aim-kind="per" aim-display-name="Dr. Rainer Burkhardt" aim-qualifier="Project Director" aim-href="/actors?select=7010" aim-stereotype="Customer, initiates" transform="translate(50, 80)">
       <rect width="120" height="110" fill="none" stroke="none" />
-      <path d="M 81 54 v -6 a 10 10 0 0 0 -10 -10 H 49 a 10 10 0 0 0 -10 10 v 6" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-      <circle cx="60" cy="20" r="12" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2.2" />
+      <path d="M 81 54 v -6 a 10 10 0 0 0 -10 -10 H 49 a 10 10 0 0 0 -10 10 v 6" fill="none" stroke="#AB8722" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="60" cy="20" r="12" fill="#FFFFFF" stroke="#AB8722" stroke-width="2.2" />
       <g class="aim-stereotype-icon aim-icon-customer" transform="translate(48, -7)">
-        <path d="M 4 17.5 L 4 9.5 L 8.5 13 L 12 7 L 15.5 13 L 20 9.5 L 20 17.5 Z M 4 17.5 H 20 V 20 H 4 Z" fill="#F59E0B" />
-        <path d="M 4 17.5 L 4 9.5 L 8.5 13 L 12 7 L 15.5 13 L 20 9.5 L 20 17.5 Z M 4 17.5 H 20 V 20 H 4 Z" fill="none" stroke="#F59E0B" stroke-width="1.2" />
+        <path d="M 4 17.5 L 4 9.5 L 8.5 13 L 12 7 L 15.5 13 L 20 9.5 L 20 17.5 Z M 4 17.5 H 20 V 20 H 4 Z" fill="#D4AF37" />
+        <path d="M 4 17.5 L 4 9.5 L 8.5 13 L 12 7 L 15.5 13 L 20 9.5 L 20 17.5 Z M 4 17.5 H 20 V 20 H 4 Z" fill="none" stroke="#AB8722" stroke-width="1.2" />
         <path d="M 4 9.5 A 1 1 0 1 1 3.9 9.5 Z M 12 7 A 1 1 0 1 1 11.9 7 Z M 20 9.5 A 1 1 0 1 1 19.9 9.5 Z" fill="#FFFFFF" />
       </g>
       <text x="60" y="66" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Project Director</text>
@@ -188,7 +188,7 @@ export const PRESETS: DiagramPreset[] = [
       <path d="M 81 54 v -6 a 10 10 0 0 0 -10 -10 H 49 a 10 10 0 0 0 -10 10 v 6" fill="none" stroke="#1F2937" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
       <circle cx="60" cy="20" r="12" fill="#FFFFFF" stroke="#1F2937" stroke-width="2.2" />
       <g class="aim-stereotype-icon aim-icon-headliner" transform="translate(52, 38.5)">
-        <path d="M 8 0.5 L 10.1 5.1 L 15.6 5.5 L 11.4 9.1 L 12.7 14.5 L 8 11.6 L 3.3 14.5 L 4.6 9.1 L 0.4 5.5 L 5.9 5.1 Z" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M 8 0.5 L 10.1 5.1 L 15.6 5.5 L 11.4 9.1 L 12.7 14.5 L 8 11.6 L 3.3 14.5 L 4.6 9.1 L 0.4 5.5 L 5.9 5.1 Z" fill="none" stroke="#AB8722" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
       </g>
       <text x="60" y="66" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Fado Diva</text>
       <text x="60" y="84" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Amália</text>
@@ -196,7 +196,7 @@ export const PRESETS: DiagramPreset[] = [
 
     <!-- 3. UseCase: Sign Contract -->
     <g aim-node="true" aim-id="SignContract_UC" aim-kind="uc" aim-display-name="Sign Contract" aim-qualifier="Commercial Workflow" aim-href="/usecases?select=uc-sign-contract" transform="translate(270, 95)">
-      <ellipse cx="80" cy="40" rx="80" ry="40" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" />
+      <ellipse cx="80" cy="40" rx="80" ry="40" fill="#FFFFFF" stroke="#AB8722" stroke-width="2" />
       <text x="80" y="32" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Commercial Workflow</text>
       <text x="80" y="48" font-size="13" font-weight="bold" fill="#111827" text-anchor="middle">Sign Contract</text>
     </g>
@@ -228,7 +228,7 @@ export const PRESETS: DiagramPreset[] = [
 
     <!-- 7. Object: Signed Contract Document -->
     <g aim-node="true" aim-id="ContractDoc_Obj" aim-kind="obj" aim-display-name="Signed Contract" aim-qualifier="Legal Artifact" aim-instance="true" aim-href="/objects?select=obj-contract-doc" transform="translate(270, 270)">
-      <rect width="160" height="70" fill="#FFFFFF" stroke="#F59E0B" stroke-width="1.5" />
+      <rect width="160" height="70" fill="#FFFFFF" stroke="#AB8722" stroke-width="1.5" />
       <text x="80" y="28" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Legal Artifact</text>
       <text x="80" y="46" font-size="12" font-weight="600" fill="#111827" text-anchor="middle" text-decoration="underline">Signed Contract</text>
     </g>
@@ -262,7 +262,7 @@ export const PRESETS: DiagramPreset[] = [
   <g class="aim-boundaries-layer">
     <!-- Resizable Class Scope Box: Class: Contract -->
     <g aim-boundary="Class" id="boundary_contract" aim-name="Contract" aim-package="Commercial" aim-href="/classes?select=Contract" aim-elements="CloseContract_UC,SignContract_UC" transform="translate(240, 50)">
-      <rect width="440" height="360" rx="8" ry="8" fill="rgba(248, 250, 252, 0.65)" stroke="#C59B27" stroke-width="1.5" stroke-dasharray="6,4" />
+      <rect width="440" height="360" rx="8" ry="8" fill="rgba(248, 250, 252, 0.65)" stroke="#AB8722" stroke-width="1.5" stroke-dasharray="6,4" />
       <text class="aim-boundary-header-text" x="14" y="22" fill="#1F2937" font-size="12" font-weight="bold" font-family="Inter, system-ui, sans-serif">Class: Contract</text>
     </g>
   </g>
@@ -271,7 +271,7 @@ export const PRESETS: DiagramPreset[] = [
   <g class="aim-edges-layer">
     <!-- Cross-boundary initiating edge with AST expression capsule pill -->
     <g aim-edge="true" aim-id="edge-initiate" aim-edge-kind="association" aim-source="Customer_Actor" aim-target="CloseContract_UC" aim-expression="Customer != null" aim-expression-color="green" aim-satisfied="true" aim-bends="140,150; 320,150">
-      <path d="M 140 150 L 320 150" class="aim-edge" stroke="#F59E0B" stroke-width="2" marker-end="url(#arrow-classic)" />
+      <path d="M 140 150 L 320 150" class="aim-edge" stroke="#AB8722" stroke-width="2" marker-end="url(#arrow-classic)" />
       <text x="210" y="140" font-size="11" fill="#4B5563" text-anchor="middle">«initiates»</text>
     </g>
     <!-- Internal UseCase dependency -->
@@ -286,20 +286,20 @@ export const PRESETS: DiagramPreset[] = [
     <!-- External Actor: Customer -->
     <g aim-node="true" aim-id="Customer_Actor" aim-kind="per" aim-display-name="Customer" aim-href="/actors?select=7010" aim-stereotype="Customer, initiates" transform="translate(50, 95)">
       <rect width="90" height="90" fill="none" stroke="none" />
-      <path d="M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-      <circle cx="45" cy="22" r="8" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2" />
+      <path d="M 61 50 v -4 a 8 8 0 0 0 -8 -8 H 37 a 8 8 0 0 0 -8 8 v 4" fill="none" stroke="#AB8722" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="45" cy="22" r="8" fill="#FFFFFF" stroke="#AB8722" stroke-width="2" />
       <text x="45" y="68" font-size="12" font-weight="600" fill="#111827" text-anchor="middle">Customer</text>
     </g>
 
     <!-- Method UseCase 1: Close Contract (INSIDE Class: Contract) -->
     <g aim-node="true" aim-id="CloseContract_UC" aim-kind="uc" aim-display-name="Close Contract" aim-boundary-id="boundary_contract" aim-href="/usecases?select=uc-close-contract" transform="translate(320, 115)">
-      <ellipse cx="80" cy="40" rx="80" ry="40" fill="#FFFFFF" stroke="#C59B27" stroke-width="2" />
+      <ellipse cx="80" cy="40" rx="80" ry="40" fill="#FFFFFF" stroke="#AB8722" stroke-width="2" />
       <text x="80" y="44" font-size="13" font-weight="bold" fill="#111827" text-anchor="middle">Close Contract</text>
     </g>
 
     <!-- Method UseCase 2: Sign Contract (INSIDE Class: Contract) -->
     <g aim-node="true" aim-id="SignContract_UC" aim-kind="uc" aim-display-name="Sign Contract" aim-boundary-id="boundary_contract" aim-href="/usecases?select=uc-sign-contract" transform="translate(320, 270)">
-      <ellipse cx="80" cy="40" rx="80" ry="40" fill="#FFFFFF" stroke="#C59B27" stroke-width="2" />
+      <ellipse cx="80" cy="40" rx="80" ry="40" fill="#FFFFFF" stroke="#AB8722" stroke-width="2" />
       <text x="80" y="44" font-size="13" font-weight="bold" fill="#111827" text-anchor="middle">Sign Contract</text>
     </g>
   </g>
@@ -347,8 +347,8 @@ export const PRESETS: DiagramPreset[] = [
     <!-- Actor/Person Instance: Rolefiller name (Signer) underlined, Person name (Customer) quiet on top -->
     <g aim-node="true" aim-id="Signer_Actor" aim-kind="per" aim-instance="true" aim-display-name="Signer" aim-qualifier="Customer" aim-href="/actors?select=Customer" transform="translate(60, 100)">
       <rect width="120" height="110" fill="none" stroke="none" />
-      <path d="M 81 54 v -6 a 10 10 0 0 0 -10 -10 H 49 a 10 10 0 0 0 -10 10 v 6" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-      <circle cx="60" cy="20" r="12" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2.2" />
+      <path d="M 81 54 v -6 a 10 10 0 0 0 -10 -10 H 49 a 10 10 0 0 0 -10 10 v 6" fill="none" stroke="#AB8722" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="60" cy="20" r="12" fill="#FFFFFF" stroke="#AB8722" stroke-width="2.2" />
       <text x="60" y="66" font-size="11" font-style="italic" fill="#4B5563" text-anchor="middle">Customer</text>
       <text x="60" y="84" font-size="12" font-weight="600" fill="#111827" text-anchor="middle" text-decoration="underline">Signer</text>
     </g>

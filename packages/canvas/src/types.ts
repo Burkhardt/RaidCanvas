@@ -16,7 +16,9 @@
  * - 'obj' : Object / Instance (runtime instance card with underlined title)
  * - 'per' : Person / Actor (Initiating or Defined role stick-figure/card)
  * - 'plc' : Place / Where (architectural venue or spatial stage card)
- * - 'rol' : Role (structural relationship / KL-ONE constraint)
+ * - 'rol' : Generic Role (hollow circle; a role whose Who / What / Where category is not chosen yet)
+ * - 'rf'  : legacy RoleFiller circle; still loads, no longer offered. A RoleFiller is drawn as its
+ *           own archetype (per / obj / plc) with a `fills: <Role>` edge.
  */
 export type AimOntologyKind = 'act' | 'uc' | 'cls' | 'obj' | 'per' | 'plc' | 'rol' | 'rf';
 
@@ -131,6 +133,15 @@ export interface RaidNodeData {
 	/** Whether this slot is an unbound shadow node awaiting binding (aim-unbound="true"). */
 	readonly unbound?: boolean;
 
+	/**
+	 * Type-level role slot in a 1UCC (`aim-slot="true"`): the role name is the label, the node wears a
+	 * dashed slot ring and is never underlined. Instances (1AOC / `_RFD`) leave this unset.
+	 */
+	readonly slot?: boolean;
+
+	/** Expected Class of a role slot (`aim-restriction`), shown quietly as `: <Class>` under the role name. */
+	readonly restriction?: string;
+
 	/** Identifier of enclosing boundary box (if enclosed). */
 	readonly boundaryId?: string;
 }
@@ -196,6 +207,9 @@ export interface RaidEdgeData {
 	/** Optional edge stereotype annotation (e.g., '«DependsOn»'). */
 	readonly stereotype?: string;
 
+	/** CR053: pictogram from the stereotype library at the edge midpoint (e.g. `SemiR.svg`); `aim-stereotype-glyph`. */
+	readonly stereotypeGlyph?: string;
+
 	/** Multiplicity / Cardinality at the source end (e.g., '1', '0..*'). */
 	readonly sourceCardinality?: string;
 
@@ -228,9 +242,9 @@ export interface RaidEdgeData {
 
 /**
  * Supported color accents for edge AST expression pills.
- * - 'green': Cascais Heraldic Green (#10B981)
- * - 'red': Cascais Red (#EF4444)
- * - 'anthracite': Cascais Warm Graphite / Anthracite (#1F2937)
+ * - 'green': Cascais Heraldic Green (`CascaisPalette.HeraldicGreen`)
+ * - 'red': Cascais Red (`CascaisPalette.CascaisRed`)
+ * - 'anthracite': Cascais Warm Graphite / Anthracite (`CascaisPalette.WarmGraphite`)
  */
 export type AimExpressionColor = 'green' | 'red' | 'anthracite' | string;
 
@@ -307,6 +321,8 @@ export const AimSvgContract = {
 	ATTR_STEREOTYPE_GLYPH: 'aim-stereotype-glyph',
 	ATTR_NAMESPACE: 'aim-namespace',
 	ATTR_UNBOUND: 'aim-unbound',
+	ATTR_SLOT: 'aim-slot',
+	ATTR_RESTRICTION: 'aim-restriction',
 
 	// Boundary marking & attributes
 	ATTR_BOUNDARY: 'aim-boundary',
