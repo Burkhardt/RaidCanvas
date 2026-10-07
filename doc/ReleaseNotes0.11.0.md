@@ -2,9 +2,9 @@
 
 Date: 2026-10-06 · Package: `@dr2rai/raid-canvas@0.11.0`
 
-Not yet published. Governing change request: CR055 (AIA → RaidCanvas, Portuguese Heraldic Flag Alignment). Art direction: Koyo, *The Glass Guide* (decisions D1–D9). The assessment of affected components across RaidCanvas and aia-workbench is in [CR055_Assessment_RaidCanvas_Heraldic-Flag-Alignment.md](CR055_Assessment_RaidCanvas_Heraldic-Flag-Alignment.md).
+Published to npm on 2026-10-06 from commit `ec26304` (tag `v0.11.0`). Governing change request: CR055 (AIA → RaidCanvas, Portuguese Heraldic Flag Alignment). Art direction: Koyo, *The Glass Guide* (decisions D1–D9). The assessment of affected components across RaidCanvas and aia-workbench is in [CR055_Assessment_RaidCanvas_Heraldic-Flag-Alignment.md](CR055_Assessment_RaidCanvas_Heraldic-Flag-Alignment.md).
 
-**Ship together with the aia-workbench bump** (`@dr2rai/raid-canvas` 0.9.0 → 0.11.0) and its civic-stripe flip. Released apart, the chrome would read green→red while the canvas still reads the old way.
+**Shipped together with the aia-workbench bump** (`@dr2rai/raid-canvas` 0.9.0 → 0.11.0, AIA commit `a7f24b9`) and its civic-stripe flip, so chrome and canvas read the flag the same way.
 
 ## Changes
 
