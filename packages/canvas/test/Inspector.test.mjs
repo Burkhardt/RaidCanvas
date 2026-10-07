@@ -105,7 +105,7 @@ test('inspector sanitizes <wbr> tags from display name input field', () => {
   assert.equal(input.value, 'Samstag26');
 });
 
-test('CR053 glyph picker searches, assigns a glyph with a default stereotype, and clears it', async () => {
+test('CR053 node glyph picker selects several glyphs, and the stereotype text stays in sync', async () => {
   const jsdom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
   globalThis.window = jsdom.window;
   globalThis.document = jsdom.window.document;
@@ -118,6 +118,10 @@ test('CR053 glyph picker searches, assigns a glyph with a default stereotype, an
     onUpdateNode: (id, updates) => calls.push({ id, updates }),
   })));
   const query = selector => document.querySelector(selector);
+  const setValue = Object.getOwnPropertyDescriptor(jsdom.window.HTMLInputElement.prototype, 'value').set;
+  const type = (input, value) => React.act(() => { setValue.call(input, value); input.dispatchEvent(new jsdom.window.Event('input', { bubbles: true })); });
+  const field = () => query('[aria-label="Stereotypes"]');
+  const search = () => query('[aria-label="Search stereotype glyphs"]');
 
   await render({ kind: 'obj', displayName: 'Server' });
   assert.equal(query('[aria-label="Clear stereotype glyph"]'), null);
@@ -125,30 +129,52 @@ test('CR053 glyph picker searches, assigns a glyph with a default stereotype, an
   assert.ok(query('[role="dialog"][aria-label="Stereotype glyphs"]'));
   assert.ok(document.querySelectorAll('[role="dialog"] img').length > 100, 'All tab lists the whole library');
 
-  const search = query('[aria-label="Search stereotype glyphs"]');
-  const setValue = Object.getOwnPropertyDescriptor(jsdom.window.HTMLInputElement.prototype, 'value').set;
-  await React.act(() => { setValue.call(search, 'computer'); search.dispatchEvent(new jsdom.window.Event('input', { bubbles: true })); });
+  await type(search(), 'computer');
   const hit = query('[role="dialog"] [aria-label="Computer"]');
   assert.ok(hit, 'search finds Computer');
   assert.match(hit.querySelector('img').getAttribute('src'), /\/stereotypes\/Computer\.svg$/);
   await React.act(() => hit.click());
-  assert.deepEqual(calls.pop(), { id: 'n', updates: { stereotypeGlyph: 'Computer.svg', stereotype: 'Computer' } });
-  assert.equal(query('[role="dialog"]'), null, 'selection closes the flyout');
+  assert.deepEqual(calls.pop(), { id: 'n', updates: { stereotypeGlyph: 'Computer.svg' } }, 'only the pictogram; the text shows it by itself');
+  assert.ok(query('[role="dialog"]'), 'the flyout stays open for more');
 
-  // An explicit stereotype is kept; the active glyph shows on the badge and can be cleared.
+  // The glyphs show in the text after the stereotype words, and on the badge.
   await render({ kind: 'per', displayName: 'Ana', stereotype: 'Customer', stereotypeGlyph: 'computer' });
+  assert.equal(field().value, 'Customer, Computer.svg');
   assert.match(query('[aria-label="Choose stereotype glyph"] img').getAttribute('src'), /Computer\.svg$/);
-  await React.act(() => query('[aria-label="Choose stereotype glyph"]').click());
-  const current = query('[role="dialog"] [aria-pressed="true"]');
-  assert.equal(current.getAttribute('aria-label'), 'Computer', 'active glyph is marked in the grid');
-  await React.act(() => current.click());
-  assert.equal(calls.pop().updates.stereotype, undefined, 'an explicit stereotype is not overwritten');
+  assert.equal(query('[role="dialog"] [aria-pressed="true"]').getAttribute('aria-label'), 'Computer', 'active glyph is marked in the grid');
+
+  // A second pick adds; picking a selected one removes only that one.
+  await type(search(), 'artist');
+  await React.act(() => query('[role="dialog"] [aria-label="Artist"]').click());
+  assert.deepEqual(calls.pop().updates, { stereotypeGlyph: 'Computer.svg, Artist.svg' });
+  await render({ kind: 'per', displayName: 'Ana', stereotype: 'Customer', stereotypeGlyph: 'Computer.svg, Artist.svg' });
+  assert.equal(field().value, 'Customer, Computer.svg, Artist.svg');
+  assert.equal(document.querySelectorAll('[aria-label="Choose stereotype glyph"] img').length, 2);
+  await React.act(() => query('[role="dialog"] [aria-label="Artist"]').click());
+  assert.deepEqual(calls.pop().updates, { stereotypeGlyph: 'Computer.svg' });
+
+  // Typing edits the same list: a glyph id or file selects it; a built-in word stays a stereotype.
+  await React.act(() => field().focus());
+  await type(field(), 'Customer, Lead, Artist, Bridge, Computer.svg');
+  assert.deepEqual(calls.pop().updates, { stereotype: 'Customer, Lead, Artist', stereotypeGlyph: 'Bridge.svg, Computer.svg' });
+  await type(field(), 'Customer, ');
+  assert.equal(field().value, 'Customer, ', 'what is typed stays while the field has focus');
+  assert.deepEqual(calls.pop().updates, { stereotype: 'Customer', stereotypeGlyph: '' });
+  await React.act(() => field().blur());
+  assert.equal(field().value, 'Customer, Computer.svg, Artist.svg', 'then it shows the stored list again');
+
+  // A chip edits the stereotype words; the field lists them before the glyphs.
+  const chip = [...document.querySelectorAll('button')].find(button => button.textContent.endsWith(' Lead'));
+  await React.act(() => chip.click());
+  assert.deepEqual(calls.pop().updates, { stereotype: ['Customer', 'Lead'] });
+  await render({ kind: 'per', displayName: 'Ana', stereotype: ['Customer', 'Lead'], stereotypeGlyph: 'Computer.svg, Artist.svg' });
+  assert.equal(field().value, 'Customer, Lead, Computer.svg, Artist.svg');
 
   // Category tabs narrow the grid; a query with no match in that category says so.
-  await React.act(() => query('[aria-label="Choose stereotype glyph"]').click());
+  await type(search(), 'computer');
   await React.act(() => query('[role="tab"]:nth-child(2)').click());
   assert.match(query('[role="dialog"]').textContent, /No glyph matches “computer”/);
-  await React.act(() => { setValue.call(query('[aria-label="Search stereotype glyphs"]'), ''); query('[aria-label="Search stereotype glyphs"]').dispatchEvent(new jsdom.window.Event('input', { bubbles: true })); });
+  await type(search(), '');
   const roles = document.querySelectorAll('[role="dialog"] img').length;
   assert.ok(roles > 0 && roles < 100, `roles tab lists a subset (${roles})`);
   await React.act(() => query('[aria-label="Clear stereotype glyph"]').click());
@@ -157,6 +183,7 @@ test('CR053 glyph picker searches, assigns a glyph with a default stereotype, an
   // Unknown references stay visible verbatim; archetypes without glyph rendering get no picker.
   await render({ kind: 'per', stereotypeGlyph: 'Custom/Mascot.svg' });
   assert.match(query('[aria-label="Choose stereotype glyph"]').textContent, /Unknown: Custom\/Mascot\.svg/);
+  assert.equal(field().value, 'Custom/Mascot.svg');
   assert.ok(query('[aria-label="Clear stereotype glyph"]'));
   await render({ kind: 'rol', displayName: 'Host' });
   assert.equal(query('[aria-label="Choose stereotype glyph"]'), null);
@@ -207,8 +234,8 @@ test('a role slot offers Who / What / Where / Generic and its restriction; a Gen
   assert.equal(generic.querySelector('input[placeholder="e.g. Person, Document, Venue"]'), null, 'no restriction before a category is chosen');
   const options = [...generic.querySelectorAll('option')].map(option => option.value);
   assert.ok(options.includes('rol') && !options.includes('rf'), 'RoleFiller is not offered');
-  const legacy = markup({ kind: 'rf', displayName: 'Old' });
-  assert.ok([...legacy.querySelectorAll('option')].some(option => option.value === 'rf'), 'a legacy rf keeps its option');
+  const binding = markup({ kind: 'rf', displayName: 'Old' });
+  assert.ok([...binding.querySelectorAll('option')].some(option => option.value === 'rf'), 'an rf binding node keeps its option');
   const instance = markup({ kind: 'per', displayName: 'RAI', instance: true });
   assert.equal(instance.querySelector('[data-testid="role-category"]'), null, 'an instance has no role category');
 

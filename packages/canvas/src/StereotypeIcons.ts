@@ -163,9 +163,23 @@ export function hasStereotype(rawStereotype: string | readonly string[] | undefi
  *
  * Prioritizes domain stereotypes (Stage, Venue, Bar, Customer, Headliner, AI, System, Observer).
  * If no domain stereotype is present, falls back to 'initiates' if present.
+ *
+ * Pass the node's `kind` to make the result shape-aware: on a Place the first Stage / Venue / Bar
+ * decides the shape, whatever Lead or Headliner precedes it.
  */
-export function resolveStereotype(rawStereotype?: string | readonly string[]): StereotypeId | undefined {
+export function resolveStereotype(rawStereotype?: string | readonly string[], kind?: string): StereotypeId | undefined {
   if (!rawStereotype) return undefined;
+
+  if (kind === 'plc') {
+    const items = Array.isArray(rawStereotype) ? rawStereotype : [String(rawStereotype)];
+    for (const item of items) {
+      for (const token of String(item ?? '').replace(/[«»"]/g, '').toLowerCase().trim().split(/[\s,]+/)) {
+        if (token === 'stage') return 'stage';
+        if (token === 'venue' || token === 'place' || token === 'pin') return 'venue';
+        if (token === 'bar' || token === 'hospitality') return 'bar';
+      }
+    }
+  }
 
   // Dual-Stereotype Persona Rule:
   // If an actor carries both Lead and Headliner (in any order, e.g. "Headliner, Lead" or "Lead, Headliner"),
@@ -475,8 +489,9 @@ export function renderStereotypeIconSvg(
   primaryColor: string = CascaisPalette.WarmGraphite,
   _accentColor: string = CascaisPalette.NetGold,
   transformOverride?: string,
+  kind?: string,
 ): string {
-  const resolved = resolveStereotype(rawStereotype);
+  const resolved = resolveStereotype(rawStereotype, kind);
   if (!resolved) return '';
 
   const isInitiating = isInitiatingStereotype(rawStereotype);

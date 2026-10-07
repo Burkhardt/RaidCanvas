@@ -79,13 +79,35 @@ function index(): Map<string, StereotypeGlyphEntry> {
 	return map;
 }
 
+/** The references in a glyph list: `aim-stereotype-glyph` holds one or more, separated by commas. */
+export function splitStereotypeGlyphRefs(ref: string | null | undefined): string[] {
+	if (typeof ref !== 'string') return [];
+	return ref
+		.split(',')
+		.map((r) => r.trim())
+		.filter((r) => r.length > 0);
+}
+
+/**
+ * Resolve every known glyph in a list (`"Artist.svg, Computer.svg"`), in order and without
+ * duplicates. Unknown references are skipped.
+ */
+export function resolveStereotypeGlyphs(ref: string | null | undefined): StereotypeGlyphEntry[] {
+	const entries: StereotypeGlyphEntry[] = [];
+	for (const part of splitStereotypeGlyphRefs(ref)) {
+		const entry = index().get(normalizeGlyphKey(part));
+		if (entry && !entries.includes(entry)) entries.push(entry);
+	}
+	return entries;
+}
+
 /**
  * Resolve a glyph reference (`"Computer.svg"`, `"computer"`, `"geschafft 2.svg"`,
  * `"/stereotypes/Artist.svg"`, `"Painter"`) to its catalog entry, or `undefined` if unknown.
+ * For a list, the first known glyph.
  */
 export function resolveStereotypeGlyph(ref: string | null | undefined): StereotypeGlyphEntry | undefined {
-	if (typeof ref !== 'string' || ref.trim().length === 0) return undefined;
-	return index().get(normalizeGlyphKey(ref));
+	return resolveStereotypeGlyphs(ref)[0];
 }
 
 /** True when the node data names a glyph the library knows. */
@@ -166,6 +188,12 @@ export interface StereotypeGlyphPlacement {
 	readonly y: number;
 	readonly width: number;
 	readonly height: number;
+	/**
+	 * Which part of the node box `x` / `y` hang from, so the live node keeps the glyph in place while
+	 * it is resized. `x` and `y` themselves are always absolute for the given size.
+	 */
+	readonly anchorX?: 'start' | 'middle' | 'end';
+	readonly anchorY?: 'start' | 'middle';
 }
 
 export const GLYPH_SILHOUETTE_BAND = 58;
@@ -196,4 +224,71 @@ export function computeStereotypeGlyphPlacement(
 		return { mode: 'badge', x: inset, y: Math.round(height / 2 - GLYPH_BADGE_SIZE / 2), width: GLYPH_BADGE_SIZE, height: GLYPH_BADGE_SIZE };
 	}
 	return { mode: 'badge', x: 10, y: Math.max(6, Math.round(height / 2 - GLYPH_BADGE_SIZE / 2)), width: GLYPH_BADGE_SIZE, height: GLYPH_BADGE_SIZE };
+}
+
+/** The most pictograms one node draws; further ones stay in the data. */
+export const STEREOTYPE_GLYPH_LIMIT = 5;
+/** Badges beside a Person's or frameless Place's band. */
+const GLYPH_SIDE_SIZE = 20;
+/** Further badges in a card's top row. */
+const GLYPH_ROW_SIZE = 18;
+
+/**
+ * Where each of a node's pictograms goes, shared by the live X6 node and the SVG export.
+ *
+ * - **Person:** the first pictogram takes the stick figure's band (as before). The others are side
+ *   badges, left of the band first because the portal caret sits to its right.
+ * - **Frameless Place:** the Stage, Venue or Bar stays. Every pictogram is a side badge.
+ * - **Framed Place:** one centred row above the name.
+ * - **Cards** (`obj`, `act`, `uc`, `cls`): the first in its usual badge spot; the others in a small row
+ *   at the top (top-right; top-centre inside a Use Case's ellipse).
+ *
+ * Returns fewer placements than `count` when the node has no room for more.
+ */
+export function computeStereotypeGlyphLayout(
+	kind: string,
+	width: number,
+	height: number,
+	count: number,
+	options: { readonly frameless?: boolean } = {},
+): StereotypeGlyphPlacement[] {
+	const n = Math.min(Math.max(0, count), STEREOTYPE_GLYPH_LIMIT);
+	const out: StereotypeGlyphPlacement[] = [];
+	if (n === 0) return out;
+	const badge = (x: number, y: number, size: number, anchorX: 'start' | 'middle' | 'end'): StereotypeGlyphPlacement =>
+		({ mode: 'badge', x, y, width: size, height: size, anchorX, anchorY: 'start' });
+
+	if (kind === 'per' || (kind === 'plc' && options.frameless)) {
+		const cx = Math.round(width / 2);
+		if (kind === 'per') out.push({ ...computeStereotypeGlyphPlacement(kind, width, height), anchorX: 'middle', anchorY: 'start' });
+		for (const [dx, y] of [[-52, 4], [-52, 30], [32, 34], [32, 4]] as const) {
+			if (out.length >= n) break;
+			out.push(badge(cx + dx, y, GLYPH_SIDE_SIZE, 'middle'));
+		}
+		return out;
+	}
+	if (kind === 'plc') {
+		const fit = Math.max(1, Math.floor((width - 4) / (GLYPH_BADGE_SIZE + 4)));
+		const m = Math.min(n, fit);
+		const x0 = Math.round(width / 2 - (m * GLYPH_BADGE_SIZE + (m - 1) * 4) / 2);
+		for (let i = 0; i < m; i++) out.push(badge(x0 + i * (GLYPH_BADGE_SIZE + 4), 8, GLYPH_BADGE_SIZE, 'middle'));
+		return out;
+	}
+
+	out.push({ ...computeStereotypeGlyphPlacement(kind, width, height), anchorX: 'start', anchorY: kind === 'cls' ? 'start' : 'middle' });
+	const rest = n - 1;
+	if (rest === 0) return out;
+	if (kind === 'uc') {
+		const m = Math.min(rest, 3);
+		const x0 = Math.round(width / 2 - (m * GLYPH_ROW_SIZE + (m - 1) * 4) / 2);
+		for (let i = 0; i < m; i++) out.push(badge(x0 + i * (GLYPH_ROW_SIZE + 4), 6, GLYPH_ROW_SIZE, 'middle'));
+		return out;
+	}
+	for (let i = 0; i < rest; i++) {
+		const x = width - 6 - GLYPH_ROW_SIZE - i * (GLYPH_ROW_SIZE + 4);
+		// Keep to the right half, clear of the first badge and the start of the text.
+		if (x < width / 2) break;
+		out.push(badge(x, kind === 'cls' ? 5 : 3, GLYPH_ROW_SIZE, 'end'));
+	}
+	return out;
 }

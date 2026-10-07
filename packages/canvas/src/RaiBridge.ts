@@ -46,11 +46,13 @@ import {
 } from './StereotypeIcons.js';
 import {
 	resolveStereotypeGlyph,
+	resolveStereotypeGlyphs,
+	splitStereotypeGlyphRefs,
 	getStereotypeGlyphUrl,
-	computeStereotypeGlyphPlacement,
+	computeStereotypeGlyphLayout,
 	GLYPH_EDGE_SIZE,
 } from './StereotypeGlyphs.js';
-import { DualityWashStrength, HeraldicWash, RoleSlotRing } from './CascaisTheme.js';
+import { DualityWashStrength, HeraldicWash } from './CascaisTheme.js';
 
 /**
  * Press and hover feedback embedded in exported SVGs, matching the live canvas: the portal anchor raises the door to
@@ -89,9 +91,9 @@ function healPortalAtRest(doc: Document): void {
  * the glyph, otherwise the reference verbatim, so a glyph from a newer library survives a round trip.
  */
 function stereotypeGlyphAttrValue(cell: { readonly stereotypeGlyph?: string | undefined }): string | undefined {
-	const ref = cell.stereotypeGlyph?.trim();
-	if (!ref) return undefined;
-	return resolveStereotypeGlyph(ref)?.file ?? ref;
+	const refs = splitStereotypeGlyphRefs(cell.stereotypeGlyph);
+	if (refs.length === 0) return undefined;
+	return refs.map((ref) => resolveStereotypeGlyph(ref)?.file ?? ref).join(', ');
 }
 
 /**
@@ -1490,22 +1492,18 @@ export class RaiBridge {
 		const isUnbound = node.unbound === true;
 		const width = node.bounds.width;
 		const height = node.bounds.height;
-		// 1UCC role slot: the role name is prominent, the expected Class is the quiet tag below it, and
-		// the slot ring replaces any qualifier line.
+		// 1UCC role slot: the role name is prominent and the expected Class is the quiet tag below it, in
+		// place of any qualifier line. No ring or dashed outline: the plain name and the tag mark the slot.
 		const isSlot = node.slot === true && (node.kind === 'per' || node.kind === 'obj' || node.kind === 'plc');
 		const qualifierText = isSlot ? undefined : node.qualifier;
 		const slotTag = isSlot ? restrictionTag(node.restriction) : undefined;
-		const slotRingAttrs = `fill="none" stroke="${RoleSlotRing.stroke}" stroke-width="${RoleSlotRing.strokeWidth}" stroke-dasharray="${RoleSlotRing.dash}" class="aim-slot-ring"`;
-		const slotHalo = (): string => {
-			const i = RoleSlotRing.inset;
-			return `      <rect x="${-i}" y="${-i}" width="${width + 2 * i}" height="${height + 2 * i}" rx="6" ry="6" ${slotRingAttrs} />\n`;
-		};
-		const resolvedStereo = resolveStereotype(node.stereotype);
+		const resolvedStereo = resolveStereotype(node.stereotype, node.kind);
 		// CR053: a known pictogram replaces the built-in stereotype icon (and the Person's stick figure),
-		// exactly as on the live canvas. Description cards and roles carry no glyph.
-		const glyph = ['uc', 'act', 'cls', 'obj', 'per', 'plc'].includes(node.kind) && !(node.kind === 'obj' && node.description)
-			? resolveStereotypeGlyph(node.stereotypeGlyph)
-			: undefined;
+		// exactly as on the live canvas; a frameless Place keeps its icon. Description cards and roles carry no glyph.
+		const glyphs = ['uc', 'act', 'cls', 'obj', 'per', 'plc'].includes(node.kind) && !(node.kind === 'obj' && node.description)
+			? resolveStereotypeGlyphs(node.stereotypeGlyph)
+			: [];
+		const glyph = glyphs[0];
 		const hasStereoIcon = Boolean(glyph) || Boolean(resolvedStereo && resolvedStereo !== 'initiates');
 		const drawBuiltInIcon = hasStereoIcon && !glyph;
 		const cardTextCx = hasStereoIcon ? Math.round(width * 0.62) : width / 2;
@@ -1554,7 +1552,6 @@ export class RaiBridge {
 			if (drawBuiltInIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
 			}
-			if (isSlot) svg += slotHalo();
 			svg += this.renderSvgText(rawDisplayName, cardTextCx, height / 2, 12, 'normal', textColor, isInstance, qualifierText, cardTextWidth, slotTag);
 		} else if (node.kind === 'per') {
 			const isInitiating = isInitiatingStereotype(node.stereotype);
@@ -1588,9 +1585,6 @@ export class RaiBridge {
 					svg += renderStereotypeIconSvg(node.stereotype, cx - 12, 11, obsColor, CascaisPalette.NetGold, cyclopsTransform);
 				}
 			}
-			if (isSlot) {
-				svg += `      <circle cx="${cx}" cy="31" r="31" ${slotRingAttrs} />\n`;
-			}
 			svg += this.renderSvgText(rawDisplayName, cx, 80, 12, '500', textColor, isInstance, qualifierText, width, slotTag);
 		} else if (node.kind === 'plc') {
 			const isFramelessPlc = ['venue', 'stage', 'bar'].includes(resolvedStereo ?? '');
@@ -1604,12 +1598,7 @@ export class RaiBridge {
 				const isInitiating = isInitiatingStereotype(node.stereotype);
 				const strokeColor = isInitiating ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
 				const accentColor = strokeColor;
-				if (!glyph) {
-					svg += renderStereotypeIconSvg(resolvedStereo, iconX, iconY, strokeColor, accentColor);
-				}
-				if (isSlot) {
-					svg += `      <circle cx="${cx}" cy="${iconY + Math.round(paths.height / 2)}" r="${Math.round(Math.max(paths.width, paths.height) / 2) + 6}" ${slotRingAttrs} />\n`;
-				}
+				svg += renderStereotypeIconSvg(resolvedStereo, iconX, iconY, strokeColor, accentColor);
 				svg += this.renderSvgText(rawDisplayName, cx, 84, 12, '500', textColor, isInstance, qualifierText, width, slotTag);
 			} else if (hasStereoIcon) {
 				const cx = Math.round(width / 2);
@@ -1618,12 +1607,10 @@ export class RaiBridge {
 					const iconX = cx - Math.round(getStereotypePaths(resolvedStereo).width / 2);
 					svg += renderStereotypeIconSvg(node.stereotype, iconX, 8, CascaisPalette.NetGoldStroke, CascaisPalette.NetGold);
 				}
-				if (isSlot) svg += slotHalo();
-				svg += this.renderSvgText(rawDisplayName, cx, 56, 12, '600', textColor, isInstance, qualifierText, width, slotTag);
+					svg += this.renderSvgText(rawDisplayName, cx, 56, 12, '600', textColor, isInstance, qualifierText, width, slotTag);
 			} else {
 				svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
-				if (isSlot) svg += slotHalo();
-				svg += this.renderSvgText(rawDisplayName, width / 2, height / 2, 12, '600', textColor, isInstance, qualifierText, width, slotTag);
+					svg += this.renderSvgText(rawDisplayName, width / 2, height / 2, 12, '600', textColor, isInstance, qualifierText, width, slotTag);
 			}
 		} else if (node.kind === 'rol' || node.kind === 'rf') {
             const fill = node.kind === 'rf' ? String(node.properties?.color ?? CascaisPalette.AccentBlue) : CascaisPalette.ChalkWhite;
@@ -1638,12 +1625,13 @@ export class RaiBridge {
 			svg += this.renderSvgText(node.displayName, cardTextCx, height / 2, 12, 'normal', CascaisPalette.TextPrimary, isInstance, node.qualifier, cardTextWidth);
 		}
 
-		if (glyph) {
+		if (glyphs.length > 0) {
 			const frameless = node.kind === 'plc' && ['venue', 'stage', 'bar'].includes(resolvedStereo ?? '');
 			const boxWidth = frameless ? (width > 140 ? 120 : (width < 120 ? 120 : width)) : width;
-			const p = computeStereotypeGlyphPlacement(node.kind, boxWidth, height, { frameless });
-			const url = getStereotypeGlyphUrl(glyph.file) ?? '';
-			svg += `      <image href="${escapeXmlAttr(url)}" x="${p.x}" y="${p.y}" width="${p.width}" height="${p.height}" preserveAspectRatio="xMidYMid meet" class="aim-stereotype-glyph aim-stereotype-glyph-${p.mode}"${isUnbound ? ' opacity="0.70"' : ''} />\n`;
+			computeStereotypeGlyphLayout(node.kind, boxWidth, height, glyphs.length, { frameless }).forEach((p, i) => {
+				const url = getStereotypeGlyphUrl(glyphs[i]!.file) ?? '';
+				svg += `      <image href="${escapeXmlAttr(url)}" x="${p.x}" y="${p.y}" width="${p.width}" height="${p.height}" preserveAspectRatio="xMidYMid meet" class="aim-stereotype-glyph aim-stereotype-glyph-${p.mode}"${isUnbound ? ' opacity="0.70"' : ''} />\n`;
+			});
 		}
 
 		// The Duality of the Object: Portuguese Bicolor Seam & Portal Door

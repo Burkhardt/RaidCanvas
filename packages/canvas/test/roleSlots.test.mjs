@@ -5,7 +5,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { RaiBridge, AimSvgContract, createAimNode, isInstanceNode, restrictionTag, RoleSlotRing } from '../dist/index.js';
+import { RaiBridge, AimSvgContract, createAimNode, isInstanceNode, restrictionTag } from '../dist/index.js';
 
 const jsdom = new JSDOM();
 globalThis.DOMParser = jsdom.window.DOMParser;
@@ -30,7 +30,7 @@ describe('Role slots (1UCC) and instances (1AOC / _RFD)', () => {
     assert.equal(isInstanceNode({ kind: 'obj', slot: true }), false);
     assert.equal(isInstanceNode({ kind: 'per', instance: true, slot: true }), false);
     assert.equal(isInstanceNode({ kind: 'per' }), false);
-    assert.equal(isInstanceNode({ kind: 'rf' }), true, 'legacy RoleFiller circles still load as instances');
+    assert.equal(isInstanceNode({ kind: 'rf' }), true, 'RoleFiller binding circles load as instances');
     assert.equal(restrictionTag(' Person '), ': Person');
     assert.equal(restrictionTag(''), undefined);
   });
@@ -67,17 +67,16 @@ describe('Role slots (1UCC) and instances (1AOC / _RFD)', () => {
     assert.equal(back.Venue.restriction, undefined);
   });
 
-  test('exported slots wear the dashed ring and the quiet `: <Class>` tag, never an underline', () => {
+  test('exported slots wear the quiet `: <Class>` tag, never an underline, ring or dash', () => {
     const bridge = new RaiBridge();
     for (const node of slotModel.nodes.slice(0, 3)) {
       const inner = bridge.renderNodeInnerSvg(node);
-      assert.match(inner, new RegExp(`class="aim-slot-ring"`), `${node.id} has the ring`);
-      assert.match(inner, new RegExp(`stroke-dasharray="${RoleSlotRing.dash}"`));
+      assert.ok(!inner.includes('aim-slot-ring'), `${node.id} has no ring`);
+      assert.ok(!inner.includes('stroke-dasharray'), `${node.id} has no dashed outline`);
       assert.match(inner, new RegExp(`class="aim-restriction"[^>]*>: ${node.restriction}<`));
       assert.ok(!inner.includes('underline'), `${node.id} is not underlined`);
     }
     const instance = bridge.renderNodeInnerSvg(slotModel.nodes[3]);
-    assert.ok(!instance.includes('aim-slot-ring'));
     assert.match(instance, /text-decoration="underline"[^>]*>Contract4711</);
   });
 
@@ -86,15 +85,15 @@ describe('Role slots (1UCC) and instances (1AOC / _RFD)', () => {
     assert.match(svg, /aim-unbound="true"/);
   });
 
-  test('createAimNode: slot shows ring or halo, role name plain, restriction in the quiet line', () => {
+  test('createAimNode: a slot has the role name plain and the restriction in the quiet line, no ring', () => {
     const per = createAimNode(slotModel.nodes[0]);
-    assert.equal(per.attrs.slotRing.display, 'block');
+    assert.equal(per.attrs.slotRing, undefined);
     assert.equal(per.attrs.label.text, 'Signer');
     assert.equal(per.attrs.label.textDecoration, 'none');
     assert.equal(per.attrs.qualifier.text, ': Person');
 
     const obj = createAimNode(slotModel.nodes[1]);
-    assert.equal(obj.attrs.slotHalo.display, 'block');
+    assert.equal(obj.attrs.slotHalo, undefined);
     assert.equal(obj.attrs.label.textDecoration, 'none', 'an Object slot is not underlined');
     assert.equal(obj.attrs.qualifier.text, ': Document');
     assert.ok(obj.attrs.qualifier.refY2 > obj.attrs.label.refY2, 'the tag sits below the role name');
@@ -102,10 +101,9 @@ describe('Role slots (1UCC) and instances (1AOC / _RFD)', () => {
     const filler = createAimNode(slotModel.nodes[3]);
     assert.equal(filler.attrs.label.textDecoration, 'underline');
     assert.equal(filler.attrs.qualifier.text, 'Document');
-    assert.equal(filler.attrs.slotHalo, undefined);
   });
 
-  test('legacy aim-kind="rf" still loads and renders', () => {
+  test('aim-kind="rf" binding nodes load and render', () => {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg"><g aim-node="true" aim-id="RF1" aim-kind="rf" aim-display-name="Signer" transform="translate(0, 0)"></g></svg>`;
     const bridge = new RaiBridge();
     const [node] = bridge.extractMetamodel(svg).nodes;

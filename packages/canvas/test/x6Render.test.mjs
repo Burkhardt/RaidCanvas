@@ -125,21 +125,18 @@ test('X6 renders a dormant persona on every archetype until the duality awakens'
   }
 });
 
-test('X6 renders a 1UCC role slot with its dashed ring and the `: <Class>` tag, and no underline', () => {
+test('X6 renders a 1UCC role slot with its `: <Class>` tag and no underline, ring or dash', () => {
   const graph = new Graph({ container: document.getElementById('c'), width: 800, height: 400, async: false });
   try {
     graph.addNode(createAimNode({ id: 'Signer', kind: 'per', displayName: 'Signer', slot: true, restriction: 'Person', bounds: { x: 0, y: 0, width: 120, height: 110 } }));
     graph.addNode(createAimNode({ id: 'Contract', kind: 'obj', displayName: 'Contract', slot: true, restriction: 'Document', bounds: { x: 200, y: 0, width: 160, height: 80 } }));
-    const per = document.querySelector('[data-cell-id="Signer"]');
-    const ring = per.querySelector('circle.aim-slot-ring');
-    assert.ok(ring, 'the Person slot has a ring');
-    assert.notEqual(ring.getAttribute('display'), 'none');
-    assert.equal(ring.getAttribute('pointer-events'), 'none', 'the ring never steals a tap');
+    graph.addNode(createAimNode({ id: 'Approver', kind: 'rol', displayName: 'Approver', bounds: { x: 400, y: 0, width: 22, height: 22 } }));
+    for (const id of ['Signer', 'Contract', 'Approver']) {
+      const view = document.querySelector(`[data-cell-id="${id}"]`);
+      assert.equal(view.querySelector('.aim-slot-ring'), null, `${id} has no ring`);
+      assert.ok(![...view.querySelectorAll('[stroke-dasharray]')].some(e => !['none', '0', ''].includes(e.getAttribute('stroke-dasharray'))), `${id} has no dashed outline`);
+    }
     const obj = document.querySelector('[data-cell-id="Contract"]');
-    const halo = obj.querySelector('rect.aim-slot-ring');
-    assert.ok(halo);
-    assert.notEqual(halo.getAttribute('display'), 'none');
-    assert.ok(Number(halo.getAttribute('width')) > 160, 'the halo stands outside the card');
     // X6 writes spaces as U+00A0, so normalise before matching.
     assert.ok([...obj.querySelectorAll('text')].some(t => t.textContent.replace(/\u00A0/g, ' ').includes(': Document')));
     assert.ok(![...obj.querySelectorAll('text')].some(t => t.getAttribute('text-decoration') === 'underline'));

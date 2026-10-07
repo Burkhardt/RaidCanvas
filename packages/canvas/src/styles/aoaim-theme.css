@@ -56,6 +56,23 @@
   transition: transform 0.1s ease, filter 0.15s ease;
 }
 
+/* Cursor: the pointer promises a tap that acts (select, awaken, inspect, step through), so a node shows it
+   everywhere instead of X6's `move`; `grabbing` holds only while a node is dragged. Node text takes no pointer
+   events, so a tap falls through to the painted body beneath and the persona/door hover does not flicker as the
+   cursor crosses a name. The Generic Role / RoleFiller label sits outside its 22 px circle and keeps them. */
+.raid-canvas-wrapper .x6-node {
+  cursor: pointer;
+}
+
+.x6-node:not([data-shape="aim-rol"]):not([data-shape="aim-rf"]) text {
+  pointer-events: none;
+}
+
+.raid-canvas-wrapper.aim-dragging,
+.raid-canvas-wrapper.aim-dragging * {
+  cursor: grabbing !important;
+}
+
 /* Hover is progressive enhancement for mouse and trackpad, never load-bearing: the iPad has no hover, and
    ungated :hover styles stick after a tap in WebKit. Every hover rule below sits behind this query. */
 @media (hover: hover) and (pointer: fine) {
@@ -185,7 +202,6 @@ rect.aim-frameless,
   fill: var(--aim-chalk-white);
   stroke: var(--aim-warm-graphite);
   stroke-width: 1.5px;
-  stroke-dasharray: 4, 3;
 }
 
 /* The Duality of the Object: the flag of Portugal (CR055) — Verde Persona, Net Gold seam, Vermelho Portal.
@@ -195,17 +211,18 @@ rect.aim-frameless,
 }
 
 /* The left half answers like the right, in Verde, but only where tap 2 on it does something: RaidCanvas marks
-   its wrapper `.aim-inspectable` when the host passes `onNodeClick`. The persona is hidden until tap 1. */
-.aim-inspectable .aim-portal-persona {
+   its wrapper `.aim-inspectable` when the host passes `onNodeClick`, and the node the Inspector already shows
+   `.aim-inspected` (`inspectedNodeId`), where a tap changes nothing. The persona is hidden until tap 1. */
+.aim-inspectable .x6-node:not(.aim-inspected) .aim-portal-persona {
   cursor: pointer;
 }
 
-.aim-inspectable .aim-portal-persona:active {
+.aim-inspectable .x6-node:not(.aim-inspected) .aim-portal-persona:active {
   fill: color-mix(in srgb, var(--aim-bandeira-verde) 18%, transparent);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .aim-inspectable .aim-portal-persona:hover {
+  .aim-inspectable .x6-node:not(.aim-inspected) .aim-portal-persona:hover {
     fill: color-mix(in srgb, var(--aim-bandeira-verde) 18%, transparent);
   }
 }

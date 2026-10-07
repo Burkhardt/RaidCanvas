@@ -33,7 +33,7 @@ export {
 } from './types.js';
 
 // Cascais theme: the single source of every heraldic colour (CR055)
-export { CascaisPalette, DualityWashStrength, HeraldicWash, RoleSlotRing, withAlpha } from './CascaisTheme.js';
+export { CascaisPalette, DualityWashStrength, HeraldicWash, withAlpha } from './CascaisTheme.js';
 
 // AntV X6 Custom Shapes & Port Registrations
 export {
@@ -76,6 +76,8 @@ export {
   GLYPH_BADGE_SIZE,
   GLYPH_EDGE_SIZE,
   resolveStereotypeGlyph,
+  resolveStereotypeGlyphs,
+  splitStereotypeGlyphRefs,
   hasStereotypeGlyph,
   getStereotypeGlyphUrl,
   getStereotypeGlyphBaseUrl,
@@ -83,6 +85,8 @@ export {
   setStereotypeGlyphResolver,
   searchStereotypeGlyphs,
   computeStereotypeGlyphPlacement,
+  computeStereotypeGlyphLayout,
+  STEREOTYPE_GLYPH_LIMIT,
   type StereotypeGlyphEntry,
   type StereotypeGlyphCategory,
   type StereotypeGlyphUrlResolver,

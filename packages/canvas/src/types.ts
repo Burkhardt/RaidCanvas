@@ -17,8 +17,8 @@
  * - 'per' : Person / Actor (Initiating or Defined role stick-figure/card)
  * - 'plc' : Place / Where (architectural venue or spatial stage card)
  * - 'rol' : Generic Role (hollow circle; a role whose Who / What / Where category is not chosen yet)
- * - 'rf'  : legacy RoleFiller circle; still loads, no longer offered. A RoleFiller is drawn as its
- *           own archetype (per / obj / plc) with a `fills: <Role>` edge.
+ * - 'rf'  : RoleFiller circle: one binding of an instance to a role (the binding engine, M1 to M0).
+ *           Not in the palette; a diagram may instead draw the binding as a `fills: <Role>` edge.
  */
 export type AimOntologyKind = 'act' | 'uc' | 'cls' | 'obj' | 'per' | 'plc' | 'rol' | 'rf';
 
@@ -107,8 +107,9 @@ export interface RaidNodeData {
 	readonly stereotypes?: readonly string[];
 
 	/**
-	 * CR053: the OTW pictogram drawn for this node (e.g. `'Computer.svg'`), serialized as
-	 * `aim-stereotype-glyph`. Independent of `stereotype` — `«ApplicationServer»` may wear
+	 * CR053: the OTW pictograms drawn for this node, comma-separated in order (e.g. `'Artist.svg, Computer.svg'`),
+	 * serialized as `aim-stereotype-glyph`. The first is the main pictogram, the others small badges
+	 * (up to `STEREOTYPE_GLYPH_LIMIT` drawn). Independent of `stereotype`: `«ApplicationServer»` may wear
 	 * `Computer.svg`. Unknown names fall back to plain archetype rendering.
 	 */
 	readonly stereotypeGlyph?: string;
@@ -134,8 +135,8 @@ export interface RaidNodeData {
 	readonly unbound?: boolean;
 
 	/**
-	 * Type-level role slot in a 1UCC (`aim-slot="true"`): the role name is the label, the node wears a
-	 * dashed slot ring and is never underlined. Instances (1AOC / `_RFD`) leave this unset.
+	 * Type-level role slot in a 1UCC (`aim-slot="true"`): the role name is the label with `: <Class>`
+	 * beneath it, never underlined, and no ring or dashed outline. Instances (1AOC / `_RFD`) leave this unset.
 	 */
 	readonly slot?: boolean;
 

@@ -23,11 +23,13 @@ import { RaidPropertyTree } from './RaidPropertyTree.js';
 import { computeExpressionPillColors } from './X6Shapes.js';
 import { CascaisPalette } from './CascaisTheme.js';
 import { GENERIC_ROLE_LABEL } from './RaidPalette.js';
-import { hasStereotype, type StereotypeId } from './StereotypeIcons.js';
+import { hasStereotype, resolveStereotype, type StereotypeId } from './StereotypeIcons.js';
 import {
 	STEREOTYPE_GLYPH_CATEGORIES,
 	getStereotypeGlyphUrl,
 	resolveStereotypeGlyph,
+	resolveStereotypeGlyphs,
+	splitStereotypeGlyphRefs,
 	searchStereotypeGlyphs,
 	type StereotypeGlyphCategory,
 	type StereotypeGlyphEntry,
@@ -785,8 +787,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							<option value="obj">Object / Instance (aim-obj)</option>
 							<option value="plc">Place / Stage (aim-plc)</option>
 							<option value="rol">{GENERIC_ROLE_LABEL} (hollow circle)</option>
-							{/* Legacy only: a RoleFiller is drawn as its own archetype with a `fills:` edge. */}
-							{node.kind === 'rf' && <option value="rf">RoleFiller (legacy)</option>}
+							{/* A RoleFiller is the runtime binding of an instance to a role; shown here when the diagram draws it as a node. */}
+							{node.kind === 'rf' && <option value="rf">RoleFiller (binding)</option>}
 						</select>
 					</div>
 
@@ -937,23 +939,18 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					{/* Stereotype Icons */}
 					<div>
 						<label style={labelStyle}>Stereotype / Facet</label>
-						<input className="input input-sm w-full"
-							type="text"
-							value={Array.isArray(node.stereotype) ? node.stereotype.join(', ') : (node.stereotype ?? '')}
-							onChange={(e) => onUpdateNode?.(selection.id, { stereotype: e.target.value })}
-							style={inputStyle}
-							placeholder="e.g. Lead, Customer, Headliner, AI, Stage, Bar"
+						<StereotypeListInput
+							key={selection.id}
+							stereotype={node.stereotype}
+							glyph={node.stereotypeGlyph}
+							onChange={(updates) => onUpdateNode?.(selection.id, updates)}
 						/>
 						{node.kind && GLYPH_KINDS.has(node.kind) && (
 							<StereotypeGlyphPicker
 								key={selection.id}
+								multiple
 								glyph={node.stereotypeGlyph}
-								onSelect={(entry) => {
-									const stereotype = node.stereotype;
-									const unset = typeof stereotype === 'string' ? !stereotype.trim() : !stereotype?.length;
-									onUpdateNode?.(selection.id, { stereotypeGlyph: entry.file, ...(unset ? { stereotype: entry.id } : {}) });
-								}}
-								onClear={() => onUpdateNode?.(selection.id, { stereotypeGlyph: '' })}
+								onChange={(stereotypeGlyph) => onUpdateNode?.(selection.id, { stereotypeGlyph })}
 							/>
 						)}
 						{/* Preset Quick Badges */}
@@ -1148,8 +1145,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 								<StereotypeGlyphPicker
 									key={selection.id}
 									glyph={edge.stereotypeGlyph}
-									onSelect={(entry) => onUpdateEdge?.(selection.id, { stereotypeGlyph: entry.file })}
-									onClear={() => onUpdateEdge?.(selection.id, { stereotypeGlyph: '' })}
+									onChange={(stereotypeGlyph) => onUpdateEdge?.(selection.id, { stereotypeGlyph })}
 								/>
 							</div>
 
@@ -1341,23 +1337,101 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 };
 
 /**
- * CR053 §2.2 — visual picker for the node's stereotype pictogram. A badge shows the active glyph;
- * it opens an inline flyout with category tabs, a search field (English, German, aliases) and the
- * glyph grid. An unknown reference stays visible verbatim so it can be cleared, never silently lost.
+ * The stereotype list as one comma-separated text: the stereotype words first, then the node's
+ * pictograms by file name (`Lead, Customer, Artist.svg`). Chips, the glyph picker and typing all
+ * edit the same list, so the field always shows what is selected.
+ */
+function stereotypeListText(stereotype: string | readonly string[] | undefined, glyph: string | undefined): string {
+	const words = Array.isArray(stereotype)
+		? stereotype.map((s) => String(s).trim()).filter(Boolean).join(', ')
+		: String(stereotype ?? '').trim();
+	const glyphs = splitStereotypeGlyphRefs(glyph).map((ref) => resolveStereotypeGlyph(ref)?.file ?? ref);
+	return [words, ...glyphs].filter(Boolean).join(', ');
+}
+
+/**
+ * A typed item names a pictogram when it ends in `.svg` or is a glyph's id (`Computer`). A built-in
+ * stereotype word stays a stereotype even when a glyph shares it (`Artist` means Headliner).
+ */
+function glyphOfItem(item: string): string | undefined {
+	const entry = resolveStereotypeGlyph(item);
+	if (/\.svg$/i.test(item)) return entry?.file ?? item;
+	if (resolveStereotype(item) !== undefined || !entry) return undefined;
+	return item.replace(/\s+/g, '').toLowerCase() === entry.id.toLowerCase() ? entry.file : undefined;
+}
+
+/** Split typed text back into the stereotype words and the pictogram list. */
+function parseStereotypeList(text: string): { stereotype: string; stereotypeGlyph: string } {
+	const words: string[] = [];
+	const glyphs: string[] = [];
+	for (const raw of text.split(',')) {
+		const item = raw.trim();
+		if (!item) continue;
+		const glyph = glyphOfItem(item);
+		if (glyph === undefined) words.push(item);
+		else if (!glyphs.includes(glyph)) glyphs.push(glyph);
+	}
+	return { stereotype: words.join(', '), stereotypeGlyph: glyphs.join(', ') };
+}
+
+/** The stereotype text field. While it has focus it shows what is typed; otherwise the stored list. */
+const StereotypeListInput: React.FC<{
+	stereotype: string | readonly string[] | undefined;
+	glyph: string | undefined;
+	onChange: (updates: { stereotype: string; stereotypeGlyph: string }) => void;
+}> = ({ stereotype, glyph, onChange }) => {
+	const [draft, setDraft] = useState<string | null>(null);
+	const stored = stereotypeListText(stereotype, glyph);
+	return (
+		<input className="input input-sm w-full"
+			type="text"
+			aria-label="Stereotypes"
+			value={draft ?? stored}
+			onFocus={() => setDraft(stored)}
+			onBlur={() => setDraft(null)}
+			onChange={(e) => {
+				setDraft(e.target.value);
+				onChange(parseStereotypeList(e.target.value));
+			}}
+			style={inputStyle}
+			placeholder="e.g. Lead, Customer, Stage, Computer.svg"
+		/>
+	);
+};
+
+/**
+ * CR053 §2.2 — visual picker for stereotype pictograms. A badge shows the active glyphs; it opens an
+ * inline flyout with category tabs, a search field (English, German, aliases) and the glyph grid.
+ * With `multiple` (nodes) each tile toggles its glyph and the flyout stays open; otherwise (edges) a
+ * tile replaces the glyph and closes it. Unknown references stay visible verbatim so they can be
+ * cleared, never silently lost.
  */
 const StereotypeGlyphPicker: React.FC<{
 	glyph: string | undefined;
-	onSelect: (entry: StereotypeGlyphEntry) => void;
-	onClear: () => void;
-}> = ({ glyph, onSelect, onClear }) => {
+	multiple?: boolean;
+	/** The new comma-separated glyph list; `''` clears it. */
+	onChange: (glyph: string) => void;
+}> = ({ glyph, multiple = false, onChange }) => {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState('');
 	const [category, setCategory] = useState<StereotypeGlyphCategory | 'all'>('all');
-	const active = resolveStereotypeGlyph(glyph);
-	const activeUrl = active ? getStereotypeGlyphUrl(active.file) : undefined;
-	const unknown = !active && Boolean(glyph?.trim());
+	const refs = splitStereotypeGlyphRefs(glyph);
+	const active = resolveStereotypeGlyphs(glyph);
+	const unknown = refs.filter((ref) => resolveStereotypeGlyph(ref) === undefined);
+	const summary = [...active.map((entry) => entry.label), ...unknown.map((ref) => `Unknown: ${ref}`)].join(', ');
 	const results = open ? searchStereotypeGlyphs(query, category) : [];
 	const tabs: { id: StereotypeGlyphCategory | 'all'; label: string }[] = [{ id: 'all', label: 'All' }, ...STEREOTYPE_GLYPH_CATEGORIES];
+	const pick = (entry: StereotypeGlyphEntry) => {
+		if (!multiple) {
+			onChange(entry.file);
+			setOpen(false);
+			return;
+		}
+		const files = refs.map((ref) => resolveStereotypeGlyph(ref)?.file ?? ref);
+		onChange(active.includes(entry)
+			? files.filter((file) => resolveStereotypeGlyph(file) !== entry).join(', ')
+			: [...files, entry.file].join(', '));
+	};
 
 	return (
 		<div className="raid-glyph-picker" style={{ marginTop: 6 }}>
@@ -1366,23 +1440,23 @@ const StereotypeGlyphPicker: React.FC<{
 					type="button"
 					aria-label="Choose stereotype glyph"
 					aria-expanded={open}
-					title={active ? `Glyph: ${active.label}` : 'Choose a stereotype glyph'}
+					title={summary ? `Glyph: ${summary}` : multiple ? 'Choose stereotype glyphs' : 'Choose a stereotype glyph'}
 					onClick={() => setOpen((o) => !o)}
-					style={{ ...buttonChoiceStyle, gap: 6, padding: '2px 8px', background: active ? CascaisPalette.AmberMist : '#FFFFFF', border: active ? `1.5px solid ${CascaisPalette.NetGoldStroke}` : buttonChoiceStyle.border }}
+					style={{ ...buttonChoiceStyle, gap: 6, padding: '2px 8px', background: active.length > 0 ? CascaisPalette.AmberMist : '#FFFFFF', border: active.length > 0 ? `1.5px solid ${CascaisPalette.NetGoldStroke}` : buttonChoiceStyle.border }}
 				>
-					{activeUrl
-						? <img src={activeUrl} alt="" width={20} height={20} style={{ objectFit: 'contain' }} />
+					{active.length > 0
+						? active.map((entry) => <img key={entry.file} src={getStereotypeGlyphUrl(entry.file)} alt="" width={20} height={20} style={{ objectFit: 'contain' }} />)
 						: <span aria-hidden="true" style={{ fontSize: 14, lineHeight: '20px' }}>＋</span>}
-					<span style={{ color: unknown ? CascaisPalette.RedDeep : '#374151' }}>
-						{active ? active.label : unknown ? `Unknown: ${glyph}` : 'Glyph'}
+					<span style={{ color: unknown.length > 0 ? CascaisPalette.RedDeep : '#374151' }}>
+						{summary || (multiple ? 'Glyphs' : 'Glyph')}
 					</span>
 				</button>
-				{(active || unknown) && (
+				{refs.length > 0 && (
 					<button className="btn btn-xs"
 						type="button"
 						aria-label="Clear stereotype glyph"
 						title="Reset to the default archetype rendering"
-						onClick={() => { onClear(); setOpen(false); }}
+						onClick={() => { onChange(''); setOpen(false); }}
 						style={{ ...buttonChoiceStyle, padding: '2px 8px', background: '#FFFFFF', color: '#6B7280' }}
 					>
 						Clear
@@ -1424,12 +1498,17 @@ const StereotypeGlyphPicker: React.FC<{
 							</button>
 						))}
 					</div>
+					{multiple && (
+						<p style={{ fontSize: 10, color: '#6B7280', margin: '0 0 6px' }}>
+							Pick several; pick one again to remove it. The first is the main pictogram.
+						</p>
+					)}
 					{results.length === 0 ? (
 						<p style={{ fontSize: 11, color: '#6B7280', margin: '8px 0' }}>No glyph matches “{query}”.</p>
 					) : (
 						<div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, maxHeight: 240, overflowY: 'auto' }}>
 							{results.map((entry) => {
-								const selected = entry.file === active?.file;
+								const selected = active.includes(entry);
 								return (
 									<button
 										key={entry.file}
@@ -1437,7 +1516,7 @@ const StereotypeGlyphPicker: React.FC<{
 										aria-label={entry.label}
 										aria-pressed={selected}
 										title={entry.label}
-										onClick={() => { onSelect(entry); setOpen(false); }}
+										onClick={() => pick(entry)}
 										style={{
 											display: 'flex',
 											flexDirection: 'column',
@@ -1457,6 +1536,15 @@ const StereotypeGlyphPicker: React.FC<{
 									</button>
 								);
 							})}
+						</div>
+					)}
+					{multiple && (
+						<div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+							<button className="btn btn-xs" type="button" onClick={() => setOpen(false)}
+								style={{ ...buttonChoiceStyle, padding: '2px 8px', background: '#FFFFFF' }}
+							>
+								Done
+							</button>
 						</div>
 					)}
 				</div>

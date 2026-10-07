@@ -7,7 +7,7 @@ const node = (id: string, kind: RaidNodeData['kind'], displayName: string, x: nu
 const edge = (id: string, sourceId: string, targetId: string, kind: RaidEdgeData['kind'] = 'association', directed = true, extra: Partial<RaidEdgeData> = {}): RaidEdgeData => ({ id, sourceId, targetId, kind, directed, routing: 'normal', bendPoints: [], ...extra });
 const preset = (id: string, name: string, description: string, model: RaidMetamodel): DiagramPreset => ({ id, name, description, archetype: model.archetype, svg: new RaiBridge().generateFreshSvg(model, {}) });
 export const ROLE_PRESETS: DiagramPreset[] = [
-  preset('role-fillers', 'Roles & RoleFillers (Legacy)', 'Legacy regression view: historical rf circles still load and render. One role definition, two contextual bindings, one shared filler. Select a hollow or filled circle to inspect its connections.', {
+  preset('role-fillers', 'Roles & RoleFillers (AOAIM Binding Engine)', 'The binding engine that connects M1 to M0: each filled circle is one fulfilment of a typed role, where role-specific properties, credentials and tenures live. One role definition, two contextual bindings, one shared filler. Select a hollow or filled circle to inspect its connections.', {
     diagramId: 'RoleFillers', archetype: 'ClassObjectDiagram', routing: 'normal',
     nodes: [
       node('system', 'cls', 'System', 80, 60),
@@ -39,7 +39,7 @@ export const ROLE_PRESETS: DiagramPreset[] = [
     edges: [edge('director-sign', 'director', 'sign', 'association', true, { label: '«initiates»' }), edge('sign-verify', 'sign', 'verify', 'dependency', true, { label: '«includes»' }), edge('diva-perform', 'diva', 'perform', 'association', true, { label: '«participates»' })],
   }),
   // The Vasco / RAI handover pair: one UseCase signature (1UCC) and one running Activity that fills it (1AOC / _RFD).
-  preset('negotiate-contract-1ucc', 'Roles · NegotiateContract (1UCC slots)', 'Type level: the UseCase declares its formal parameters. Each Who / What / Where role wears its category glyph inside a dashed slot ring, with the expected Class as a quiet `: <Class>` tag. Nothing is underlined.', {
+  preset('negotiate-contract-1ucc', 'Roles · NegotiateContract (1UCC slots)', 'Type level: the UseCase declares its formal parameters. Each Who / What / Where role wears its category glyph (a figure, a card, a place), with the expected Class as a quiet `: <Class>` tag. No rings or dotted outlines, and nothing is underlined.', {
     diagramId: 'NegotiateContract_UCD', archetype: 'OneUseCaseDiagram', routing: 'normal',
     nodes: [
       node('negotiate', 'uc', 'NegotiateContract', 360, 190),

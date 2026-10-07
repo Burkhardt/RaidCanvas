@@ -28,14 +28,9 @@ import {
 	CascaisPalette,
 	getDefaultNodeBounds,
 	getDefaultNodeName,
-	computeMaxLineLength,
-	wrapAimText,
 	setNodeDualityActive,
-	computeStereotypeIconAttrs,
 } from './X6Shapes.js';
 import { withAlpha } from './CascaisTheme.js';
-import { resolveStereotype, isInitiatingStereotype } from './StereotypeIcons.js';
-import { hasStereotypeGlyph } from './StereotypeGlyphs.js';
 import { isInstanceNode } from './RoleModel.js';
 import {
 	validateDiagramConnection,
@@ -94,6 +89,11 @@ export interface RaidCanvasProps {
     fitOnResize?: boolean;
 	/** Callback fired when the left hemisphere (Persona / Anchor) of a node is tapped */
 	onNodeClick?: (node: RaidNodeData, event: MouseEvent) => void;
+	/**
+	 * The node the host's Inspector already shows. A left tap on it changes nothing, so its persona keeps no
+	 * Verde hover/press and no pointer cursor.
+	 */
+	inspectedNodeId?: string | null;
 	/** Callback fired when the right hemisphere (Portal Door) of a node is tapped */
 	onNodePortalClick?: (node: RaidNodeData, event: MouseEvent) => void;
 	/** Deprecated desktop double-click fallback */
@@ -193,6 +193,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			onNodeArchetypeChange,
 			onRoutingModeChange,
 			onNodeClick,
+			inspectedNodeId,
 			onNodePortalClick,
 			onNodeDblClick,
 			showToolbar = true, initialSelectionId, onCanvasStateChange, fitOnResize = false,
@@ -264,6 +265,9 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 
 		const onNodeClickRef = useRef(onNodeClick);
 		onNodeClickRef.current = onNodeClick;
+
+		const inspectedNodeIdRef = useRef(inspectedNodeId);
+		inspectedNodeIdRef.current = inspectedNodeId;
 
 		const onNodePortalClickRef = useRef(onNodePortalClick);
 		onNodePortalClickRef.current = onNodePortalClick;
@@ -475,11 +479,12 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						}
 						if (verdict === false) return;
 						if (verdict && typeof (verdict as Promise<boolean>).then === 'function') {
+							const before = { ...node.getPosition(), ...node.getSize() };
 							const revert = () => {
 								if (!graphRef.current?.getCellById(id)) return;
 								archetypeRevertRef.current = true;
 								try {
-									handle.updateNode(id, { kind: from, slot: currentData.slot === true });
+									handle.updateNode(id, { kind: from, slot: currentData.slot === true, bounds: before });
 								} finally {
 									archetypeRevertRef.current = false;
 								}
@@ -523,210 +528,44 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						const { stereotypeGlyph: _cleared, ...withoutGlyph } = nextData;
 						nextData = withoutGlyph;
 					}
+					// A new archetype starts from its own defaults: whatever only the old one carried (its instance
+					// default, a Class's projected roles, a role slot) must not decide how the new one looks.
+					if (nextData.kind !== currentData.kind) {
+						const { instance: _instance, roleAttributes: _roles, slot: _slot, ...rest } = nextData;
+						nextData = {
+							...rest,
+							...(updates.instance !== undefined ? { instance: updates.instance } : {}),
+							...(nextData.kind === 'cls' && nextData.roleAttributes ? { roleAttributes: nextData.roleAttributes } : {}),
+							...((updates.slot ?? (currentData.slot === true && ['per', 'obj', 'plc'].includes(nextData.kind))) ? { slot: true } : {}),
+						};
+					}
                     if (!isNodeAllowedInDiagram(nextData, new DOMParser().parseFromString(svgPropRef.current, 'image/svg+xml').documentElement.getAttribute('aim-archetype') ?? '')) return;
-					// CR053: glyph nodes always re-render canonically — the incremental patch below knows nothing
-					// of pictograms and would repaint the built-in icon or stick figure over them.
-					const glyphRender = updates.stereotypeGlyph !== undefined || hasStereotypeGlyph(nextData);
-                    // Role slots re-render canonically too: their ring and `: <Class>` tag live outside the incremental patch.
-                    if (glyphRender || nextData.slot === true || currentData.slot === true || nextData.kind !== currentData.kind || nextData.kind === 'rol' || nextData.kind === 'rf' || nextData.kind === 'obj' || currentData.description) {
-                        // Glyph placement depends on the live size, which resizing does not sync into data.bounds.
-                        const liveSize = glyphRender ? { ...node.getSize(), ...(updates.bounds ?? {}) } : {};
-                        const canonical = createAimNode({ ...nextData, bounds: { ...nextData.bounds, ...node.getPosition(), ...liveSize } });
-                        node.setData(canonical.data);
-                        const fresh = graph.createNode(canonical);
-                        node.prop('shape', canonical.shape);
-                        node.setMarkup(fresh.getMarkup());
-                        node.setAttrs(fresh.getAttrs(), { overwrite: true });
-                        node.resize(Number(canonical.width), Number(canonical.height));
-                        triggerDebouncedChange();
-                        return;
-                    }
-					node.setData(nextData);
-
-					const displayName = nextData.displayName;
-					const qualifier = nextData.qualifier;
-					const isInstance = nextData.instance === true;
-					const boxWidth = nextData.bounds.width;
-					const fontSize = nextData.kind === 'uc' || nextData.kind === 'act' ? 13 : 12;
-
-					const resolvedStereotype = resolveStereotype(nextData.stereotype);
-					const hasStereotypeIcon = Boolean(resolvedStereotype && resolvedStereotype !== 'initiates');
-					const isFramelessPlc = nextData.kind === 'plc' && ['venue', 'stage', 'bar'].includes(resolvedStereotype ?? '');
-					const cardTextRefX = hasStereotypeIcon && nextData.kind !== 'plc' ? 0.62 : 0.5;
-					const availableTextWidth =
-						nextData.kind === 'per' || isFramelessPlc
-							? Math.max(boxWidth, 180)
-							: hasStereotypeIcon
-								? Math.max(40, boxWidth - 52)
-								: boxWidth;
-					const maxLineLength = computeMaxLineLength(availableTextWidth, fontSize);
-
-					const wrappedName = wrapAimText(displayName, maxLineLength);
-					const wrappedQualifier = qualifier ? wrapAimText(qualifier, maxLineLength) : '';
-
-					// Update stereotype icon paths and attributes
-					const stereoAttrs = computeStereotypeIconAttrs(nextData);
-					node.setAttrByPath('iconFill/d', stereoAttrs.iconFill?.d ?? '');
-					node.setAttrByPath('iconFill/display', stereoAttrs.iconFill?.display ?? 'none');
-					node.setAttrByPath('iconFill/transform', (stereoAttrs.iconFill as any)?.transform ?? '');
-					node.setAttrByPath('iconFill/fill', (stereoAttrs.iconFill as any)?.fill ?? '');
-
-					node.setAttrByPath('iconStroke/d', stereoAttrs.iconStroke?.d ?? '');
-					node.setAttrByPath('iconStroke/display', stereoAttrs.iconStroke?.display ?? 'none');
-					node.setAttrByPath('iconStroke/transform', (stereoAttrs.iconStroke as any)?.transform ?? '');
-					node.setAttrByPath('iconStroke/stroke', (stereoAttrs.iconStroke as any)?.stroke ?? '');
-					node.setAttrByPath('iconStroke/strokeWidth', (stereoAttrs.iconStroke as any)?.strokeWidth ?? 1.3);
-					node.setAttrByPath('iconStroke/strokeLinecap', (stereoAttrs.iconStroke as any)?.strokeLinecap ?? 'round');
-					node.setAttrByPath('iconStroke/strokeLinejoin', (stereoAttrs.iconStroke as any)?.strokeLinejoin ?? 'round');
-
-					if (stereoAttrs.iconPin) {
-						node.setAttrByPath('iconPin/d', stereoAttrs.iconPin.d ?? '');
-						node.setAttrByPath('iconPin/display', stereoAttrs.iconPin.display ?? 'none');
-						node.setAttrByPath('iconPin/transform', (stereoAttrs.iconPin as any)?.transform ?? '');
-						node.setAttrByPath('iconPin/fill', (stereoAttrs.iconPin as any)?.fill ?? '');
-						node.setAttrByPath('iconPin/stroke', (stereoAttrs.iconPin as any)?.stroke ?? '');
+					// Every update re-renders canonically through createAimNode, so the result depends only on the
+					// node's data and live geometry, never on which attrs an earlier edit happened to patch.
+					// Resizing does not sync into data.bounds, so the live position and size are the base.
+					let placement: Partial<RaidNodeData['bounds']> = { ...node.getPosition(), ...node.getSize() };
+					// A new archetype takes its own default size, centred where the old shape was, so the
+					// result never depends on the archetype it replaced.
+					if (nextData.kind !== currentData.kind && updates.bounds?.width === undefined && updates.bounds?.height === undefined) {
+						const { width, height } = getDefaultNodeBounds(nextData.kind);
+						const { x, y } = node.getPosition();
+						const old = node.getSize();
+						placement = { x: Math.round(x + (old.width - width) / 2), y: Math.round(y + (old.height - height) / 2), width, height };
 					}
+					const canonical = createAimNode({ ...nextData, bounds: { ...nextData.bounds, ...placement, ...(updates.bounds ?? {}) } });
+					node.setData(canonical.data, { overwrite: true });
+					const fresh = graph.createNode(canonical);
+					node.prop('shape', canonical.shape);
+					node.setMarkup(fresh.getMarkup());
+					node.setAttrs(fresh.getAttrs(), { overwrite: true });
+					node.resize(Number(canonical.width), Number(canonical.height));
+					if (canonical.x !== undefined && canonical.y !== undefined) node.position(Number(canonical.x), Number(canonical.y));
 
-					node.setAttrByPath('iconAccent/d', stereoAttrs.iconAccent?.d ?? '');
-					node.setAttrByPath('iconAccent/display', stereoAttrs.iconAccent?.display ?? 'none');
-					node.setAttrByPath('iconAccent/transform', (stereoAttrs.iconAccent as any)?.transform ?? '');
-					node.setAttrByPath('iconAccent/fill', (stereoAttrs.iconAccent as any)?.fill ?? '');
-					node.setAttrByPath('iconAccent/stroke', (stereoAttrs.iconAccent as any)?.stroke ?? 'none');
-					node.setAttrByPath('iconAccent/strokeWidth', (stereoAttrs.iconAccent as any)?.strokeWidth ?? 1);
-					node.setAttrByPath('iconAccent/strokeLinecap', (stereoAttrs.iconAccent as any)?.strokeLinecap ?? 'round');
-					node.setAttrByPath('iconAccent/strokeLinejoin', (stereoAttrs.iconAccent as any)?.strokeLinejoin ?? 'round');
-					node.setAttrByPath('iconAccent/class', (stereoAttrs.iconAccent as any)?.class ?? 'aim-stereotype-icon-accent');
-
-					if (nextData.kind === 'cls') {
-						node.setAttrByPath('title/text', displayName);
-						node.setAttrByPath('title/textDecoration', isInstance ? 'underline' : 'none');
-						if (nextData.attributes !== undefined) {
-							node.setAttrByPath('attributes/text', nextData.attributes.join('\n'));
-						}
-						if (nextData.methods !== undefined) {
-							node.setAttrByPath('methods/text', nextData.methods.join('\n'));
-						}
-					} else if (nextData.kind === 'per') {
-						const isInitiating = isInitiatingStereotype(nextData.stereotype);
-						const isSystem = resolvedStereotype === 'system';
-						const isLead = resolvedStereotype === 'lead';
-						const strokeColor = (isInitiating && !isLead) ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
-						const cx = Math.round(boxWidth / 2);
-						const torsoD = isLead
-							? `M ${cx - 21} 54 v -6 a 10 10 0 0 1 10 -10 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 L ${cx + 8} 47`
-							: `M ${cx + 21} 54 v -6 a 10 10 0 0 0 -10 -10 H ${cx - 11} a 10 10 0 0 0 -10 10 v 6`;
-						node.setAttrByPath('torso/d', torsoD);
-						node.setAttrByPath('torso/stroke', strokeColor);
-						node.setAttrByPath('torso/display', isSystem ? 'none' : 'block');
-						node.setAttrByPath('head/cx', cx);
-						node.setAttrByPath('head/cy', 20);
-						node.setAttrByPath('head/r', 12);
-						node.setAttrByPath('head/stroke', strokeColor);
-						node.setAttrByPath('head/display', isSystem ? 'none' : 'block');
-						const qualifierLines = wrappedQualifier ? wrappedQualifier.split('\n').length : 0;
-						const labelRefY = qualifierLines > 0 ? 66 + qualifierLines * 18 : 74;
-						if (qualifier) {
-							node.setAttrByPath('qualifier/text', wrappedQualifier);
-							node.setAttrByPath('qualifier/refY', 66);
-							node.setAttrByPath('label/text', wrappedName);
-							node.setAttrByPath('label/refY', labelRefY);
-						} else {
-							node.setAttrByPath('qualifier/text', '');
-							node.setAttrByPath('label/text', wrappedName);
-							node.setAttrByPath('label/refY', 84);
-						}
-						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');
-					} else if (nextData.kind === 'plc') {
-						node.setAttrByPath('header/display', 'none');
-						if (isFramelessPlc) {
-							// Frameless Place glyphs: Venue, Stage, Bar in Net Gold (NetGoldStroke)
-							node.setAttrByPath('body/fill', 'transparent');
-							node.setAttrByPath('body/stroke', 'none');
-							node.setAttrByPath('body/strokeWidth', 0);
-							node.setAttrByPath('body/pointerEvents', 'all');
-							node.setAttrByPath('body/style', { fill: 'transparent', stroke: 'none', strokeWidth: 0, pointerEvents: 'all' });
-							node.setAttrByPath('body/class', 'aim-node aim-plc aim-frameless');
-							if (node.getSize().width > 120 || node.getSize().width < 120) {
-								node.resize(120, 110);
-							}
-							const qualifierLines = wrappedQualifier ? wrappedQualifier.split('\n').length : 0;
-							const labelRefY = qualifierLines > 0 ? 66 + qualifierLines * 18 : 74;
-							if (qualifier) {
-								node.setAttrByPath('qualifier/text', wrappedQualifier);
-								node.setAttrByPath('qualifier/refX', 0.5);
-								node.setAttrByPath('qualifier/refY', 66);
-								node.setAttrByPath('label/text', wrappedName);
-								node.setAttrByPath('label/refX', 0.5);
-								node.setAttrByPath('label/refY', labelRefY);
-							} else {
-								node.setAttrByPath('qualifier/text', '');
-								node.setAttrByPath('label/text', wrappedName);
-								node.setAttrByPath('label/refX', 0.5);
-								node.setAttrByPath('label/refY', 84);
-							}
-						} else if (hasStereotypeIcon) {
-							// Framed Place with Stereotype (e.g. Stage, Bar)
-							node.setAttrByPath('body/fill', CascaisPalette.ChalkWhite);
-							node.setAttrByPath('body/stroke', CascaisPalette.SilverLineDark);
-							node.setAttrByPath('body/strokeWidth', 1.5);
-							node.setAttrByPath('body/style', { fill: CascaisPalette.ChalkWhite, stroke: CascaisPalette.SilverLineDark, strokeWidth: 1.5 });
-							node.setAttrByPath('body/class', 'aim-node aim-plc aim-plc-framed');
-							if (node.getSize().width <= 120) {
-								node.resize(160, 75);
-							}
-							node.setAttrByPath('qualifier/text', wrappedQualifier);
-							node.setAttrByPath('qualifier/refX', 0.5);
-							node.setAttrByPath('qualifier/refY', 42);
-							node.setAttrByPath('label/text', wrappedName);
-							node.setAttrByPath('label/refX', 0.5);
-							node.setAttrByPath('label/refY', 58);
-						} else {
-							// Unstereotyped Place card
-							node.setAttrByPath('body/fill', CascaisPalette.ChalkWhite);
-							node.setAttrByPath('body/stroke', CascaisPalette.SilverLineDark);
-							node.setAttrByPath('body/strokeWidth', 1.5);
-							node.setAttrByPath('body/style', { fill: CascaisPalette.ChalkWhite, stroke: CascaisPalette.SilverLineDark, strokeWidth: 1.5 });
-							node.setAttrByPath('body/class', 'aim-node aim-plc aim-plc-framed');
-							if (node.getSize().width <= 120) {
-								node.resize(160, 70);
-							}
-							node.setAttrByPath('qualifier/text', wrappedQualifier);
-							node.setAttrByPath('qualifier/refX', 0.5);
-							node.setAttrByPath('qualifier/refY', 0.38);
-							node.setAttrByPath('label/text', wrappedName);
-							node.setAttrByPath('label/refX', 0.5);
-							node.setAttrByPath('label/refY', qualifier ? 0.65 : 0.5);
-						}
-						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');
-					} else {
-						if (qualifier) {
-							node.setAttrByPath('qualifier/text', wrappedQualifier);
-							node.setAttrByPath('qualifier/refX', cardTextRefX);
-							node.setAttrByPath('qualifier/refY', 0.35);
-							node.setAttrByPath('label/text', wrappedName);
-							node.setAttrByPath('label/refX', cardTextRefX);
-							node.setAttrByPath('label/refY', 0.65);
-						} else {
-							node.setAttrByPath('qualifier/text', '');
-							node.setAttrByPath('label/text', wrappedName);
-							node.setAttrByPath('label/refX', cardTextRefX);
-							node.setAttrByPath('label/refY', 0.5);
-						}
-						node.setAttrByPath('label/textDecoration', isInstance ? 'underline' : 'none');
-					}
-
+					// The fresh attrs show the dormant face; an awakened node keeps its portal unless its link is gone.
 					if (activeDualityNodeIdRef.current === id) {
-						if (!nextData.href || !nextData.href.trim()) {
-							setNodeDualityActive(node, false);
-							activeDualityNodeIdRef.current = null;
-						} else {
-							setNodeDualityActive(node, true);
-						}
-					}
-
-					if (updates.bounds) {
-						node.setPosition(updates.bounds.x, updates.bounds.y);
-						node.setSize(updates.bounds.width, updates.bounds.height);
+						const linked = Boolean(nextData.href?.trim());
+						setNodeDualityActive(node, linked);
+						if (!linked) activeDualityNodeIdRef.current = null;
 					}
 
 					triggerDebouncedChange();
@@ -781,7 +620,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						}
 					}
 
-					edge.setData(mutableData as unknown as RaidEdgeData);
+					edge.setData(mutableData as unknown as RaidEdgeData, { overwrite: true });
 
 					if (updates.kind !== undefined || updates.directed !== undefined) {
 						const nextEdgeData = mutableData as unknown as RaidEdgeData;
@@ -985,7 +824,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							...(updates.bounds ?? {}),
 						},
 					};
-					node.setData(nextData);
+					node.setData(nextData, { overwrite: true });
 					const label = `${nextData.kind}: ${nextData.name}`;
 					node.setAttrByPath('headerText/text', label);
 					if (nextData.kind === 'Package') {
@@ -1216,6 +1055,10 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 			}
 
 			graphRef.current = graph;
+			// A re-created node (e.g. a role slot changing category) mounts a fresh view: carry the mark over.
+			graph.on('view:mounted', ({ view }) => {
+				if (view.cell.isNode()) view.container.classList.toggle('aim-inspected', String(view.cell.id) === inspectedNodeIdRef.current);
+			});
             let stateQueued = false;
             let disposed = false;
             const queueCanvasState = () => {
@@ -1458,13 +1301,13 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					const childData = (childNode.getData() ?? {}) as Partial<RaidNodeData>;
 					const parentData = (parentNode.getData() ?? {}) as Partial<RaidBoundaryData>;
 					const boundaryId = String(parentNode.id);
-					childNode.setData({ ...childData, boundaryId }, { silent: true });
+					childNode.setData({ ...childData, boundaryId }, { silent: true, overwrite: true });
 
 					const elementIds = Array.isArray(parentData.elementIds) ? [...parentData.elementIds] : [];
 					const childId = String(childNode.id);
 					if (!elementIds.includes(childId)) {
 						elementIds.push(childId);
-						parentNode.setData({ ...parentData, elementIds }, { silent: true });
+						parentNode.setData({ ...parentData, elementIds }, { silent: true, overwrite: true });
 					}
 				}
 				triggerDebouncedChange();
@@ -1475,12 +1318,12 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				const prevParent = parent ?? previous;
 				if (childNode?.isNode()) {
 					const childData = (childNode.getData() ?? {}) as Partial<RaidNodeData>;
-					childNode.setData({ ...childData, boundaryId: undefined }, { silent: true });
+					childNode.setData({ ...childData, boundaryId: undefined }, { silent: true, overwrite: true });
 
 					if (prevParent?.isNode()) {
 						const parentData = (prevParent.getData() ?? {}) as Partial<RaidBoundaryData>;
 						const elementIds = (parentData.elementIds ?? []).filter((id: string) => id !== String(childNode.id));
-						prevParent.setData({ ...parentData, elementIds }, { silent: true });
+						prevParent.setData({ ...parentData, elementIds }, { silent: true, overwrite: true });
 					}
 				}
 				triggerDebouncedChange();
@@ -1588,7 +1431,11 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				if (pointerDownState && pointerDownState.id === String(node.id)) {
 					pointerDownState.moved = true;
 				}
+				wrapperRef.current?.classList.add('aim-dragging');
 			});
+			const endDrag = () => wrapperRef.current?.classList.remove('aim-dragging');
+			graph.on('node:moved', endDrag);
+			graph.on('node:mouseup', endDrag);
 
 			graph.on('node:move', ({ node }) => {
 				if (pointerDownState && pointerDownState.id === String(node.id)) {
@@ -1776,6 +1623,15 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				graphRef.current = null;
 			};
 		}, [readOnly, layoutOnly, triggerDebouncedChange, emitCanvasState]);
+
+		// Mark the node the host's Inspector already shows (see `inspectedNodeId`).
+		useEffect(() => {
+			const graph = graphRef.current;
+			if (!graph) return;
+			for (const node of graph.getNodes()) {
+				graph.findViewByCell(node)?.container.classList.toggle('aim-inspected', String(node.id) === inspectedNodeId);
+			}
+		}, [inspectedNodeId]);
 
 		// --------------------------------------------------------------------------
 		// 2. React to External SVG Changes

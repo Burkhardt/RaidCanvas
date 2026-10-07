@@ -1459,8 +1459,9 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(venueAttrs.seam.x2, 60);
     assert.equal(venueAttrs.seam.y2, 60);
     assert.equal(venueAttrs.seam.stroke, '#AB8722');
-    assert.equal(venueAttrs.chevron.refX, 0.5);
-    assert.equal(venueAttrs.chevron.refDx, 34);
+    // Beside the pin (centre 60 + 34), not past the node's right edge: X6 adds refX and refDx.
+    assert.equal(venueAttrs.chevron.refX, 94);
+    assert.equal(venueAttrs.chevron.refDx, undefined);
     assert.equal(venueAttrs.chevron.refY, 26);
     assert.equal(venueAttrs.chevron.display, 'block');
 
@@ -1494,7 +1495,7 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     }, true);
     assert.equal(barAttrs.door.display, 'block');
     assert.ok(barAttrs.door.d.includes('M 60 14 H 75 L 60 34 Z'), 'Bar right half of glass bowl path');
-    assert.equal(barAttrs.door.fill, 'rgba(210, 43, 43, 0.18)');
+    assert.equal(barAttrs.door.fill, 'rgba(210, 43, 43, 0.15)', 'the Bar rests at 0.15, below the 0.18 hover');
     assert.equal(barAttrs.seam.display, 'block');
     assert.equal(barAttrs.seam.x1, 60);
     assert.equal(barAttrs.seam.y1, 14);
@@ -2033,7 +2034,8 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
 
     // Chevron
     assert.equal(dualityAttrs.chevron.display, 'block');
-    assert.equal(dualityAttrs.chevron.refDx, 32);
+    assert.equal(dualityAttrs.chevron.refX, 92, 'beside the rack: centre 60 + 32');
+    assert.equal(dualityAttrs.chevron.refDx, undefined);
     assert.equal(dualityAttrs.chevron.refY, 30);
   });
 
@@ -3000,10 +3002,50 @@ describe('CR053 Stereotype Glyphs', () => {
     }
   });
 
-  test('a frameless Place stays frameless and shows the glyph as a silhouette', () => {
+  test('a frameless Place keeps its Venue and shows the glyph as a badge beside it', () => {
     const venue = createAimNode({ id: 'V', kind: 'plc', displayName: 'Hall', stereotype: 'Venue', stereotypeGlyph: 'Bridge.svg', bounds });
     assert.match(venue.attrs?.body?.class, /aim-frameless/);
-    assert.match(venue.attrs?.glyph?.class, /aim-stereotype-glyph-silhouette/);
+    assert.notEqual(venue.attrs?.iconStroke?.display, 'none', 'the Venue pin stays');
+    assert.match(venue.attrs?.glyph?.class, /aim-stereotype-glyph-badge/);
+    assert.equal(venue.attrs?.glyph?.width, 20);
+    // Left of the pin, so it never meets the portal caret on the right.
+    assert.equal(venue.attrs?.glyph?.refX, 0.5);
+    assert.ok(venue.attrs?.glyph?.x + 20 < -20, `x ${venue.attrs?.glyph?.x}`);
+  });
+
+  test('several glyphs: the first in its usual place, the rest as small badges', () => {
+    const glyphs = 'Artist.svg, Computer.svg, Bridge.svg';
+    const per = createAimNode({ id: 'P', kind: 'per', displayName: 'Ana', stereotypeGlyph: glyphs, bounds: { x: 0, y: 0, width: 120, height: 110 } });
+    assert.match(per.attrs?.glyph?.class, /silhouette/);
+    assert.equal(per.attrs?.glyph?.['aim-stereotype-glyph'], 'Artist.svg');
+    assert.equal(per.attrs?.glyph2?.['aim-stereotype-glyph'], 'Computer.svg');
+    assert.equal(per.attrs?.glyph3?.['aim-stereotype-glyph'], 'Bridge.svg');
+    assert.match(per.attrs?.glyph2?.class, /badge/);
+    assert.equal(per.attrs?.glyph4?.display, 'none');
+    const obj = createAimNode({ id: 'O', kind: 'obj', displayName: 'Rack', stereotypeGlyph: glyphs, bounds });
+    assert.equal(obj.attrs?.glyph?.width, 24);
+    assert.equal(obj.attrs?.glyph2?.refX, '100%', 'further badges hang from the right edge');
+    assert.ok(obj.attrs?.glyph3?.x < obj.attrs?.glyph2?.x);
+    // Duplicates and unknown names are skipped; the limit holds.
+    const many = createAimNode({ id: 'M', kind: 'per', displayName: 'Ana', stereotypeGlyph: 'Artist.svg, artist, Missing.svg, Computer.svg', bounds });
+    assert.equal(many.attrs?.glyph2?.['aim-stereotype-glyph'], 'Computer.svg');
+    assert.equal(many.attrs?.glyph3?.display, 'none');
+  });
+
+  test('the SVG export draws every glyph and keeps the list in aim-stereotype-glyph', () => {
+    const bridge = new RaiBridge();
+    const node = { id: 'Ana', kind: 'per', displayName: 'Ana', stereotypeGlyph: 'artist, Computer.svg', bounds: { x: 0, y: 0, width: 120, height: 110 } };
+    const model = { diagramId: 'Glyphs', archetype: 'ObjectDiagram', nodes: [node], edges: [] };
+    const svg = bridge.generateFreshSvg(model, {});
+    assert.match(svg, /aim-stereotype-glyph="Artist\.svg, Computer\.svg"/);
+    assert.match(svg, /<image href="\/stereotypes\/Artist\.svg"[^>]*aim-stereotype-glyph-silhouette/);
+    assert.match(svg, /<image href="\/stereotypes\/Computer\.svg"[^>]*aim-stereotype-glyph-badge/);
+    const back = bridge.extractMetamodel(svg).nodes.find((n) => n.id === 'Ana');
+    assert.equal(back.stereotypeGlyph, 'Artist.svg, Computer.svg');
+    // Removing one glyph in place removes its image too.
+    const updated = bridge.updateExistingSvg(svg, { ...model, nodes: [{ ...node, stereotypeGlyph: 'Computer.svg' }] });
+    assert.match(updated, /aim-stereotype-glyph="Computer\.svg"/);
+    assert.equal((updated.match(/<image /g) ?? []).length, 1);
   });
 
   test('without a known glyph every archetype renders exactly as before', () => {
@@ -3152,7 +3194,7 @@ describe('CR055 Portuguese heraldic flag: Verde persona on the hoist, Vermelho p
 
   test('wash strengths are one per material (Koyo D8)', () => {
     assert.deepEqual({ ...DualityWashStrength }, {
-      card: 0.10, boundary: 0.15, silhouette: 0.15, bar: 0.18, person: 0.10, chevron: 0.70, hover: 0.18,
+      card: 0.10, boundary: 0.15, silhouette: 0.15, bar: 0.15, person: 0.10, chevron: 0.70, hover: 0.18,
     });
     const venue = computePortalDoorAttrs({
       id: 'V', kind: 'plc', stereotype: 'Venue', displayName: 'Venue', href: '/places/V',
@@ -3209,9 +3251,20 @@ describe('CR055 Portuguese heraldic flag: Verde persona on the hoist, Vermelho p
   test('the left half answers in Verde, only where a left tap inspects', () => {
     const css = readFileSync(new URL('../src/styles/aoaim-theme.css', import.meta.url), 'utf8');
     const verde18 = 'fill: color-mix(in srgb, var(--aim-bandeira-verde) 18%, transparent);';
-    assert.ok(css.includes(`.aim-inspectable .aim-portal-persona:active {\n  ${verde18}`), 'pressing the left half raises the persona to 18 %');
-    assert.ok(css.includes(`.aim-inspectable .aim-portal-persona:hover {\n    ${verde18}`), 'hovering it does the same for a cursor');
+    const live = '.aim-inspectable .x6-node:not(.aim-inspected) .aim-portal-persona';
+    assert.ok(css.includes(`${live}:active {\n  ${verde18}`), 'pressing the left half raises the persona to 18 %');
+    assert.ok(css.includes(`${live}:hover {\n    ${verde18}`), 'hovering it does the same for a cursor');
+    assert.ok(css.includes(`${live} {\n  cursor: pointer;`), 'the pointer promises a tap that acts');
+    // The node the Inspector already shows (`inspectedNodeId`) is excluded: a left tap there changes nothing.
+    assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /(^|\})\s*\.aim-inspectable \.aim-portal-persona/, 'no ungated persona rule remains');
     assert.doesNotMatch(css, /\.aim-portal-persona \{[^}]*pointer-events: none/, 'the persona must take pointer events to answer');
+  });
+
+  test('the cursor promises only taps that act: pointer on nodes, text lets taps through, grabbing while dragging', () => {
+    const css = readFileSync(new URL('../src/styles/aoaim-theme.css', import.meta.url), 'utf8');
+    assert.ok(css.includes('.raid-canvas-wrapper .x6-node {\n  cursor: pointer;'), "a node shows pointer, not X6's move");
+    assert.ok(css.includes('.x6-node:not([data-shape="aim-rol"]):not([data-shape="aim-rf"]) text {\n  pointer-events: none;'), 'node text falls through to the body, except the label outside a role circle');
+    assert.ok(css.includes('.raid-canvas-wrapper.aim-dragging,\n.raid-canvas-wrapper.aim-dragging * {\n  cursor: grabbing !important;'), 'grabbing holds while dragging');
   });
 
   test('hover is progressive enhancement: every :hover rule sits behind a mouse-or-trackpad media query', () => {

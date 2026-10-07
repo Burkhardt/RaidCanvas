@@ -68,8 +68,8 @@ export const DualityWashStrength = {
   boundary: 0.15,
   /** System, Venue and Stage silhouettes. */
   silhouette: 0.15,
-  /** Bar glass. */
-  bar: 0.18,
+  /** Bar glass at rest, below the 0.18 hover so the glass still answers a cursor. */
+  bar: 0.15,
   /** Person head and torso: card-level subtlety, so the figure lights up with the whole flag. */
   person: 0.10,
   /** The `›` chevron at rest; it reaches full Vermelho on hover. */
@@ -82,16 +82,4 @@ export const DualityWashStrength = {
 export const HeraldicWash = {
   verde: (alpha: number): string => withAlpha(CascaisPalette.BandeiraVerde, alpha),
   vermelho: (alpha: number): string => withAlpha(CascaisPalette.BandeiraVermelho, alpha),
-} as const;
-
-/**
- * The dashed ring (or card halo) of a 1UCC role slot: a formal parameter of the Use Case, so it
- * wears the Use Case's gold. Instances (1AOC / `_RFD`) have no ring.
- */
-export const RoleSlotRing = {
-  stroke: CascaisPalette.NetGoldStroke,
-  strokeWidth: 1.5,
-  dash: '4,3',
-  /** Gap between a card and its halo. */
-  inset: 5,
 } as const;

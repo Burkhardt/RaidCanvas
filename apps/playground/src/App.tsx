@@ -404,6 +404,7 @@ export const App: React.FC = () => {
               onNodeClick={(_node) => {
                 setActiveTab('inspector');
               }}
+              inspectedNodeId={activeTab === 'inspector' && selectedEntity?.type === 'node' ? selectedEntity.id : null}
               onNodePortalClick={(node) => {
                 handlePortalNavigate(node);
               }}

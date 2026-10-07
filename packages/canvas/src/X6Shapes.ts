@@ -29,11 +29,12 @@ import {
 } from './StereotypeIcons.js';
 import {
   resolveStereotypeGlyph,
+  resolveStereotypeGlyphs,
   getStereotypeGlyphUrl,
-  computeStereotypeGlyphPlacement,
+  computeStereotypeGlyphLayout,
   GLYPH_EDGE_SIZE,
 } from './StereotypeGlyphs.js';
-import { CascaisPalette, DualityWashStrength, HeraldicWash, RoleSlotRing } from './CascaisTheme.js';
+import { CascaisPalette, DualityWashStrength, HeraldicWash } from './CascaisTheme.js';
 
 export { CascaisPalette };
 
@@ -182,22 +183,12 @@ export function createOrthogonalPorts() {
  */
 let shapesRegistered = false;
 
-/** The dashed ring (figures) and halo (cards) of a 1UCC role slot; hidden unless `slot` is set. */
-const SLOT_MARKUP = [
-  { tagName: 'rect', selector: 'slotHalo' },
-  { tagName: 'circle', selector: 'slotRing' },
-];
-const SLOT_ATTRS = {
-  fill: 'none',
-  stroke: RoleSlotRing.stroke,
-  strokeWidth: RoleSlotRing.strokeWidth,
-  strokeDasharray: RoleSlotRing.dash,
-  pointerEvents: 'none',
-  display: 'none',
-  class: 'aim-slot-ring',
-};
 /** Line pitch of a 12 px label, used to stack the slot's `: <Class>` tag under the role name. */
 const SLOT_LINE_HEIGHT = 15;
+
+/** CR053: image slots for a node's pictograms, `glyph` first. Every node shape carries all of them. */
+export const GLYPH_SELECTORS = ['glyph', 'glyph2', 'glyph3', 'glyph4', 'glyph5'] as const;
+const EXTRA_GLYPH_MARKUP = GLYPH_SELECTORS.slice(1).map((selector) => ({ tagName: 'image', selector }));
 
 /**
  * Register all AOAIM ontological shapes with AntV X6.
@@ -249,6 +240,7 @@ export function registerAimShapes(): void {
         tagName: 'image',
         selector: 'glyph',
       },
+      ...EXTRA_GLYPH_MARKUP,
       {
         tagName: 'text',
         selector: 'qualifier',
@@ -392,6 +384,7 @@ export function registerAimShapes(): void {
         tagName: 'image',
         selector: 'glyph',
       },
+      ...EXTRA_GLYPH_MARKUP,
       {
         tagName: 'text',
         selector: 'qualifier',
@@ -561,6 +554,7 @@ export function registerAimShapes(): void {
         tagName: 'image',
         selector: 'glyph',
       },
+      ...EXTRA_GLYPH_MARKUP,
       {
         tagName: 'text',
         selector: 'chevron',
@@ -692,7 +686,6 @@ export function registerAimShapes(): void {
         tagName: 'rect',
         selector: 'body',
       },
-      ...SLOT_MARKUP,
       {
         // CR055: Verde wash on the Persona (left / hoist), mirror of the Vermelho door
         tagName: 'path',
@@ -723,6 +716,7 @@ export function registerAimShapes(): void {
         tagName: 'image',
         selector: 'glyph',
       },
+      ...EXTRA_GLYPH_MARKUP,
       {
         tagName: 'text',
         selector: 'qualifier',
@@ -743,8 +737,6 @@ export function registerAimShapes(): void {
         strokeWidth: 1.5,
         class: 'aim-node aim-obj',
       },
-      slotHalo: { ...SLOT_ATTRS },
-      slotRing: { ...SLOT_ATTRS },
       persona: {
         display: 'none',
         fill: HeraldicWash.verde(DualityWashStrength.card),
@@ -837,7 +829,6 @@ export function registerAimShapes(): void {
         tagName: 'rect',
         selector: 'body',
       },
-      ...SLOT_MARKUP,
       {
         tagName: 'path',
         selector: 'iconFill',
@@ -880,6 +871,7 @@ export function registerAimShapes(): void {
         tagName: 'image',
         selector: 'glyph',
       },
+      ...EXTRA_GLYPH_MARKUP,
       {
         tagName: 'text',
         selector: 'qualifier',
@@ -902,8 +894,6 @@ export function registerAimShapes(): void {
         style: { pointerEvents: 'all' },
         class: 'aim-node aim-per',
       },
-      slotHalo: { ...SLOT_ATTRS },
-      slotRing: { ...SLOT_ATTRS },
       torso: {
         d: 'M 81 54 v -6 a 10 10 0 0 0 -10 -10 H 49 a 10 10 0 0 0 -10 10 v 6',
         fill: 'none',
@@ -1020,7 +1010,6 @@ export function registerAimShapes(): void {
         tagName: 'rect',
         selector: 'body',
       },
-      ...SLOT_MARKUP,
       {
         tagName: 'rect',
         selector: 'header',
@@ -1055,6 +1044,7 @@ export function registerAimShapes(): void {
         tagName: 'image',
         selector: 'glyph',
       },
+      ...EXTRA_GLYPH_MARKUP,
       {
         tagName: 'text',
         selector: 'qualifier',
@@ -1075,8 +1065,6 @@ export function registerAimShapes(): void {
         strokeWidth: 1.5,
         class: 'aim-node aim-plc aim-plc-framed',
       },
-      slotHalo: { ...SLOT_ATTRS },
-      slotRing: { ...SLOT_ATTRS },
       header: {
         display: 'none',
         height: 0,
@@ -1168,7 +1156,7 @@ export function registerAimShapes(): void {
       shape: `aim-${kind}`, overwrite: true, width: 22, height: 22,
       markup: [{ tagName: 'circle', selector: 'body' }, { tagName: 'text', selector: 'label' }],
       attrs: {
-        body: { refCx: '50%', refCy: '50%', refR: '50%', stroke: '#334155', strokeWidth: 2, fill: kind === 'rf' ? '#2563EB' : CascaisPalette.ChalkWhite },
+        body: { refCx: '50%', refCy: '50%', refR: '50%', stroke: CascaisPalette.WarmGraphite, strokeWidth: 2, fill: kind === 'rf' ? CascaisPalette.AccentBlue : CascaisPalette.ChalkWhite },
         label: { refX: 0.5, refY: -14, textAnchor: 'middle', textVerticalAnchor: 'middle', fontSize: 13, fontFamily: 'Inter, system-ui, sans-serif', fill: CascaisPalette.WarmGraphite },
       },
       ports: createOrthogonalPorts(),
@@ -1540,7 +1528,7 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
   const h = data.bounds.height;
   const midX = Math.round(w / 2);
 
-  const resolvedStereotype = resolveStereotype(data.stereotype);
+  const resolvedStereotype = resolveStereotype(data.stereotype, data.kind);
 
   if (data.kind === 'per') {
     const cx = Math.round(w / 2);
@@ -1567,8 +1555,8 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
         },
         chevron: {
           text: '›',
-          refX: 0.5,
-          refDx: 32,
+          // Beside the icon: refX and refDx add up in X6, so an absolute offset from the icon centre.
+          refX: cx + 32,
           refY: 30,
           fill: HeraldicWash.vermelho(DualityWashStrength.chevron),
           fontSize: 14,
@@ -1648,8 +1636,8 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
       },
       chevron: {
         text: '›',
-        refX: 0.5,
-        refDx: 34,
+        // Beside the icon: refX and refDx add up in X6, so an absolute offset from the icon centre.
+        refX: cx + 34,
         refY: 26,
         fill: HeraldicWash.vermelho(DualityWashStrength.chevron),
         fontSize: 14,
@@ -1689,8 +1677,8 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
       },
       chevron: {
         text: '›',
-        refX: 0.5,
-        refDx: 34,
+        // Beside the icon: refX and refDx add up in X6, so an absolute offset from the icon centre.
+        refX: cx + 34,
         refY: 26,
         fill: HeraldicWash.vermelho(DualityWashStrength.chevron),
         fontSize: 14,
@@ -1730,8 +1718,8 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
       },
       chevron: {
         text: '›',
-        refX: 0.5,
-        refDx: 32,
+        // Beside the icon: refX and refDx add up in X6, so an absolute offset from the icon centre.
+        refX: cx + 32,
         refY: 26,
         fill: HeraldicWash.vermelho(DualityWashStrength.chevron),
         fontSize: 14,
@@ -1881,7 +1869,7 @@ export function setNodeDualityActive(node: Node, active: boolean): void {
  * - Preserves visibility in both dormant and awakened Duality states.
  */
 export function computeStereotypeIconAttrs(data: RaidNodeData) {
-  const resolved = resolveStereotype(data.stereotype);
+  const resolved = resolveStereotype(data.stereotype, data.kind);
   if (!resolved) {
     return {
       iconFill: { d: '', display: 'none' },
@@ -2282,7 +2270,7 @@ export function configureAimGraph(graph: Graph): void {
         },
       };
       const isCurrentlyActive = node.getAttrByPath('door/display') === 'block';
-      node.setData(updatedData);
+      node.setData(updatedData, { overwrite: true });
       // Re-derives persona, door, seam and chevron for the new size (CR055: the persona must follow too)
       setNodeDualityActive(node, isCurrentlyActive);
     }
@@ -2425,33 +2413,34 @@ export function formatStereotypeLabel(stereotype: RaidNodeData['stereotype']): s
 }
 
 /**
- * CR053 — X6 attributes for the `glyph` image slot.
+ * CR053 — X6 attributes for the pictogram image slots (`glyph`, `glyph2` … `glyph5`).
  *
- * Positions are anchored with `refX` / `refY` against the node box, so the pictogram stays centred
- * (silhouette) or vertically centred (badge) while the node is resized, without recomputing attrs.
- * With no glyph, or an unknown one, the slot is hidden and the node renders exactly as before.
+ * Positions are anchored with `refX` / `refY` against the node box, so a pictogram keeps its place
+ * (centred, beside the left or right edge) while the node is resized, without recomputing attrs.
+ * Unused slots are hidden; with no known glyph the node renders exactly as before.
  */
 export function computeStereotypeGlyphAttrs(
   data: RaidNodeData,
   width: number = data.bounds.width,
   height: number = data.bounds.height,
   frameless = false,
-): { glyph: Record<string, any> } {
-  const entry = resolveStereotypeGlyph(data.stereotypeGlyph);
-  const href = entry ? getStereotypeGlyphUrl(entry.file) : undefined;
-  if (!entry || !href) {
-    return { glyph: { display: 'none', href: '', xlinkHref: '' } };
-  }
-  const p = computeStereotypeGlyphPlacement(data.kind, width, height, { frameless });
-  const anchor: Record<string, unknown> =
-    p.mode === 'silhouette' || (data.kind === 'plc' && !frameless)
-      ? { refX: 0.5, x: -p.width / 2, y: p.y }
-      : data.kind === 'cls'
-        ? { x: p.x, y: p.y }
-        : { x: p.x, refY: 0.5, y: -p.height / 2 };
-  return {
-    glyph: {
-      ...anchor,
+): Record<(typeof GLYPH_SELECTORS)[number], Record<string, any>> {
+  const entries = resolveStereotypeGlyphs(data.stereotypeGlyph);
+  const placements = computeStereotypeGlyphLayout(data.kind, width, height, entries.length, { frameless });
+  const attrs = {} as Record<(typeof GLYPH_SELECTORS)[number], Record<string, any>>;
+  GLYPH_SELECTORS.forEach((selector, i) => {
+    const entry = entries[i];
+    const p = placements[i];
+    const href = entry ? getStereotypeGlyphUrl(entry.file) : undefined;
+    if (!entry || !p || !href) {
+      attrs[selector] = { display: 'none', href: '', xlinkHref: '' };
+      return;
+    }
+    const fx = p.anchorX === 'middle' ? 0.5 : p.anchorX === 'end' ? '100%' : 0;
+    const fy = p.anchorY === 'middle' ? 0.5 : 0;
+    attrs[selector] = {
+      ...(fx === 0 ? { x: p.x } : { refX: fx, x: p.x - (fx === 0.5 ? width / 2 : width) }),
+      ...(fy === 0 ? { y: p.y } : { refY: fy, y: p.y - height / 2 }),
       width: p.width,
       height: p.height,
       href,
@@ -2462,21 +2451,25 @@ export function computeStereotypeGlyphAttrs(
       opacity: data.unbound === true ? 0.7 : 1,
       class: `aim-stereotype-glyph aim-stereotype-glyph-${p.mode}`,
       'aim-stereotype-glyph': entry.file,
-    },
-  };
+    };
+  });
+  return attrs;
 }
 
 export function createAimNode(data: RaidNodeData): NodeMetadata {
   registerAimShapes();
   data = layoutDescription(data);
 
-  const resolvedStereotype = resolveStereotype(data.stereotype);
+  const resolvedStereotype = resolveStereotype(data.stereotype, data.kind);
+  // Frameless Place glyphs (Venue, Stage, Bar) match the stature of the Actor glyph (~120x110).
+  const isFramelessPlc = data.kind === 'plc' && ['venue', 'stage', 'bar'].includes(resolvedStereotype ?? '');
   // CR053: a known pictogram takes the place of the built-in stereotype icon (badge on cards,
-  // silhouette on actors and frameless places). Unknown names fall back silently.
-  const glyphEntry = resolveStereotypeGlyph(data.stereotypeGlyph);
-  const hasGlyph = glyphEntry !== undefined;
+  // silhouette on actors). A frameless Place keeps its Stage, Venue or Bar and shows pictograms as
+  // badges beside it. Unknown names fall back silently.
+  const hasGlyph = resolveStereotypeGlyph(data.stereotypeGlyph) !== undefined;
+  const glyphReplacesIcon = hasGlyph && !isFramelessPlc;
   const hasStereotypeIcon = hasGlyph || Boolean(resolvedStereotype && resolvedStereotype !== 'initiates');
-  const stereoAttrs: Record<string, any> = hasGlyph
+  const stereoAttrs: Record<string, any> = glyphReplacesIcon
     ? {
         iconFill: { d: '', display: 'none' },
         iconStroke: { d: '', display: 'none' },
@@ -2485,11 +2478,8 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
       }
     : computeStereotypeIconAttrs(data);
 
-  // Frameless Place glyphs (Venue, Stage, Bar) match the stature of the Actor glyph (~120x110).
-  // CR053: they stay frameless with a pictogram, which then takes the silhouette band.
-  const isFramelessPlc = data.kind === 'plc' && ['venue', 'stage', 'bar'].includes(resolvedStereotype ?? '');
   const effectiveWidth = isFramelessPlc
-    ? (data.bounds.width > 140 ? 120 : data.bounds.width)
+    ? (data.bounds.width > 140 || data.bounds.width < 120 ? 120 : data.bounds.width)
     : data.bounds.width;
   const effectiveHeight = isFramelessPlc
     ? (data.bounds.height < 110 ? 110 : data.bounds.height)
@@ -2508,7 +2498,7 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
   };
 
   const isInstance = isInstanceNode(data);
-  // 1UCC role slot: role name prominent, `: <Class>` quiet below, a dashed ring, never underlined
+  // 1UCC role slot: role name prominent, `: <Class>` quiet below, never underlined, no ring
   const isSlot = data.slot === true
     && (data.kind === 'per' || data.kind === 'obj' || data.kind === 'plc')
     && !(data.kind === 'obj' && data.description);
@@ -2833,7 +2823,6 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
     if (data.kind === 'per') {
       // Top-anchored label under the figure: the tag follows the last name line
       attrs.qualifier = { ...attrs.qualifier, text: tag, refY: label.refY, refY2: nameLines * SLOT_LINE_HEIGHT + 2 };
-      attrs.slotRing = { display: 'block', cx: Math.round(boxWidth / 2), cy: 31, r: 31 };
     } else {
       // Middle-anchored label: on a card the name and tag share the centre line
       const centred = typeof label.refY === 'number' && label.refY <= 1;
@@ -2845,28 +2834,6 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
         refY: label.refY,
         refY2: shift + ((nameLines + 1) * SLOT_LINE_HEIGHT) / 2,
       };
-      if (isFramelessPlc && resolvedStereotype) {
-        const paths = getStereotypePaths(resolvedStereotype);
-        attrs.slotRing = {
-          display: 'block',
-          cx: Math.round(effectiveWidth / 2),
-          cy: 6 + Math.round(paths.height / 2),
-          r: Math.round(Math.max(paths.width, paths.height) / 2) + 6,
-        };
-      } else {
-        const i = RoleSlotRing.inset;
-        attrs.slotHalo = {
-          display: 'block',
-          x: -i,
-          y: -i,
-          refWidth: '100%',
-          refWidth2: 2 * i,
-          refHeight: '100%',
-          refHeight2: 2 * i,
-          rx: 6,
-          ry: 6,
-        };
-      }
     }
   }
 
