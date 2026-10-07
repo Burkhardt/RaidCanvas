@@ -708,6 +708,11 @@ export function registerAimShapes(): void {
         selector: 'seam',
       },
       {
+        // The folded corner, above the washes
+        tagName: 'path',
+        selector: 'fold',
+      },
+      {
         tagName: 'path',
         selector: 'iconFill',
       },
@@ -744,6 +749,13 @@ export function registerAimShapes(): void {
         stroke: CascaisPalette.SilverLineDark,
         strokeWidth: 1.5,
         class: 'aim-node aim-obj',
+      },
+      fold: {
+        fill: CascaisPalette.SilverLine,
+        stroke: CascaisPalette.SilverLineDark,
+        strokeWidth: 1.5,
+        strokeLinejoin: 'round',
+        class: 'aim-obj-fold',
       },
       persona: {
         display: 'none',
@@ -1507,6 +1519,25 @@ function personaWash(d: string, seamX: number, evenOdd = false) {
   };
 }
 
+/** Side of an Object card's folded corner: a 12-unit bevel at 45 degrees (Koyo). */
+export const OBJECT_FOLD = 12;
+
+/** An Object card's outline with its top-right corner folded: the archetype mark of an Object. */
+export function objectCardOutline(width: number, height: number): string {
+  return `M 0 0 H ${width - OBJECT_FOLD} L ${width} ${OBJECT_FOLD} V ${height} H 0 Z`;
+}
+
+/** The flap the folded corner leaves turned down; its long edge is the card's bevel. */
+export function objectFoldFlap(width: number): string {
+  return `M ${width - OBJECT_FOLD} 0 V ${OBJECT_FOLD} H ${width} Z`;
+}
+
+/**
+ * Cuts the corner off the live card's rectangle. One unit beyond the box on every side, so the border
+ * line stays whole along the edges; `fill-box` so the bevel is measured from the card, not its border.
+ */
+const OBJECT_CARD_CLIP = `polygon(-1px -1px, calc(100% - ${OBJECT_FOLD + 1}px) -1px, calc(100% + 1px) ${OBJECT_FOLD + 1}px, calc(100% + 1px) calc(100% + 1px), -1px calc(100% + 1px)) fill-box`;
+
 /** The selectors every node that stands as a Shape is built from, in paint order. */
 const SHAPE_FIGURE_MARKUP = [
   { tagName: 'rect', selector: 'body' },
@@ -1702,10 +1733,13 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
     pathD = `M ${midX} 0 H ${w - r} a ${r} ${r} 0 0 1 ${r} ${r} v ${h - 2 * r} a ${r} ${r} 0 0 1 -${r} ${r} H ${midX} Z`;
   }
 
+  // An Object card's door stops at the folded corner. The Persona mirrors the plain half: the left corner is square.
+  const doorD = data.kind === 'obj' ? `M ${midX} 0 H ${w - OBJECT_FOLD} L ${w} ${OBJECT_FOLD} V ${h} H ${midX} Z` : pathD;
+
   return {
     persona: personaWash(pathD, midX),
     door: {
-      d: pathD,
+      d: doorD,
       display: 'block',
       fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
       class: 'aim-portal-door',
@@ -2483,7 +2517,7 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
     case 'obj': {
       if (data.description) {
         const prose = wrapDescription(data.description, data.descriptionWidth);
-        return { ...baseMetadata, markup: [{ tagName: 'rect', selector: 'body' }, { tagName: 'text', selector: 'label' }, { tagName: 'text', selector: 'description' }], attrs: { body: { fill: CascaisPalette.ChalkWhite, stroke: '#CBD5E1', strokeWidth: 1.5, refWidth: '100%', refHeight: '100%' }, label: { text: data.displayName, refX: 0.5, refY: 22, textAnchor: 'middle', textDecoration: 'underline', fontSize: 13 }, description: { text: prose, refX: 14, refY: 50, textAnchor: 'start', textVerticalAnchor: 'top', fontSize: 12, lineHeight: 18, fill: '#475569' } } };
+        return { ...baseMetadata, markup: [{ tagName: 'rect', selector: 'body' }, { tagName: 'path', selector: 'fold' }, { tagName: 'text', selector: 'label' }, { tagName: 'text', selector: 'description' }], attrs: { body: { fill: CascaisPalette.ChalkWhite, stroke: '#CBD5E1', strokeWidth: 1.5, refWidth: '100%', refHeight: '100%', style: { clipPath: OBJECT_CARD_CLIP } }, fold: { d: objectFoldFlap(boxWidth), stroke: '#CBD5E1' }, label: { text: data.displayName, refX: 0.5, refY: 22, textAnchor: 'middle', textDecoration: 'underline', fontSize: 13 }, description: { text: prose, refX: 14, refY: 50, textAnchor: 'start', textVerticalAnchor: 'top', fontSize: 12, lineHeight: 18, fill: '#475569' } } };
       }
       return {
         ...baseMetadata,
@@ -2491,6 +2525,9 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
           ...portalAttrs,
           ...stereoAttrs,
           ...glyphAttrs,
+          // The archetype mark of an Object: its card has a folded corner
+          body: { style: { clipPath: OBJECT_CARD_CLIP } },
+          fold: { d: objectFoldFlap(boxWidth) },
           qualifier: {
             text: qualifierText,
             fontStyle: 'italic',
@@ -2560,114 +2597,7 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
       };
     }
 
-    case 'plc': {
-      if (isFramelessPlc) {
-        // Venue, Stage, Bar: strictly frameless with glyph in Net Gold (NetGoldStroke)
-        const qualifierLines = qualifierText ? qualifierText.split('\n').length : 0;
-        const labelRefY = qualifierLines > 0 ? 66 + qualifierLines * 18 : 74;
-        return {
-          ...baseMetadata,
-          attrs: {
-            ...portalAttrs,
-            ...stereoAttrs,
-            ...glyphAttrs,
-            body: {
-              fill: 'transparent',
-              stroke: 'none',
-              strokeWidth: 0,
-              pointerEvents: 'all',
-              style: { fill: 'transparent', stroke: 'none', strokeWidth: 0, pointerEvents: 'all' },
-              class: 'aim-node aim-plc aim-frameless',
-            },
-            header: {
-              display: 'none',
-              height: 0,
-            },
-            qualifier: {
-              text: qualifierText,
-              fontStyle: 'italic',
-              textDecoration: 'none',
-              refX: 0.5,
-              refY: 66,
-            },
-            label: {
-              text: labelText,
-              textDecoration: isInstance ? 'underline' : 'none',
-              refX: 0.5,
-              refY: qualifierLines > 0 ? labelRefY : 84,
-            },
-          },
-        };
-      }
-
-      if (hasStereotypeIcon) {
-        // Other framed Place with Stereotype
-        return {
-          ...baseMetadata,
-          attrs: {
-            ...portalAttrs,
-            ...stereoAttrs,
-            ...glyphAttrs,
-            body: {
-              fill: CascaisPalette.ChalkWhite,
-              stroke: CascaisPalette.SilverLineDark,
-              strokeWidth: 1.5,
-              class: 'aim-node aim-plc aim-plc-framed',
-            },
-            header: {
-              display: 'none',
-              height: 0,
-            },
-            qualifier: {
-              text: qualifierText,
-              fontStyle: 'italic',
-              textDecoration: 'none',
-              refX: 0.5,
-              refY: 42,
-            },
-            label: {
-              text: labelText,
-              textDecoration: isInstance ? 'underline' : 'none',
-              refX: 0.5,
-              refY: 58,
-            },
-          },
-        };
-      }
-
-      // Unstereotyped Place card
-      return {
-        ...baseMetadata,
-        attrs: {
-          ...portalAttrs,
-          ...stereoAttrs,
-          ...glyphAttrs,
-          body: {
-            fill: CascaisPalette.ChalkWhite,
-            stroke: CascaisPalette.SilverLineDark,
-            strokeWidth: 1.5,
-            class: 'aim-node aim-plc aim-plc-framed',
-          },
-          header: {
-            display: 'none',
-            height: 0,
-          },
-          qualifier: {
-            text: qualifierText,
-            fontStyle: 'italic',
-            textDecoration: 'none',
-            refX: 0.5,
-            refY: 0.38,
-          },
-          label: {
-            text: labelText,
-            textDecoration: isInstance ? 'underline' : 'none',
-            refX: 0.5,
-            refY: hasQualifier ? 0.65 : 0.5,
-          },
-        },
-      };
-    }
+    // A Place always stands as a Shape (its pin, a Stage or a Bar), so it never reaches this switch.
 
     case 'rol':
     case 'rf': {

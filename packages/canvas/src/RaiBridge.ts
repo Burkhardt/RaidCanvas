@@ -37,12 +37,14 @@ import {
 	wrapAimText,
 	computeMaxLineLength,
 	computeExpressionPillColors,
+	OBJECT_FOLD,
+	objectCardOutline,
+	objectFoldFlap,
 } from './X6Shapes.js';
 import {
 	resolveStereotype,
 	isInitiatingStereotype,
 	renderStereotypeIconSvg,
-	getStereotypePaths,
 } from './StereotypeIcons.js';
 import {
 	resolveStereotypeGlyph,
@@ -1560,13 +1562,13 @@ export class RaiBridge {
                 svg += `<text x="8" y="${46 + i * 16}" font-size="11" fill="#475569">${escapeXmlText(line)}</text>`;
             });
 		} else if (node.kind === 'obj' && node.description) {
-            svg += `<rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="#CBD5E1" stroke-width="1.5"${unboundAttrs} />`;
+            svg += this.renderObjectCard(width, height, '#CBD5E1', unboundAttrs);
             svg += this.renderSvgText(rawDisplayName, width / 2, 22, 13, '600', textColor, true, undefined, width);
             wrapDescription(node.description, node.descriptionWidth).split('\n').forEach((line, i) => {
                 svg += `<text x="14" y="${62 + i * 18}" font-size="12" fill="#475569">${escapeXmlText(line)}</text>`;
             });
         } else if (node.kind === 'obj') {
-			svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
+			svg += this.renderObjectCard(width, height, CascaisPalette.SilverLineDark, unboundAttrs);
 			if (drawBuiltInIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
 			}
@@ -1601,19 +1603,6 @@ export class RaiBridge {
 				}
 			}
 			svg += this.renderSvgText(rawDisplayName, cx, 80, 12, '500', textColor, isInstance, qualifierText, width, slotTag);
-		} else if (node.kind === 'plc') {
-			if (hasStereoIcon) {
-				const cx = Math.round(width / 2);
-				svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
-				if (!glyph && resolvedStereo) {
-					const iconX = cx - Math.round(getStereotypePaths(resolvedStereo).width / 2);
-					svg += renderStereotypeIconSvg(node.stereotype, iconX, 8, CascaisPalette.NetGoldStroke, CascaisPalette.NetGold);
-				}
-					svg += this.renderSvgText(rawDisplayName, cx, 56, 12, '600', textColor, isInstance, qualifierText, width, slotTag);
-			} else {
-				svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
-					svg += this.renderSvgText(rawDisplayName, width / 2, height / 2, 12, '600', textColor, isInstance, qualifierText, width, slotTag);
-			}
 		} else if (node.kind === 'rol' || node.kind === 'rf') {
             const fill = node.kind === 'rf' ? String(node.properties?.color ?? CascaisPalette.AccentBlue) : CascaisPalette.ChalkWhite;
             const ring = node.kind === 'rol'
@@ -1644,7 +1633,10 @@ export class RaiBridge {
 			const escapedHref = escapeXmlAttr(node.href.trim());
 			const midX = Math.round(width / 2);
 
-			let doorPath = `M ${midX} 0 H ${width} v ${height} H ${midX} Z`;
+			// An Object card's door stops at its folded corner
+			let doorPath = node.kind === 'obj'
+				? `M ${midX} 0 H ${width - OBJECT_FOLD} L ${width} ${OBJECT_FOLD} V ${height} H ${midX} Z`
+				: `M ${midX} 0 H ${width} v ${height} H ${midX} Z`;
 			let seamX1 = midX;
 			let seamY1 = 0;
 			let seamX2 = midX;
@@ -1695,6 +1687,16 @@ export class RaiBridge {
 		}
 
 		return svg;
+	}
+
+	/**
+	 * An Object card: its outline with the top-right corner folded, and the flap. The rectangle stays in
+	 * front of them, invisible, because its size is what extraction reads back.
+	 */
+	private renderObjectCard(width: number, height: number, stroke: string, extraAttrs: string): string {
+		return `      <rect width="${width}" height="${height}" fill="none" stroke="none" />\n`
+			+ `      <path d="${objectCardOutline(width, height)}" fill="${CascaisPalette.ChalkWhite}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"${extraAttrs} class="aim-obj-card" />\n`
+			+ `      <path d="${objectFoldFlap(width)}" fill="${CascaisPalette.SilverLine}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round" class="aim-obj-fold" />\n`;
 	}
 
 	public generateFreshSvg(model: RaidMetamodel, options: SerializationOptions): string {

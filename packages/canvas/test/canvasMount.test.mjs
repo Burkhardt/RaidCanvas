@@ -32,7 +32,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const React = (await import('react')).default;
 const { createRoot } = await import('react-dom/client');
-const { RaidCanvas, GenericRoleLine } = await import('../dist/index.js');
+const { RaidCanvas, GenericRoleLine, getShapeFigure } = await import('../dist/index.js');
 
 const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" id="Guard_UCD" aim-archetype="OneUseCaseDiagram">
   <g aim-node="true" aim-id="Signer" aim-kind="obj" aim-slot="true" aim-restriction="Person" aim-display-name="Signer" transform="translate(40,40)"><rect width="160" height="80"/></g>
@@ -195,6 +195,26 @@ test('a Generic Role is the same bust-sized grey dashed ring when loaded, and af
     await settle();
     assert.deepEqual(box(), loaded, 'the round trip changes nothing');
     assert.deepEqual([ring().stroke, ring().strokeDasharray], [GenericRoleLine.stroke, GenericRoleLine.dash]);
+  } finally {
+    await unmount();
+  }
+});
+
+// Adele, 2026-10-06: Venue is an opt-in stereotype. A newly added Place carries none, and stands as the
+// pin on the ground all the same, because the pin is the Place archetype's own silhouette.
+test('a new Place is added without a stereotype and stands as the pin', async () => {
+  const { ref, data, unmount } = await mount(undefined);
+  try {
+    let plain;
+    let venue;
+    await React.act(() => { plain = ref.current.addNode('plc', 200, 200); });
+    await React.act(() => { venue = ref.current.addNode('plc', 400, 200, { stereotype: 'Venue' }); });
+    const drawing = (id) => ref.current.getGraph().getCellById(id).getAttrs();
+    assert.equal(data(plain).stereotype, undefined);
+    assert.equal(drawing(plain).body.fill, 'transparent', 'no card');
+    assert.equal(drawing(plain).iconStroke.d, getShapeFigure('venue').line, 'the pin on the ground');
+    assert.equal(data(venue).stereotype, 'Venue');
+    assert.equal(drawing(venue).iconStroke.d, drawing(plain).iconStroke.d, 'a Venue is drawn with the same pin');
   } finally {
     await unmount();
   }

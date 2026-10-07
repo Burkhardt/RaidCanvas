@@ -287,7 +287,8 @@ export function computeStereotypeGlyphLayout(
 		return out;
 	}
 	for (let i = 0; i < rest; i++) {
-		const x = width - 6 - GLYPH_ROW_SIZE - i * (GLYPH_ROW_SIZE + 4);
+		// 16 in from the right edge, clear of an Object card's folded corner; 3 between badges (Koyo).
+		const x = width - 16 - GLYPH_ROW_SIZE - i * (GLYPH_ROW_SIZE + 3);
 		// Keep to the right half, clear of the first badge and the start of the text.
 		if (x < width / 2) break;
 		out.push(badge(x, kind === 'cls' ? 5 : 3, GLYPH_ROW_SIZE, 'end'));

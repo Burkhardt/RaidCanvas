@@ -168,11 +168,11 @@ export const CANONICAL_PALETTE_ITEMS: RaidPaletteItem[] = [
 	},
 	{
 		id: 'plc',
-		name: 'Place / Venue',
+		name: 'Place',
 		kind: 'plc',
 		badge: 'WHERE',
 		badgeColor: '#1E293B',
-		description: 'Spatial venue or architectural stage anchoring the activity',
+		description: 'A place anchoring the activity. Venue, Stage and Bar are stereotypes it can be given',
 		iconSvg: (
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E293B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
 				<path d="M 12 18 C 8 13.8 5 10.6 5 7.5 A 7 7 0 1 1 19 7.5 C 19 10.6 16 13.8 12 18 Z" />

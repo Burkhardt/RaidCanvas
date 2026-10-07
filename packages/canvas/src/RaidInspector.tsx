@@ -782,7 +782,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 							<option value="act">Activity (aim-act)</option>
 							<option value="cls">Class (aim-cls)</option>
 							<option value="obj">Object / Instance (aim-obj)</option>
-							<option value="plc">Place / Stage (aim-plc)</option>
+							<option value="plc">Place (aim-plc)</option>
 							<option value="rol">{GENERIC_ROLE_LABEL} (hollow circle)</option>
 							{/* A RoleFiller is the runtime binding of an instance to a role; shown here when the diagram draws it as a node. */}
 							{node.kind === 'rf' && <option value="rf">RoleFiller (binding)</option>}

@@ -195,13 +195,16 @@ export function getShapeFigure(id: StereotypeId | undefined): ShapeFigure | unde
 /**
  * The Shape a node stands as, or `undefined` when it is drawn as its plain archetype.
  *
- * The first stereotype that is a Shape for this node's kind decides. An Object that shows a description
- * stays a card: the text needs the room.
+ * The first stereotype that is a Shape for this node's kind decides. A Place with none stands as the pin.
+ * An Object that shows a description stays a card: the text needs the room.
  */
 export function shapeFigureOf(node: Pick<RaidNodeData, 'kind' | 'stereotype' | 'description'>): ShapeFigure | undefined {
   if (node.kind === 'obj' && node.description) return undefined;
   const figure = getShapeFigure(resolveStereotype(node.stereotype, node.kind));
-  return figure?.kinds.includes(node.kind) ? figure : undefined;
+  if (figure?.kinds.includes(node.kind)) return figure;
+  // A Place's native silhouette is the pin on the ground, as a Person's is the bust (Adele, 2026-10-06;
+  // CR034 §2.1). The pin is the archetype's, not Venue's alone: Stage and Bar replace it, nothing else does.
+  return node.kind === 'plc' ? getShapeFigure('venue') : undefined;
 }
 
 /**

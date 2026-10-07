@@ -1519,7 +1519,9 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
       bounds: { x: 0, y: 0, width: 160, height: 80 },
     }, true);
     assert.equal(objAttrs.door.display, 'block');
-    assert.equal(objAttrs.door.d, 'M 80 0 H 160 v 80 H 80 Z');
+    // The door stops at the Object card's folded corner; the Persona mirrors the plain half, so the left corner stays square.
+    assert.equal(objAttrs.door.d, 'M 80 0 H 148 L 160 12 V 80 H 80 Z');
+    assert.equal(objAttrs.persona.d, 'M 80 0 H 160 v 80 H 80 Z');
     assert.equal(objAttrs.seam.display, 'block');
     assert.equal(objAttrs.seam.x1, 80);
     assert.equal(objAttrs.seam.y1, 0);
@@ -1861,7 +1863,9 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.equal(initiatingBar.attrs.iconAccent?.fill, CascaisPalette.NetGoldStroke, 'Initiating Bar olive must be Net Gold');
   });
 
-  test('Test 3c: createAimNode for Place WITHOUT stereotype or with non-glyph stereotype renders SilverLineDark frame', () => {
+  // Adele, 2026-10-06 (CR034 §2.1): the pin on the ground is the Place archetype's own silhouette, as the
+  // bust is the Person's. It is not Venue's alone; only Stage and Bar replace it.
+  test('Test 3c: createAimNode for Place WITHOUT stereotype or with non-glyph stereotype stands as the pin', () => {
     const nodeMeta = createAimNode({
       id: 'Simple_Place',
       kind: 'plc',
@@ -1872,10 +1876,15 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
 
     const attrs = nodeMeta.attrs;
     assert.ok(attrs, 'Node metadata must have attrs');
-    assert.equal(attrs.body?.stroke, CascaisPalette.SilverLineDark, 'Place without stereotype must have SilverLineDark frame');
-    assert.equal(attrs.header?.display, 'none', 'Blue window header must be dropped');
+    assert.equal(attrs.body?.fill, 'transparent', 'a Place has no card');
+    assert.equal(attrs.iconStroke?.d, getShapeFigure('venue').line, 'Place without stereotype stands as the pin on the ground');
+    assert.ok(!nodeMeta.markup.some((part) => part.selector === 'header'), 'Blue window header must be dropped');
     assert.equal(attrs.qualifier?.refX, 0.5);
     assert.equal(attrs.label?.refX, 0.5);
+    assert.equal(nodeMeta.data.stereotype, undefined, 'and it is given no stereotype to get there');
+
+    const led = createAimNode({ id: 'Led_Place', kind: 'plc', displayName: 'Cascais Arena', stereotype: 'Lead', bounds: { x: 0, y: 0, width: 160, height: 70 } });
+    assert.equal(led.attrs.iconStroke?.d, getShapeFigure('venue').line, 'a stereotype that is no Place Shape leaves the pin');
   });
 
   test('Test 3d: createAimNode for Person guarantees non-overlapping text between qualifier and label', () => {
@@ -3002,7 +3011,8 @@ describe('CR053 Stereotype Glyphs', () => {
   });
 
   test('cards carry the glyph as a header badge in place of the built-in icon', () => {
-    for (const kind of ['uc', 'act', 'cls', 'obj', 'plc']) {
+    // A Place is not a card: it stands as its pin, and its glyphs are badges beside it (next test).
+    for (const kind of ['uc', 'act', 'cls', 'obj']) {
       const node = createAimNode({ id: kind, kind, displayName: 'Server', stereotype: 'Lead', stereotypeGlyph: 'Computer.svg', bounds });
       assert.equal(node.attrs?.glyph?.display, 'block', kind);
       assert.match(node.attrs?.glyph?.class, /aim-stereotype-glyph-badge/, kind);

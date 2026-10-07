@@ -127,7 +127,7 @@ test('X6 keeps the portal chevron beside a Shape, not a node-width away', async 
     }
 
     // A card keeps its chevron inset from the right edge, and gets it back when a Shape is taken away.
-    const plain = graph.addNode(createAimNode({ id: 'plain', kind: 'plc', displayName: 'Hall', stereotype: 'Venue', href: '/x', bounds: { x: 0, y: 0, width: 160, height: 70 } }));
+    const plain = graph.addNode(createAimNode({ id: 'plain', kind: 'obj', displayName: 'Paper', stereotype: 'Contract', href: '/x', bounds: { x: 0, y: 0, width: 160, height: 70 } }));
     setNodeDualityActive(plain, true);
     plain.setData({ ...plain.getData(), stereotype: '' });
     setNodeDualityActive(plain, true);

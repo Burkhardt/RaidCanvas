@@ -18,8 +18,12 @@ import {
   SHAPE_FIGURE_TOP,
   SHAPE_LINE_WIDTH,
   SHAPE_DETAIL_WIDTH,
+  OBJECT_FOLD,
   computePortalDoorAttrs,
+  computeStereotypeGlyphLayout,
   contractStateOf,
+  objectCardOutline,
+  objectFoldFlap,
   createAimNode,
   getShapeFigure,
   isObjectShape,
@@ -119,6 +123,18 @@ describe('which node stands as a Shape', () => {
     assert.equal(shapeFigureOf(node('per', 'System')).id, 'system');
     assert.equal(shapeFigureOf(node('obj', 'System')).id, 'system');
     assert.equal(shapeFigureOf(node('obj', undefined)), undefined);
+    assert.equal(shapeFigureOf(node('per', undefined)), undefined, 'a Person stands as the bust, which is not a Shape record');
+  });
+
+  // Adele, 2026-10-06 (CR034 §2.1): the pin is the Place archetype's native silhouette.
+  test('a Place with no Shape of its own stands as the pin on the ground', () => {
+    assert.equal(shapeFigureOf(node('plc', undefined)).id, 'venue');
+    assert.equal(shapeFigureOf(node('plc', '')).id, 'venue');
+    assert.equal(shapeFigureOf(node('plc', 'Lead')).id, 'venue', 'a Feature does not take the pin away');
+    assert.equal(shapeFigureOf(node('plc', 'Contract')).id, 'venue', 'nor does a Shape of another archetype');
+    assert.equal(shapeFigureOf(node('plc', 'Venue')).id, 'venue');
+    assert.equal(shapeFigureOf(node('plc', 'Bar')).id, 'bar', 'Stage and Bar replace it');
+    assert.equal(shapeFigureOf(node('plc', undefined, { slot: true, restriction: 'Place' })).id, 'venue', 'a Where slot is a Place too');
   });
 
   test('the first compatible Shape written wins, whatever precedes it', () => {
@@ -234,6 +250,55 @@ describe('the one renderer on the live canvas', () => {
       assert.equal(portal.chevron.refDx, null, 'and the default right-edge offset is cleared');
     }
     assert.equal(computePortalDoorAttrs(node('obj', 'Contract', { href: '/x' }), false).door.display, 'none');
+  });
+});
+
+describe('archetype marks (Adele and Koyo, 2026-10-06)', () => {
+  const card = (extra = {}) => ({ id: 'O', kind: 'obj', displayName: 'Invoice 17', bounds: { x: 0, y: 0, width: 160, height: 64 }, ...extra });
+
+  test('an Object card has its top-right corner folded: a 12-unit bevel with the flap turned down', () => {
+    assert.equal(OBJECT_FOLD, 12);
+    assert.equal(objectCardOutline(160, 64), 'M 0 0 H 148 L 160 12 V 64 H 0 Z');
+    assert.equal(objectFoldFlap(160), 'M 148 0 V 12 H 160 Z');
+
+    const node = createAimNode(card());
+    assert.equal(node.attrs.fold.d, 'M 148 0 V 12 H 160 Z');
+    assert.match(node.attrs.body.style.clipPath, /^polygon\(-1px -1px, calc\(100% - 13px\) -1px, calc\(100% \+ 1px\) 13px, .* fill-box$/, 'the rectangle is cut on the line from (148, 0) to (160, 12)');
+  });
+
+  test('every Object card carries the fold: a slot, an unfilled role and a description card too', () => {
+    for (const extra of [{ slot: true, restriction: 'Document' }, { unbound: true }, { description: 'Terms of the engagement.' }]) {
+      const node = createAimNode(card(extra));
+      assert.ok(node.attrs.fold.d.endsWith(`V 12 H ${node.width} Z`), JSON.stringify(extra));
+      assert.ok(node.attrs.body.style.clipPath.endsWith('fill-box'));
+    }
+  });
+
+  test('an Object that stands as a Shape has no card, so no fold; nor has any other archetype', () => {
+    assert.equal(createAimNode(card({ stereotype: 'Contract' })).attrs.fold, undefined);
+    for (const kind of ['act', 'uc', 'cls', 'per', 'plc']) assert.equal(createAimNode({ ...card(), kind }).attrs.fold, undefined, kind);
+  });
+
+  test('the export draws the folded card and keeps the box extraction reads', () => {
+    const bridge = new RaiBridge();
+    const svg = bridge.generateFreshSvg(model(card({ qualifier: 'Document' })), {});
+    assert.ok(svg.includes('<rect width="160" height="64" fill="none" stroke="none" />'));
+    assert.ok(svg.includes(`<path d="M 0 0 H 148 L 160 12 V 64 H 0 Z" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}"`));
+    assert.ok(svg.includes(`<path d="M 148 0 V 12 H 160 Z" fill="${CascaisPalette.SilverLine}" stroke="${CascaisPalette.SilverLineDark}"`));
+    const [back] = bridge.extractMetamodel(svg).nodes;
+    assert.deepEqual([back.bounds.width, back.bounds.height, back.qualifier], [160, 64, 'Document']);
+  });
+
+  test("an exported Object card's door stops at the fold", () => {
+    const svg = new RaiBridge().generateFreshSvg(model(card({ href: '/objects/o' })), {});
+    assert.ok(svg.includes('<path d="M 80 0 H 148 L 160 12 V 64 H 80 Z"'));
+  });
+
+  // Koyo: 18 x 18 slots, 3 between them, starting 16 in from the right edge so the row clears the fold.
+  test('the badge row on a card starts 16 in from the right edge, 3 between badges', () => {
+    const row = computeStereotypeGlyphLayout('obj', 160, 64, 4).slice(1);
+    assert.deepEqual(row.map((badge) => [badge.x, badge.width]), [[126, 18], [105, 18], [84, 18]]);
+    assert.ok(row.every((badge) => badge.x + badge.width <= 160 - OBJECT_FOLD), 'clear of the folded corner');
   });
 });
 
