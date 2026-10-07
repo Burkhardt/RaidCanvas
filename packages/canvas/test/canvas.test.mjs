@@ -30,6 +30,8 @@ import {
   resolveStereotype,
   isInitiatingStereotype,
   getStereotypePaths,
+  getShapeFigure,
+  SHAPE_LINE_WIDTH,
   renderStereotypeIconSvg,
   KNOWN_STEREOTYPES,
   getDefaultNodeName,
@@ -52,7 +54,7 @@ describe('RaidCanvas Core Tests', () => {
   test('CascaisPalette contains design tokens', () => {
     assert.equal(CascaisPalette.NetGold, '#D4AF37');
     assert.equal(CascaisPalette.NetGoldStroke, '#AB8722');
-    assert.equal(CascaisPalette.HeraldicGreen, '#10B981');
+    assert.equal(CascaisPalette.TelemetryGreen, '#10B981');
     assert.equal(CascaisPalette.WarmGraphite, '#1F2937');
     assert.equal(CascaisPalette.ChalkWhite, '#FFFFFF');
   });
@@ -1427,7 +1429,7 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.ok(perAttrs.door.d.includes('M 60 8 A 12 12 0 0 1 60 32 Z'), 'Right head semicircle');
     assert.ok(perAttrs.door.d.includes('M 60 38 H 71 a 10 10 0 0 1 10 10 v 6 H 60 Z'), 'Right torso arc');
     // The whole flag on the human figure too, at card-level subtlety (CR055, Koyo)
-    assert.equal(perAttrs.door.fill, 'rgba(210, 43, 43, 0.1)');
+    assert.equal(perAttrs.door.fill, 'rgba(210, 43, 43, 0.12)');
     assert.equal(perAttrs.persona.display, 'block');
     assert.equal(perAttrs.seam.display, 'block');
     assert.equal(perAttrs.seam.x1, 60);
@@ -1450,18 +1452,21 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
       bounds: { x: 0, y: 0, width: 120, height: 110 },
     }, true);
     assert.equal(venueAttrs.door.display, 'block');
+    // A Shape's door is its own outline, cut at the seam by the Shape element (no hand-drawn half).
     assert.ok(!venueAttrs.door.d.includes('H 120 v 110'), 'Venue must NOT have outer bounding box rect in door path');
-    assert.ok(venueAttrs.door.d.includes('M 60 9 A 13.5 13.5 0 0 1 73.5 22.5'), 'Venue pin right half teardrop arc');
-    assert.equal(venueAttrs.door.fill, 'rgba(210, 43, 43, 0.15)');
+    assert.equal(venueAttrs.door.d, getShapeFigure('venue').outline, 'the door is the pin outline');
+    assert.deepEqual(venueAttrs.door.style, { clipPath: 'inset(0 0 0 50%)' }, 'and only its right half shows');
+    assert.equal(venueAttrs.door.fill, 'rgba(210, 43, 43, 0.12)');
     assert.equal(venueAttrs.seam.display, 'block');
     assert.equal(venueAttrs.seam.x1, 60);
     assert.equal(venueAttrs.seam.y1, 6);
     assert.equal(venueAttrs.seam.x2, 60);
     assert.equal(venueAttrs.seam.y2, 60);
     assert.equal(venueAttrs.seam.stroke, '#AB8722');
-    // Beside the pin (centre 60 + 34), not past the node's right edge: X6 adds refX and refDx.
-    assert.equal(venueAttrs.chevron.refX, 94);
-    assert.equal(venueAttrs.chevron.refDx, undefined);
+    // Beside the pin (centre 60 + 34), not past the node's right edge: X6 adds refX and refDx, so the
+    // shape's default refDx is cleared with null. Leaving it out keeps the default and adds a node-width.
+    assert.equal(venueAttrs.chevron.refX, 94.5);
+    assert.equal(venueAttrs.chevron.refDx, null);
     assert.equal(venueAttrs.chevron.refY, 26);
     assert.equal(venueAttrs.chevron.display, 'block');
 
@@ -1475,13 +1480,14 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
       bounds: { x: 0, y: 0, width: 120, height: 110 },
     }, true);
     assert.equal(stageAttrs.door.display, 'block');
-    assert.ok(stageAttrs.door.d.includes('M 60 8.6 H 74.4 L 80.5 15.6 V 46.2 H 60 Z'), 'Stage right half outer silhouette path');
-    assert.equal(stageAttrs.door.fill, 'rgba(210, 43, 43, 0.15)');
+    assert.equal(stageAttrs.door.d, getShapeFigure('stage').outline, 'the door is the Stage outline');
+    assert.deepEqual(stageAttrs.door.style, { clipPath: 'inset(0 0 0 50%)' }, 'and only its right half shows');
+    assert.equal(stageAttrs.door.fill, 'rgba(210, 43, 43, 0.12)');
     assert.equal(stageAttrs.seam.display, 'block');
     assert.equal(stageAttrs.seam.x1, 60);
-    assert.equal(stageAttrs.seam.y1, 8.6);
+    assert.equal(stageAttrs.seam.y1, 6);
     assert.equal(stageAttrs.seam.x2, 60);
-    assert.equal(stageAttrs.seam.y2, 46.2);
+    assert.equal(stageAttrs.seam.y2, 56, 'the seam runs the height of the Shape box, as on every Shape');
     assert.equal(stageAttrs.seam.stroke, '#AB8722');
 
     // Bar Place (plc + stereotype="Bar"): Emerald right half of glass bowl
@@ -1494,13 +1500,14 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
       bounds: { x: 0, y: 0, width: 120, height: 110 },
     }, true);
     assert.equal(barAttrs.door.display, 'block');
-    assert.ok(barAttrs.door.d.includes('M 60 14 H 75 L 60 34 Z'), 'Bar right half of glass bowl path');
-    assert.equal(barAttrs.door.fill, 'rgba(210, 43, 43, 0.15)', 'the Bar rests at 0.15, below the 0.18 hover');
+    assert.equal(barAttrs.door.d, getShapeFigure('bar').outline, 'the door is the glass bowl');
+    assert.deepEqual(barAttrs.door.style, { clipPath: 'inset(0 0 0 50%)' }, 'and only its right half shows');
+    assert.equal(barAttrs.door.fill, 'rgba(210, 43, 43, 0.12)', 'the Bar rests at 0.12, below the 0.18 hover');
     assert.equal(barAttrs.seam.display, 'block');
     assert.equal(barAttrs.seam.x1, 60);
-    assert.equal(barAttrs.seam.y1, 14);
+    assert.equal(barAttrs.seam.y1, 6);
     assert.equal(barAttrs.seam.x2, 60);
-    assert.equal(barAttrs.seam.y2, 50);
+    assert.equal(barAttrs.seam.y2, 56);
     assert.equal(barAttrs.seam.stroke, '#AB8722');
 
     // Class / Object / Place / Role: sharp right rect and vertical seam
@@ -1562,7 +1569,8 @@ describe('CR033 Acceptance Tests: Ontological Deep Linking & Navigation (aim-hre
     assert.equal(getDefaultNodeName('plc'), 'Place');
     assert.equal(getDefaultNodeName('rol'), 'Role');
     assert.deepEqual(getDefaultNodeBounds('plc', 0, 0), { x: 0, y: 0, width: 120, height: 110 });
-    assert.deepEqual(getDefaultNodeBounds('rol', 0, 0), { x: 0, y: 0, width: 22, height: 22 });
+    assert.deepEqual(getDefaultNodeBounds('rol', 0, 0), { x: 0, y: 0, width: 46, height: 46 });
+    assert.deepEqual(getDefaultNodeBounds('rf', 0, 0), { x: 0, y: 0, width: 22, height: 22 });
   });
 
   test('CR033.1: Live portal chevron uses relative coordinates refX=1, refDx=-12, refY=0.5 with no absolute x/y doubling', () => {
@@ -1766,7 +1774,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     assert.ok(attrs.body?.class?.includes('aim-frameless'), 'Venue Place must have aim-frameless class');
     assert.equal(nodeMeta.width, 120, 'Venue Place node is scaled Actor-scale width 120');
     assert.equal(nodeMeta.height, 110, 'Venue Place node is scaled Actor-scale height 110');
-    assert.equal(attrs.header?.display, 'none', 'Blue window header must be dropped');
+    assert.ok(!nodeMeta.markup.some((part) => part.selector === 'header'), 'Blue window header must be dropped: a Shape node has none');
 
     // Tall pin glyph in anthracite WarmGraphite (#1F2937) matching non-initiating Actor
     assert.equal(attrs.iconStroke?.display, 'block', 'Venue icon stroke must be displayed');
@@ -1776,8 +1784,9 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     // Text centered underneath the glyph
     assert.equal(attrs.label?.refX, 0.5, 'Label must be centered horizontally at refX=0.5');
     assert.equal(attrs.qualifier?.refX, 0.5, 'Qualifier must be centered horizontally at refX=0.5');
-    assert.equal(attrs.qualifier?.refY, 66, 'Qualifier sits below tall pin at refY=66');
-    assert.equal(attrs.label?.refY, 84, 'Label sits below qualifier at refY=84');
+    // The pin is 4 taller than the standard Shape, so its text sits 4 lower and clears the ground ellipse.
+    assert.equal(attrs.qualifier?.refY, 70, 'Qualifier sits below tall pin at refY=70');
+    assert.equal(attrs.label?.refY, 88, 'Label sits below qualifier at refY=88');
     assert.equal(attrs.label?.text, 'Lisbon Stage');
     assert.equal(attrs.qualifier?.text, 'Physical Site');
   });
@@ -1990,20 +1999,20 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
 
     const attrs = nodeMeta.attrs;
     assert.ok(attrs, 'Node metadata must have attrs');
-    // Head & Torso suppressed
-    assert.equal(attrs.head?.display, 'none', 'Actor head circle is hidden for System');
-    assert.equal(attrs.torso?.display, 'none', 'Actor torso arc is hidden for System');
+    // Head & Torso are not part of a Shape node at all
+    assert.ok(!nodeMeta.markup.some((part) => part.selector === 'head' || part.selector === 'torso'), 'no Actor head or torso when the Person stands as a System');
 
     // Dual-chassis server rack rendered
     assert.equal(attrs.iconStroke?.display, 'block', 'System stroke must be displayed');
     assert.equal(attrs.iconStroke?.stroke, CascaisPalette.WarmGraphite, 'System stroke is WarmGraphite anthracite');
-    assert.equal(attrs.iconStroke?.strokeWidth, 2.2, 'Stroke width is 2.2px');
+    assert.equal(attrs.iconStroke?.strokeWidth, SHAPE_LINE_WIDTH, 'Stroke width is 2.2px');
+    assert.equal(attrs.iconStroke?.d, getShapeFigure('system').line, 'three bays, from the Shape record');
     assert.equal(attrs.iconFill?.display, 'block', 'System chassis body fill must be displayed');
     assert.equal(attrs.iconFill?.fill, CascaisPalette.ChalkWhite, 'Chassis interior is ChalkWhite');
     assert.equal(attrs.iconAccent?.display, 'block', 'LED dots and drive bay slots must be displayed');
     assert.equal(attrs.iconAccent?.fill, CascaisPalette.WarmGraphite, 'LEDs and drive slots match anthracite stroke');
-    // Centered at cx = 60, icon width 44: translate(60-22, 8) = translate(38, 8)
-    assert.equal(attrs.iconStroke?.transform, 'translate(38, 8)', 'Server stack sits at (38, 8)');
+    // Centered at cx = 60, Shape width 44, box 6 from the top: its lines start on the bust's top line (y = 8)
+    assert.equal(attrs.iconStroke?.transform, 'translate(38, 6)', 'Server stack sits at (38, 6)');
   });
 
   test('Test 4e: Duality on Person with stereotype="System" awakens contoured server rack right-half door', () => {
@@ -2018,25 +2027,23 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     }, true);
 
     assert.equal(dualityAttrs.door.display, 'block', 'Portal door must be displayed');
-    assert.ok(dualityAttrs.door.d.includes('M 60 11'), 'Door path begins at centerline top chassis (60, 11)');
-    assert.ok(dualityAttrs.door.d.includes('H 76 A 4 4 0 0 1 80 15'), 'Door path contours top chassis right half');
-    assert.ok(dualityAttrs.door.d.includes('H 69 V 33'), 'Door path contours right neck connector');
-    assert.ok(dualityAttrs.door.d.includes('80 37 V 45 A 4 4 0 0 1 76 49 H 60 Z'), 'Door path contours bottom chassis right half');
-    assert.equal(dualityAttrs.door.fill, 'rgba(210, 43, 43, 0.15)', 'Door carries the Vermelho silhouette wash (CR055, Koyo D8)');
+    assert.equal(dualityAttrs.door.d, getShapeFigure('system').outline, 'the door is the rack outline');
+    assert.deepEqual(dualityAttrs.door.style, { clipPath: 'inset(0 0 0 50%)' }, 'cut at the seam: the right half of each bay');
+    assert.equal(dualityAttrs.door.fill, 'rgba(210, 43, 43, 0.12)', 'Door carries the Vermelho wash (Koyo, 2026-10-06)');
 
     // Net Gold centerline seam
     assert.equal(dualityAttrs.seam.display, 'block');
     assert.equal(dualityAttrs.seam.x1, 60);
-    assert.equal(dualityAttrs.seam.y1, 11);
+    assert.equal(dualityAttrs.seam.y1, 6);
     assert.equal(dualityAttrs.seam.x2, 60);
-    assert.equal(dualityAttrs.seam.y2, 49);
+    assert.equal(dualityAttrs.seam.y2, 56);
     assert.equal(dualityAttrs.seam.stroke, CascaisPalette.NetGoldStroke);
 
     // Chevron
     assert.equal(dualityAttrs.chevron.display, 'block');
-    assert.equal(dualityAttrs.chevron.refX, 92, 'beside the rack: centre 60 + 32');
-    assert.equal(dualityAttrs.chevron.refDx, undefined);
-    assert.equal(dualityAttrs.chevron.refY, 30);
+    assert.equal(dualityAttrs.chevron.refX, 94, 'beside the rack: 12 beyond its right edge');
+    assert.equal(dualityAttrs.chevron.refDx, null);
+    assert.equal(dualityAttrs.chevron.refY, 26);
   });
 
   test('Test 4f: createAimNode for Person with stereotype="Lead" renders Sketch Offset Helmsman with right arm contact', () => {
@@ -2196,7 +2203,8 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
       bounds: { x: 750, y: 100, width: 160, height: 70 },
     });
 
-    assert.ok(innerSvg.includes('class="aim-stereotype-icon aim-icon-stage"'), 'Exported SVG must contain stage icon group');
+    assert.ok(innerSvg.includes('class="aim-shape-figure aim-shape-stage"'), 'Exported SVG must contain the Stage, drawn by the Shape element');
+    assert.ok(innerSvg.includes(`d="${getShapeFigure('stage').line}"`), 'from the Stage record');
     assert.ok(innerSvg.includes('Physical Site'), 'Must contain qualifier');
     assert.ok(innerSvg.includes('Lisbon Stage'), 'Must contain display name');
   });
@@ -2226,7 +2234,7 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
 
     const updatedSvg = bridge.updateExistingSvg(originalSvg, metamodel, {});
     assert.ok(updatedSvg.includes('aim-stereotype="Stage"'), 'Updated SVG must preserve aim-stereotype attribute');
-    assert.ok(updatedSvg.includes('class="aim-stereotype-icon aim-icon-stage"'), 'Updated SVG must render stage icon');
+    assert.ok(updatedSvg.includes('class="aim-shape-figure aim-shape-stage"'), 'Updated SVG must render the Stage');
   });
 
   test('Test 7: Universal Initiator Color Rule and Multi-Stereotype array combinations', () => {
@@ -2353,7 +2361,8 @@ describe('CR034 Acceptance Tests: Stereotype Iconography & Vasco Ontology v1.3 /
     }, true);
 
     assert.equal(barAwakened.door.display, 'block');
-    assert.ok(barAwakened.door.d.includes('M 60 14 H 75 L 60 34 Z'), 'Right half of V-bowl carries the portal wash');
+    assert.equal(barAwakened.door.d, getShapeFigure('bar').outline, 'the bowl carries the portal wash');
+    assert.deepEqual(barAwakened.door.style, { clipPath: 'inset(0 0 0 50%)' }, 'on its right half only');
     assert.equal(barAwakened.seam.display, 'block');
     assert.equal(barAwakened.seam.stroke, CascaisPalette.NetGoldStroke);
 
@@ -3186,22 +3195,24 @@ describe('CR055 Portuguese heraldic flag: Verde persona on the hoist, Vermelho p
   test('the flag pair is the Glass chrome bicolour, distinct from the status colours', () => {
     assert.equal(CascaisPalette.BandeiraVerde, '#1E5631');
     assert.equal(CascaisPalette.BandeiraVermelho, '#D22B2B');
-    assert.notEqual(CascaisPalette.BandeiraVerde, CascaisPalette.HeraldicGreen);
+    assert.notEqual(CascaisPalette.BandeiraVerde, CascaisPalette.TelemetryGreen);
     assert.notEqual(CascaisPalette.BandeiraVermelho, CascaisPalette.CascaisRed);
     assert.equal(withAlpha('#D22B2B', 0.25), 'rgba(210, 43, 43, 0.25)');
     assert.equal(HeraldicWash.verde(0.1), 'rgba(30, 86, 49, 0.1)');
   });
 
-  test('wash strengths are one per material (Koyo D8)', () => {
-    assert.deepEqual({ ...DualityWashStrength }, {
-      card: 0.10, boundary: 0.15, silhouette: 0.15, bar: 0.15, person: 0.10, chevron: 0.70, hover: 0.18,
-    });
+  // Koyo, 2026-10-06: dark Verde thinned to 10 % is a cool grey while Vermelho at 10 % is still pink,
+  // so the hoist is washed stronger than the fly. One pair for every material, replacing D8's table.
+  test('the hoist is washed stronger than the fly, so the flag reads green and red', () => {
+    assert.deepEqual({ ...DualityWashStrength }, { verde: 0.20, vermelho: 0.12, hover: 0.18, chevron: 0.70 });
+    assert.equal(CascaisPalette.HeraldicGreen, CascaisPalette.BandeiraVerde, 'Heraldic Green is Verde, as in the workbench');
+    assert.equal(CascaisPalette.TelemetryGreen, '#10B981');
     const venue = computePortalDoorAttrs({
       id: 'V', kind: 'plc', stereotype: 'Venue', displayName: 'Venue', href: '/places/V',
       bounds: { x: 0, y: 0, width: 120, height: 100 },
     }, true);
-    assert.equal(venue.persona.fill, HeraldicWash.verde(0.15));
-    assert.equal(venue.door.fill, HeraldicWash.vermelho(0.15));
+    assert.equal(venue.persona.fill, HeraldicWash.verde(0.20));
+    assert.equal(venue.door.fill, HeraldicWash.vermelho(0.12));
     assert.equal(venue.chevron.fill, HeraldicWash.vermelho(0.70));
   });
 
@@ -3210,14 +3221,14 @@ describe('CR055 Portuguese heraldic flag: Verde persona on the hoist, Vermelho p
     assert.equal(act.persona.display, 'block');
     assert.equal(act.persona.d, act.door.d, 'same geometry, mirrored');
     assert.equal(act.persona.transform, 'matrix(-1 0 0 1 150 0)', 'mirrored about midX = 75');
-    assert.equal(act.persona.fill, HeraldicWash.verde(0.1));
-    assert.equal(act.door.fill, HeraldicWash.vermelho(0.1));
+    assert.equal(act.persona.fill, HeraldicWash.verde(0.20));
+    assert.equal(act.door.fill, HeraldicWash.vermelho(0.12));
 
     const dormant = computePortalDoorAttrs({ ...linked, href: undefined }, false);
     assert.equal(dormant.persona.display, 'none');
   });
 
-  test('a person raises the whole flag at card-level subtlety, mirrored across head and torso', () => {
+  test('a person raises the whole flag, mirrored across head and torso', () => {
     const per = computePortalDoorAttrs({
       id: 'P', kind: 'per', displayName: 'Actor', href: '/actors/P',
       bounds: { x: 0, y: 0, width: 120, height: 110 },
@@ -3225,8 +3236,8 @@ describe('CR055 Portuguese heraldic flag: Verde persona on the hoist, Vermelho p
     assert.equal(per.persona.display, 'block');
     assert.equal(per.persona.d, per.door.d, 'the persona mirrors the right half of head and torso');
     assert.equal(per.persona.transform, 'matrix(-1 0 0 1 120 0)');
-    assert.equal(per.persona.fill, HeraldicWash.verde(0.10));
-    assert.equal(per.door.fill, HeraldicWash.vermelho(0.10));
+    assert.equal(per.persona.fill, HeraldicWash.verde(0.20));
+    assert.equal(per.door.fill, HeraldicWash.vermelho(0.12));
     assert.equal(per.seam.display, 'block');
     assert.equal(per.chevron.fill, HeraldicWash.vermelho(0.70));
 
@@ -3234,7 +3245,7 @@ describe('CR055 Portuguese heraldic flag: Verde persona on the hoist, Vermelho p
       id: 'S', kind: 'per', stereotype: 'System', displayName: 'Backend', href: '/systems/S',
       bounds: { x: 0, y: 0, width: 120, height: 110 },
     }, true);
-    assert.equal(system.persona.fill, HeraldicWash.verde(0.15), 'a System rack is washed as a silhouette');
+    assert.equal(system.persona.fill, HeraldicWash.verde(0.20), 'a System rack is washed like every other figure');
   });
 
   test('the right half drives the feedback: door to 18 %, chevron to full Vermelho, live and exported', () => {

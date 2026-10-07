@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import type { AimOntologyKind, RaidNodeData } from './types.js';
-import { CascaisPalette } from './CascaisTheme.js';
+import { CascaisPalette, GenericRoleLine } from './CascaisTheme.js';
 
 export interface RaidPaletteItem {
 	id: string;
@@ -29,8 +29,8 @@ export interface RaidPaletteItem {
 export const GENERIC_ROLE_LABEL = 'Generic Role';
 
 const GENERIC_ROLE_ICON = (
-	<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.GraphiteMuted} strokeWidth="2">
-		<circle cx="12" cy="12" r="7" />
+	<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GenericRoleLine.stroke} strokeWidth="2" strokeDasharray={GenericRoleLine.dash}>
+		<circle cx="12" cy="12" r="8" />
 	</svg>
 );
 
@@ -40,7 +40,7 @@ const GENERIC_ROLE_ITEM: RaidPaletteItem = {
 	kind: 'rol',
 	badge: 'ROLE',
 	badgeColor: CascaisPalette.GraphiteMuted,
-	description: 'Hollow circle: a role whose Who / What / Where category is not chosen yet',
+	description: 'Dashed grey circle: a role whose Who / What / Where category is not chosen yet',
 	customData: { displayName: 'Role' },
 	iconSvg: GENERIC_ROLE_ICON,
 };
@@ -157,10 +157,10 @@ export const CANONICAL_PALETTE_ITEMS: RaidPaletteItem[] = [
 		name: 'Object',
 		kind: 'obj',
 		badge: 'INSTANCE',
-		badgeColor: CascaisPalette.HeraldicGreen,
+		badgeColor: CascaisPalette.TelemetryGreen,
 		description: 'Runtime instantiated entity card with underlined title',
 		iconSvg: (
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.HeraldicGreen} strokeWidth="2">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.TelemetryGreen} strokeWidth="2">
 				<rect x="3" y="4" width="18" height="16" rx="2" strokeDasharray="3 2" />
 				<line x1="7" y1="10" x2="17" y2="10" />
 			</svg>
@@ -400,11 +400,11 @@ export function getPaletteItemsForArchetype(archetype: string = ''): RaidPalette
 				name: 'Object',
 				kind: 'obj',
 				badge: 'INSTANCE',
-				badgeColor: CascaisPalette.HeraldicGreen,
+				badgeColor: CascaisPalette.TelemetryGreen,
 				description: 'Fills a What-role; underlined identity, Class quiet on top',
 				customData: { instance: true, qualifier: 'Document', displayName: 'Object1' },
 				iconSvg: (
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.HeraldicGreen} strokeWidth="2">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CascaisPalette.TelemetryGreen} strokeWidth="2">
 						{OBJECT_GLYPH}
 					</svg>
 				),

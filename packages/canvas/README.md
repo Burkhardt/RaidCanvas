@@ -52,7 +52,7 @@ Art direction: Koyo's decisions D1–D9 (`doc/PROMPT_ALAN_TO_KOYO_CR055_Heraldic
   - in `CascaisTheme.ts`: `CascaisPalette`, `withAlpha`, `HeraldicWash`, `DualityWashStrength`
   - mirrored as `--aim-*` variables in `aoaim-theme.css`: `--aim-net-gold`, `--aim-net-gold-stroke`, `--aim-bandeira-verde`, `--aim-bandeira-vermelho`
 
-  The status colours `HeraldicGreen #10B981` and `CascaisRed #EF4444` stay distinct from the flag pair. `raid-ui.css` now uses them for daisyUI `success` and `error`.
+  The status colours `TelemetryGreen #10B981` and `CascaisRed #EF4444` stay distinct from the flag pair. `raid-ui.css` now uses them for daisyUI `success` and `error`.
 - **Breaking for restyling hosts.** The theme CSS no longer sets a base fill on `.aim-portal-persona` or `.aim-portal-door`; the per-material washes come from the shape attributes. Hosts that restyle these should not force a single fill. The dead `.aim-node:hover .aim-portal-*` rules are gone: `.aim-node` is on the body shape, not on an ancestor of the portal, so they never matched.
 
 ## 0.10.0 — stereotype glyphs (CR053)

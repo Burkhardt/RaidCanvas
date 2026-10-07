@@ -33,7 +33,7 @@ export {
 } from './types.js';
 
 // Cascais theme: the single source of every heraldic colour (CR055)
-export { CascaisPalette, DualityWashStrength, HeraldicWash, withAlpha } from './CascaisTheme.js';
+export { CascaisPalette, DualityWashStrength, GenericRoleLine, HeraldicWash, withAlpha } from './CascaisTheme.js';
 
 // AntV X6 Custom Shapes & Port Registrations
 export {
@@ -56,6 +56,24 @@ export {
   computeMaxLineLength,
 } from './X6Shapes.js';
 
+// The Shape element: every free-standing stereotype Shape, drawn from one record each
+export {
+  SHAPE_FIGURES,
+  SHAPE_FIGURE_HEIGHT,
+  SHAPE_FIGURE_TOP,
+  SHAPE_LINE_WIDTH,
+  SHAPE_DETAIL_WIDTH,
+  SHAPE_REDUCED_LINE_WIDTH,
+  getShapeFigure,
+  shapeFigureOf,
+  shapeFigureHeight,
+  shapeFigurePlacement,
+  shapeNodeWidth,
+  renderShapeFigureSvg,
+  type ShapeFigure,
+  type ShapeAccent,
+} from './ShapeFigures.js';
+
 // Stereotype Iconography & Vasco Ontology v1.3 / OTW Library
 export {
   KNOWN_STEREOTYPES,
@@ -63,7 +81,11 @@ export {
   isInitiatingStereotype,
   getStereotypePaths,
   renderStereotypeIconSvg,
+  isObjectShape,
+  contractStateOf,
   type StereotypeId,
+  type ObjectShapeId,
+  type ContractState,
   type StereotypeDefinition,
   type StereotypePaths,
 } from './StereotypeIcons.js';

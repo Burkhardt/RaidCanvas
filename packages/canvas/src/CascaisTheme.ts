@@ -8,8 +8,9 @@
  * - `BandeiraVerde` / `BandeiraVermelho` are the flag bicolour of the Duality of the Object. Verde is the
  *   hoist (left, the Persona), Vermelho the fly (right, the Portal), joined by the Net Gold seam. They match
  *   the Glass chrome (`--heraldic-green`, `--castle-red` in aia-workbench).
- * - `HeraldicGreen` / `CascaisRed` are status and accent colours (satisfied, true/false pills, Activity frame).
- *   They are never laid out as a left/right pair.
+ * - `HeraldicGreen` is Verde under the name the workbench uses for it (Koyo C3, 2026-10-06).
+ * - `TelemetryGreen` / `CascaisRed` are status and accent colours (satisfied, true/false pills, approvals,
+ *   Activity frame). They are never laid out as a left/right pair.
  *
  * One gold family (CR055, Koyo D6): `NetGold` is the heraldic metallic gold shared with the Glass chrome
  * (`--net-gold`), used for fills. At 1.9:1 on Calçada it cannot carry a line, so seams, outlines, glyph
@@ -25,7 +26,8 @@ export const CascaisPalette = {
   AmberDeep: '#B45309',
   /** Selected / unbound tint. */
   AmberMist: '#FEF3C7',
-  HeraldicGreen: '#10B981',
+  /** Status only: satisfied conditions, approvals, telemetry and connection indicators. Never the flag. */
+  TelemetryGreen: '#10B981',
   EmeraldDeep: '#047857',
   EmeraldInk: '#065F46',
   EmeraldShadow: '#064E3B',
@@ -38,6 +40,8 @@ export const CascaisPalette = {
   RedMist: '#FEE2E2',
   /** CR055: Verde Esperança, the hoist (left) of the duality bicolour. */
   BandeiraVerde: '#1E5631',
+  /** Heraldic Green is Verde, the same colour the workbench calls `--heraldic-green` (Koyo, C3). */
+  HeraldicGreen: '#1E5631',
   /** CR055: Vermelho Coragem, the fly (right) of the duality bicolour. */
   BandeiraVermelho: '#D22B2B',
   WarmGraphite: '#1F2937',
@@ -51,6 +55,17 @@ export const CascaisPalette = {
   TextSecondary: '#4B5563',
 } as const;
 
+/**
+ * The Generic Role's ring (RAI, 2026-10-06): grey and dashed, because its Who / What / Where category
+ * is not chosen yet. The dash is shorter than an unfilled role's `5,4`, and the ring stays fully opaque,
+ * so "no category yet" does not read as "nobody has filled this".
+ */
+export const GenericRoleLine = {
+  stroke: CascaisPalette.GraphiteMuted,
+  strokeWidth: 2.2,
+  dash: '3,3',
+} as const;
+
 /** `#RRGGBB` → `rgba(r, g, b, alpha)`, for translucent washes of a palette colour. */
 export function withAlpha(hex: string, alpha: number): string {
   const value = Number.parseInt(hex.slice(1, 7), 16);
@@ -58,24 +73,21 @@ export function withAlpha(hex: string, alpha: number): string {
 }
 
 /**
- * CR055 wash strengths of the awakened duality, one per material (Koyo D8). Both halves of the flag use the
- * same value.
+ * Wash strengths of the awakened duality (Koyo, 2026-10-06, replacing the per-material table of D8).
+ *
+ * The two halves are deliberately unequal. Verde is a dark green: thinned to 10 % on white it is a cool
+ * grey (`#E9EEEA`), while Vermelho at 10 % is still pink. So the hoist is washed stronger than the fly,
+ * and the flag reads green and red instead of grey and pink.
  */
 export const DualityWashStrength = {
-  /** Activity, Use Case, Object, Place cards. */
-  card: 0.10,
-  /** Class boundary. */
-  boundary: 0.15,
-  /** System, Venue and Stage silhouettes. */
-  silhouette: 0.15,
-  /** Bar glass at rest, below the 0.18 hover so the glass still answers a cursor. */
-  bar: 0.15,
-  /** Person head and torso: card-level subtlety, so the figure lights up with the whole flag. */
-  person: 0.10,
-  /** The `›` chevron at rest; it reaches full Vermelho on hover. */
-  chevron: 0.70,
+  /** The Persona (hoist, left half), on every material. */
+  verde: 0.20,
+  /** The Portal door (fly, right half) at rest, on every material. */
+  vermelho: 0.12,
   /** The door while the right half is hovered. */
   hover: 0.18,
+  /** The `›` chevron at rest; it reaches full Vermelho on hover. */
+  chevron: 0.70,
 } as const;
 
 /** CR055: translucent washes of the duality bicolour — Verde on the Persona, Vermelho on the Portal. */

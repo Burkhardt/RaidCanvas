@@ -238,7 +238,8 @@ const GLYPH_ROW_SIZE = 18;
  *
  * - **Person:** the first pictogram takes the stick figure's band (as before). The others are side
  *   badges, left of the band first because the portal caret sits to its right.
- * - **Frameless Place:** the Stage, Venue or Bar stays. Every pictogram is a side badge.
+ * - **A node standing as a Shape** (Venue, Stage, Bar, System, Contract …): the Shape stays. Every
+ *   pictogram is a side badge.
  * - **Framed Place:** one centred row above the name.
  * - **Cards** (`obj`, `act`, `uc`, `cls`): the first in its usual badge spot; the others in a small row
  *   at the top (top-right; top-centre inside a Use Case's ellipse).
@@ -258,9 +259,10 @@ export function computeStereotypeGlyphLayout(
 	const badge = (x: number, y: number, size: number, anchorX: 'start' | 'middle' | 'end'): StereotypeGlyphPlacement =>
 		({ mode: 'badge', x, y, width: size, height: size, anchorX, anchorY: 'start' });
 
-	if (kind === 'per' || (kind === 'plc' && options.frameless)) {
+	// A node that stands as a Shape keeps its Shape: every pictogram is a badge beside it.
+	if (kind === 'per' || options.frameless) {
 		const cx = Math.round(width / 2);
-		if (kind === 'per') out.push({ ...computeStereotypeGlyphPlacement(kind, width, height), anchorX: 'middle', anchorY: 'start' });
+		if (kind === 'per' && !options.frameless) out.push({ ...computeStereotypeGlyphPlacement(kind, width, height), anchorX: 'middle', anchorY: 'start' });
 		for (const [dx, y] of [[-52, 4], [-52, 30], [32, 34], [32, 4]] as const) {
 			if (out.length >= n) break;
 			out.push(badge(cx + dx, y, GLYPH_SIDE_SIZE, 'middle'));

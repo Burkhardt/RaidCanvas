@@ -52,7 +52,8 @@ import {
 	computeStereotypeGlyphLayout,
 	GLYPH_EDGE_SIZE,
 } from './StereotypeGlyphs.js';
-import { DualityWashStrength, HeraldicWash } from './CascaisTheme.js';
+import { DualityWashStrength, GenericRoleLine, HeraldicWash } from './CascaisTheme.js';
+import { renderShapeFigureSvg, shapeFigureOf, shapeFigurePlacement, shapeNodeWidth } from './ShapeFigures.js';
 
 /**
  * Press and hover feedback embedded in exported SVGs, matching the live canvas: the portal anchor raises the door to
@@ -332,6 +333,7 @@ export class RaiBridge {
 				...(customData.unbound === true ? { unbound: true } : {}),
 				...(isSlot ? { slot: true } : {}),
 				...(customData.restriction ? { restriction: customData.restriction } : {}),
+				...(customData.state ? { state: customData.state } : {}),
 				...(boundaryId ? { boundaryId } : {}),
 				...(customData.stereotype !== undefined ? { stereotype: customData.stereotype } : {}),
 				...(customData.stereotypeGlyph ? { stereotypeGlyph: customData.stereotypeGlyph } : {}),
@@ -607,6 +609,7 @@ export class RaiBridge {
 			const qualifier = el.getAttribute(AimSvgContract.ATTR_QUALIFIER) ?? undefined;
 			const slot = el.getAttribute(AimSvgContract.ATTR_SLOT) === 'true' || undefined;
 			const restriction = el.getAttribute(AimSvgContract.ATTR_RESTRICTION)?.trim() || undefined;
+			const state = el.getAttribute(AimSvgContract.ATTR_STATE)?.trim() || undefined;
 			const isInstance = isInstanceNode({ kind, instance: el.getAttribute(AimSvgContract.ATTR_INSTANCE) === 'true', ...(slot ? { slot } : {}) }) ? true : undefined;
 			const href =
 				el.getAttribute(AimSvgContract.ATTR_HREF) ??
@@ -631,6 +634,7 @@ export class RaiBridge {
 				...(unbound ? { unbound: true } : {}),
 				...(slot ? { slot: true } : {}),
 				...(restriction ? { restriction } : {}),
+				...(state ? { state } : {}),
 				...(boundaryId ? { boundaryId } : {}),
 				...(href !== undefined && href.trim().length > 0 ? { href: href.trim() } : {}),
 				...(stereotype !== undefined ? { stereotype } : {}),
@@ -1089,6 +1093,11 @@ export class RaiBridge {
 			} else {
 				el.removeAttribute(AimSvgContract.ATTR_RESTRICTION);
 			}
+			if (node.state) {
+				el.setAttribute(AimSvgContract.ATTR_STATE, node.state);
+			} else {
+				el.removeAttribute(AimSvgContract.ATTR_STATE);
+			}
 			if (node.boundaryId) {
 				el.setAttribute('aim-boundary-id', node.boundaryId);
 			} else {
@@ -1516,7 +1525,16 @@ export class RaiBridge {
 		const textColor = isUnbound ? CascaisPalette.GraphiteMuted : CascaisPalette.TextPrimary;
 		const unboundAttrs = isUnbound ? ' stroke-dasharray="5,4" opacity="0.70"' : '';
 
-		if (node.kind === 'uc') {
+		// A node that stands as a Shape is one element whatever its archetype: the Shape on an invisible
+		// box (kept, because its size is what extraction reads), the Class and the name beneath it.
+		const figure = shapeFigureOf(node);
+		if (figure) {
+			const place = shapeFigurePlacement(figure, width);
+			const ink = isInitiatingStereotype(node.stereotype) ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
+			svg += `      <rect width="${width}" height="${height}" fill="none" stroke="none" />\n`;
+			svg += `      <g${unboundAttrs}>${renderShapeFigureSvg(figure, { x: place.x, y: place.y, ink, ...(node.state ? { state: node.state } : {}) })}</g>\n`;
+			svg += this.renderSvgText(rawDisplayName, place.cx, place.y + place.height + 24, 12, '500', textColor, isInstance, qualifierText, width, slotTag);
+		} else if (node.kind === 'uc') {
 			const rx = width / 2;
 			const ry = height / 2;
 			svg += `      <ellipse cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.NetGoldStroke}" stroke-width="2"${unboundAttrs} />\n`;
@@ -1561,9 +1579,6 @@ export class RaiBridge {
 			svg += `      <rect width="${width}" height="${height}" fill="none" stroke="none" />\n`;
 			if (glyph) {
 				// The pictogram silhouette, emitted below, takes the figure's place.
-			} else if (resolvedStereo === 'system') {
-				const sysColor = isInitiating ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
-				svg += renderStereotypeIconSvg('system', cx - 22, 8, sysColor, sysColor);
 			} else {
 				const torsoD = isLead
 					? `M ${cx - 21} 54 v -6 a 10 10 0 0 1 10 -10 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 L ${cx + 8} 47`
@@ -1587,20 +1602,7 @@ export class RaiBridge {
 			}
 			svg += this.renderSvgText(rawDisplayName, cx, 80, 12, '500', textColor, isInstance, qualifierText, width, slotTag);
 		} else if (node.kind === 'plc') {
-			const isFramelessPlc = ['venue', 'stage', 'bar'].includes(resolvedStereo ?? '');
-			if (isFramelessPlc && resolvedStereo) {
-				const effectiveW = width > 140 ? 120 : (width < 120 ? 120 : width);
-				const cx = Math.round(effectiveW / 2);
-				const paths = getStereotypePaths(resolvedStereo);
-				const iconX = cx - Math.round(paths.width / 2);
-				const iconY = 6;
-				svg += `      <rect width="${width}" height="${height}" fill="none" stroke="none" />\n`;
-				const isInitiating = isInitiatingStereotype(node.stereotype);
-				const strokeColor = isInitiating ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
-				const accentColor = strokeColor;
-				svg += renderStereotypeIconSvg(resolvedStereo, iconX, iconY, strokeColor, accentColor);
-				svg += this.renderSvgText(rawDisplayName, cx, 84, 12, '500', textColor, isInstance, qualifierText, width, slotTag);
-			} else if (hasStereoIcon) {
+			if (hasStereoIcon) {
 				const cx = Math.round(width / 2);
 				svg += `      <rect width="${width}" height="${height}" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.SilverLineDark}" stroke-width="1.5"${unboundAttrs} />\n`;
 				if (!glyph && resolvedStereo) {
@@ -1614,7 +1616,10 @@ export class RaiBridge {
 			}
 		} else if (node.kind === 'rol' || node.kind === 'rf') {
             const fill = node.kind === 'rf' ? String(node.properties?.color ?? CascaisPalette.AccentBlue) : CascaisPalette.ChalkWhite;
-            svg += `<circle cx="${width / 2}" cy="${height / 2}" r="${Math.min(width, height) / 2}" fill="${escapeXmlAttr(fill)}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="2"${unboundAttrs} />`;
+            const ring = node.kind === 'rol'
+                ? `stroke="${GenericRoleLine.stroke}" stroke-width="${GenericRoleLine.strokeWidth}" stroke-dasharray="${GenericRoleLine.dash}"`
+                : `stroke="${CascaisPalette.WarmGraphite}" stroke-width="2"${unboundAttrs}`;
+            svg += `<circle cx="${width / 2}" cy="${height / 2}" r="${Math.min(width, height) / 2}" fill="${escapeXmlAttr(fill)}" ${ring} />`;
             svg += this.renderSvgText(rawDisplayName, width / 2, -14, 13, '600', textColor, isInstance, undefined, 240);
 
 		} else {
@@ -1626,8 +1631,8 @@ export class RaiBridge {
 		}
 
 		if (glyphs.length > 0) {
-			const frameless = node.kind === 'plc' && ['venue', 'stage', 'bar'].includes(resolvedStereo ?? '');
-			const boxWidth = frameless ? (width > 140 ? 120 : (width < 120 ? 120 : width)) : width;
+			const frameless = figure !== undefined;
+			const boxWidth = frameless ? shapeNodeWidth(width) : width;
 			computeStereotypeGlyphLayout(node.kind, boxWidth, height, glyphs.length, { frameless }).forEach((p, i) => {
 				const url = getStereotypeGlyphUrl(glyphs[i]!.file) ?? '';
 				svg += `      <image href="${escapeXmlAttr(url)}" x="${p.x}" y="${p.y}" width="${p.width}" height="${p.height}" preserveAspectRatio="xMidYMid meet" class="aim-stereotype-glyph aim-stereotype-glyph-${p.mode}"${isUnbound ? ' opacity="0.70"' : ''} />\n`;
@@ -1648,59 +1653,30 @@ export class RaiBridge {
 			let chevronY = Math.round(height / 2);
 			const chevronFill = HeraldicWash.vermelho(DualityWashStrength.chevron);
 
-			if (node.kind === 'per') {
+			// A Shape's door is its own outline seen through the right half of its box. The nested viewport
+			// does the cutting, so it works in every viewer and no Shape carries a half of its own.
+			let doorMarkup: string | undefined;
+			if (figure) {
+				const place = shapeFigurePlacement(figure, width);
+				const half = place.width / 2;
+				doorMarkup = `<svg x="${place.cx}" y="${place.y}" width="${half}" height="${place.height}" viewBox="${half} 0 ${half} ${place.height}" fill="${HeraldicWash.vermelho(0)}" class="aim-portal-door"><path d="${figure.outline}" fill-rule="evenodd" /></svg>`;
+				seamX1 = place.cx;
+				seamY1 = place.y;
+				seamX2 = place.cx;
+				seamY2 = place.y + place.height;
+				chevronX = place.cx + half + 12;
+				chevronY = place.y + 20;
+			} else if (node.kind === 'per') {
 				const cx = Math.round(width / 2);
-				if (resolvedStereo === 'system') {
-					doorPath = `M ${cx} 11 H ${cx + 16} A 4 4 0 0 1 ${cx + 20} 15 V 23 A 4 4 0 0 1 ${cx + 16} 27 H ${cx + 9} V 33 H ${cx + 16} A 4 4 0 0 1 ${cx + 20} 37 V 45 A 4 4 0 0 1 ${cx + 16} 49 H ${cx} Z`;
-					seamX1 = cx;
-					seamY1 = 11;
-					seamX2 = cx;
-					seamY2 = 49;
-					chevronX = cx + 32;
-					chevronY = 30;
-				} else {
-					const headRight = `M ${cx} 8 A 12 12 0 0 1 ${cx} 32 Z`;
-					const torsoRight = `M ${cx} 38 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 H ${cx} Z`;
-					doorPath = `${headRight} ${torsoRight}`;
-					seamX1 = cx;
-					seamY1 = 8;
-					seamX2 = cx;
-					seamY2 = 54;
-					chevronX = width - 10;
-					chevronY = Math.round(height / 2);
-				}
-			} else if (node.kind === 'plc' && resolvedStereo === 'venue') {
-				const effectiveW = width > 140 ? 120 : (width < 120 ? 120 : width);
-				const cx = Math.round(effectiveW / 2);
-				const iconY = 6;
-				doorPath = `M ${cx} 9 A 13.5 13.5 0 0 1 ${cx + 13.5} 22.5 C ${cx + 13.5} 32.25 ${cx + 7.5} 39.75 ${cx} 49.5 Z M ${cx} 27.75 A 5.25 5.25 0 0 0 ${cx} 17.25 Z`;
+				const headRight = `M ${cx} 8 A 12 12 0 0 1 ${cx} 32 Z`;
+				const torsoRight = `M ${cx} 38 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 H ${cx} Z`;
+				doorPath = `${headRight} ${torsoRight}`;
 				seamX1 = cx;
-				seamY1 = iconY;
+				seamY1 = 8;
 				seamX2 = cx;
-				seamY2 = iconY + 54;
-				chevronX = cx + 34;
-				chevronY = 26;
-			} else if (node.kind === 'plc' && resolvedStereo === 'stage') {
-				const effectiveW = width > 140 ? 120 : (width < 120 ? 120 : width);
-				const cx = Math.round(effectiveW / 2);
-				const iconY = 6;
-				doorPath = `M ${cx} ${iconY + 2.6} H ${cx + 14.4} L ${cx + 20.5} ${iconY + 9.6} V ${iconY + 40.2} H ${cx} Z`;
-				seamX1 = cx;
-				seamY1 = iconY + 2.6;
-				seamX2 = cx;
-				seamY2 = iconY + 40.2;
-				chevronX = cx + 34;
-				chevronY = 26;
-			} else if (node.kind === 'plc' && resolvedStereo === 'bar') {
-				const effectiveW = width > 140 ? 120 : (width < 120 ? 120 : width);
-				const cx = Math.round(effectiveW / 2);
-				doorPath = `M ${cx} ${iconY + 8} H ${cx + 15} L ${cx} ${iconY + 28} Z`;
-				seamX1 = cx;
-				seamY1 = iconY + 8;
-				seamX2 = cx;
-				seamY2 = iconY + 44;
-				chevronX = cx + 32;
-				chevronY = 26;
+				seamY2 = 54;
+				chevronX = width - 10;
+				chevronY = Math.round(height / 2);
 			} else if (node.kind === 'uc') {
 				const rx = Math.round(width / 2);
 				const ry = Math.round(height / 2);
@@ -1712,7 +1688,7 @@ export class RaiBridge {
 
 			// CR055 (Koyo D5): exported at rest — the door is a clear click target; seam and chevron mark the portal
 			svg += `      <a href="${escapedHref}" target="_blank">\n`;
-			svg += `        <path d="${doorPath}" fill="${HeraldicWash.vermelho(0)}" fill-rule="evenodd" class="aim-portal-door" />\n`;
+			svg += `        ${doorMarkup ?? `<path d="${doorPath}" fill="${HeraldicWash.vermelho(0)}" fill-rule="evenodd" class="aim-portal-door" />`}\n`;
 			svg += `        <line x1="${seamX1}" y1="${seamY1}" x2="${seamX2}" y2="${seamY2}" stroke="${CascaisPalette.NetGoldStroke}" stroke-width="1.5" class="aim-portal-seam" />\n`;
 			svg += `        <text x="${chevronX}" y="${chevronY}" fill="${chevronFill}" font-size="14" font-weight="bold" font-family="Inter, system-ui, -apple-system, sans-serif" text-anchor="middle" dominant-baseline="central" class="aim-portal-chevron">›</text>\n`;
 			svg += `      </a>\n`;
@@ -1838,7 +1814,8 @@ export class RaiBridge {
 			const roleAttrs =
 				(node.unbound === true ? ` ${AimSvgContract.ATTR_UNBOUND}="true"` : '') +
 				(node.slot === true ? ` ${AimSvgContract.ATTR_SLOT}="true"` : '') +
-				(node.restriction ? ` ${AimSvgContract.ATTR_RESTRICTION}="${escapeXmlAttr(node.restriction)}"` : '');
+				(node.restriction ? ` ${AimSvgContract.ATTR_RESTRICTION}="${escapeXmlAttr(node.restriction)}"` : '') +
+				(node.state ? ` ${AimSvgContract.ATTR_STATE}="${escapeXmlAttr(node.state)}"` : '');
 			svg += `    <g ${AimSvgContract.ATTR_NODE}="true" ${AimSvgContract.ATTR_ID}="${escapeXmlAttr(node.id)}" ${AimSvgContract.ATTR_KIND}="${escapeXmlAttr(node.kind)}" ${AimSvgContract.ATTR_DISPLAY_NAME}="${escapeXmlAttr(node.displayName)}"${hrefAttr}${qualifierAttr}${instanceAttr}${roleAttrs}${stereotypeAttr}${glyphAttr}${extraAttrs} transform="translate(${node.bounds.x}, ${node.bounds.y})">\n`;
 			svg += this.renderNodeInnerSvg(node);
 			svg += `    </g>\n`;

@@ -432,6 +432,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						instance: isInstanceNode({ kind, ...(customData?.instance !== undefined ? { instance: customData.instance } : {}), ...(customData?.slot ? { slot: true } : {}) }),
 						...(customData?.slot === true ? { slot: true } : {}),
 						...(customData?.restriction ? { restriction: customData.restriction } : {}),
+						...(customData?.state ? { state: customData.state } : {}),
 						...(customData?.description !== undefined ? { description: customData.description } : {}),
 						...(customData?.descriptionWidth !== undefined ? { descriptionWidth: customData.descriptionWidth } : {}),
 						...(customData?.stereotype !== undefined ? { stereotype: customData.stereotype } : (kind === 'plc' ? { stereotype: 'Venue' } : {})),
@@ -904,7 +905,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						args: {
 							padding: 3,
 							attrs: {
-								stroke: CascaisPalette.HeraldicGreen,
+								stroke: CascaisPalette.TelemetryGreen,
 								strokeWidth: 2,
 							},
 						},
@@ -914,9 +915,9 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 						args: {
 							padding: 4,
 							attrs: {
-								stroke: CascaisPalette.HeraldicGreen,
+								stroke: CascaisPalette.TelemetryGreen,
 								strokeWidth: 3,
-								fill: CascaisPalette.HeraldicGreen,
+								fill: CascaisPalette.TelemetryGreen,
 							},
 						},
 					},
@@ -1782,6 +1783,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 				instance: isInstanceNode({ kind, ...(customData?.instance !== undefined ? { instance: customData.instance } : {}), ...(customData?.slot ? { slot: true } : {}) }),
 				...(customData?.slot === true ? { slot: true } : {}),
 				...(customData?.restriction ? { restriction: customData.restriction } : {}),
+				...(customData?.state ? { state: customData.state } : {}),
 				...(customData?.description !== undefined ? { description: customData.description } : {}),
 				...(customData?.descriptionWidth !== undefined ? { descriptionWidth: customData.descriptionWidth } : {}),
 				...(customData?.stereotype !== undefined ? { stereotype: customData.stereotype } : (kind === 'plc' ? { stereotype: 'Venue' } : {})),
@@ -1818,7 +1820,7 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 					minHeight: 300,
 					overflow: 'hidden',
 					background: isDragOver ? CascaisPalette.EmeraldWhisper : CascaisPalette.ChalkWhite,
-					outline: isDragOver ? `2px dashed ${CascaisPalette.HeraldicGreen}` : 'none',
+					outline: isDragOver ? `2px dashed ${CascaisPalette.TelemetryGreen}` : 'none',
 					outlineOffset: -4,
 					transition: 'background-color 0.2s ease, outline 0.2s ease',
 					...style,
@@ -1845,12 +1847,12 @@ export const RaidCanvas = React.forwardRef<RaidCanvasHandle, RaidCanvasProps>(
 							transform: 'translateX(-50%)',
 							zIndex: 20,
 							padding: '6px 16px',
-							background: CascaisPalette.HeraldicGreen,
+							background: CascaisPalette.TelemetryGreen,
 							color: CascaisPalette.ChalkWhite,
 							borderRadius: 20,
 							fontSize: 12,
 							fontWeight: 600,
-							boxShadow: `0 4px 12px ${withAlpha(CascaisPalette.HeraldicGreen, 0.3)}`,
+							boxShadow: `0 4px 12px ${withAlpha(CascaisPalette.TelemetryGreen, 0.3)}`,
 							pointerEvents: 'none',
 						}}
 					>

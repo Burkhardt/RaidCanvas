@@ -9,6 +9,9 @@
  * - Bar: Hospitality cocktail martini glass with stem, base, and olive pick.
  * - Headliner: Performer crown / artist star badge.
  * - AI: Autonomous agent / neural processor chip with circuitry pins.
+ * - Contract, Law, Court, Certificate, Checklist: the document family for Objects (Koyo `7013`). They are
+ *   named and resolved here; their drawings, like every free-standing Shape's, are records in
+ *   `ShapeFigures.ts`.
  *
  * Fully integrated with the Cascais Palette and the Two-Tap Dynabook Duality philosophy:
  * Stereotype icons live in the Left Hemisphere (The Persona / The Anchor), remaining pristine
@@ -17,7 +20,41 @@
 
 import { CascaisPalette } from './X6Shapes.js';
 
-export type StereotypeId = 'stage' | 'venue' | 'bar' | 'customer' | 'headliner' | 'ai' | 'initiates' | 'system' | 'lead' | 'observer';
+/** The Shapes only an Object can wear: documents, each drawn on the same sheet. */
+export type ObjectShapeId = 'contract' | 'law' | 'court' | 'certificate' | 'checklist';
+
+export type StereotypeId = 'stage' | 'venue' | 'bar' | 'customer' | 'headliner' | 'ai' | 'initiates' | 'system' | 'lead' | 'observer' | ObjectShapeId;
+
+/**
+ * The words that name each Object Shape. Law is legislation and Court is a ruling that interprets a
+ * law; both are documents, so neither is ever drawn as a building.
+ */
+const OBJECT_SHAPE_WORDS: Record<ObjectShapeId, readonly string[]> = {
+  contract: ['contract'],
+  law: ['law', 'legislation'],
+  court: ['court', 'ruling'],
+  certificate: ['certificate'],
+  checklist: ['checklist', 'runbook'],
+};
+
+function objectShapeOf(token: string): ObjectShapeId | undefined {
+  return (Object.keys(OBJECT_SHAPE_WORDS) as ObjectShapeId[]).find((id) => OBJECT_SHAPE_WORDS[id].includes(token));
+}
+
+export function isObjectShape(id: StereotypeId | undefined): id is ObjectShapeId {
+  return id !== undefined && id in OBJECT_SHAPE_WORDS;
+}
+
+/** How a Contract is drawn for its object's state: plain, with a pen (`ReadyToSign`) or with a tick (`Approved`). */
+export type ContractState = 'default' | 'readyToSign' | 'approved';
+
+/** Read a Contract's drawing off the object's state, however the state is spelled. */
+export function contractStateOf(state: string | null | undefined): ContractState {
+  const key = (state ?? '').replace(/[\s_-]+/g, '').toLowerCase();
+  if (key === 'readytosign') return 'readyToSign';
+  if (key === 'approved') return 'approved';
+  return 'default';
+}
 
 export interface StereotypeDefinition {
   id: StereotypeId;
@@ -109,6 +146,46 @@ export const KNOWN_STEREOTYPES: Record<StereotypeId, StereotypeDefinition> = {
     width: 44,
     height: 44,
   },
+  contract: {
+    id: 'contract',
+    name: 'Contract',
+    targetPit: 'Object',
+    description: 'Binding agreement on a document sheet; a pen when ready to sign, a tick when approved.',
+    width: 36,
+    height: 50,
+  },
+  law: {
+    id: 'law',
+    name: 'Law',
+    targetPit: 'Object',
+    description: 'Legislation: a document sheet carrying the section mark.',
+    width: 36,
+    height: 50,
+  },
+  court: {
+    id: 'court',
+    name: 'Court',
+    targetPit: 'Object',
+    description: 'A ruling that interprets a law: a document sheet carrying a gavel.',
+    width: 36,
+    height: 50,
+  },
+  certificate: {
+    id: 'certificate',
+    name: 'Certificate',
+    targetPit: 'Object',
+    description: 'Certified document: a sheet with a gold seal and ribbon tails.',
+    width: 36,
+    height: 50,
+  },
+  checklist: {
+    id: 'checklist',
+    name: 'Checklist',
+    targetPit: 'Object',
+    description: 'Checklist or runbook: a clipboard with ticked and open rows.',
+    width: 34,
+    height: 50,
+  },
 };
 
 /**
@@ -151,6 +228,7 @@ export function hasStereotype(rawStereotype: string | readonly string[] | undefi
       if (target === 'system' && ['system', 'server', 'service', 'daemon', 'backend'].includes(token)) return true;
       if (target === 'observer' && ['observer', 'observes', 'supervisory', 'supervisor', 'board', 'oversight'].includes(token)) return true;
       if (target === 'initiates' && ['initiates', 'initiator'].includes(token)) return true;
+      if (isObjectShape(target) && OBJECT_SHAPE_WORDS[target].includes(token)) return true;
     }
   }
   return false;
@@ -165,7 +243,8 @@ export function hasStereotype(rawStereotype: string | readonly string[] | undefi
  * If no domain stereotype is present, falls back to 'initiates' if present.
  *
  * Pass the node's `kind` to make the result shape-aware: on a Place the first Stage / Venue / Bar
- * decides the shape, whatever Lead or Headliner precedes it.
+ * decides the shape, whatever Lead or Headliner precedes it. On an Object the first Contract / Law /
+ * Court / Certificate / Checklist does; those are documents and resolve on no other kind.
  */
 export function resolveStereotype(rawStereotype?: string | readonly string[], kind?: string): StereotypeId | undefined {
   if (!rawStereotype) return undefined;
@@ -177,6 +256,18 @@ export function resolveStereotype(rawStereotype?: string | readonly string[], ki
         if (token === 'stage') return 'stage';
         if (token === 'venue' || token === 'place' || token === 'pin') return 'venue';
         if (token === 'bar' || token === 'hospitality') return 'bar';
+      }
+    }
+  }
+
+  if (kind === 'obj') {
+    const items = Array.isArray(rawStereotype) ? rawStereotype : [String(rawStereotype)];
+    for (const item of items) {
+      for (const token of String(item ?? '').replace(/[«»"]/g, '').toLowerCase().trim().split(/[\s,]+/)) {
+        const shape = objectShapeOf(token);
+        if (shape) return shape;
+        // System is an Object's Shape too, so it competes in the order written.
+        if (hasStereotype(token, 'system')) return 'system';
       }
     }
   }

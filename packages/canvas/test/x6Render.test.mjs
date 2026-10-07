@@ -26,7 +26,7 @@ dom.window.SVGElement.prototype.getScreenCTM = matrix;
 dom.window.SVGElement.prototype.getCTM = matrix;
 
 const { Graph } = await import('@antv/x6');
-const { createAimNode, createAimEdge } = await import('../dist/index.js');
+const { createAimNode, createAimEdge, GenericRoleLine } = await import('../dist/index.js');
 
 function graphWithEdge(edge) {
   const errors = [];
@@ -80,7 +80,7 @@ test('X6 renders the CR055 Verde persona mirrored across the seam when the duali
     assert.ok(persona, 'persona path rendered');
     assert.notEqual(persona.getAttribute('display'), 'none');
     assert.equal(persona.getAttribute('transform'), 'matrix(-1 0 0 1 160 0)');
-    assert.equal(persona.getAttribute('fill'), HeraldicWash.verde(0.1));
+    assert.equal(persona.getAttribute('fill'), HeraldicWash.verde(0.2));
     assert.equal(persona.getAttribute('d'), graph.findViewByCell(node).container.querySelector('path.aim-portal-door').getAttribute('d'));
   } finally {
     graph.dispose();
@@ -97,15 +97,41 @@ test('X6 raises the whole flag on an awakened Person, mirrored across head and t
     const persona = view.querySelector('path.aim-portal-persona');
     const door = view.querySelector('path.aim-portal-door');
     assert.notEqual(persona.getAttribute('display'), 'none');
-    assert.equal(persona.getAttribute('fill'), HeraldicWash.verde(0.1));
+    assert.equal(persona.getAttribute('fill'), HeraldicWash.verde(0.2));
     assert.equal(persona.getAttribute('d'), door.getAttribute('d'));
-    assert.equal(door.getAttribute('fill'), HeraldicWash.vermelho(0.1));
+    assert.equal(door.getAttribute('fill'), HeraldicWash.vermelho(0.12));
     assert.notEqual(view.querySelector('.aim-portal-seam').getAttribute('display'), 'none');
 
     // Becoming a System rack takes the silhouette wash
     node.setData({ ...node.getData(), stereotype: 'System' });
     setNodeDualityActive(node, true);
-    assert.equal(door.getAttribute('fill'), HeraldicWash.vermelho(0.15));
+    assert.equal(door.getAttribute('fill'), HeraldicWash.vermelho(0.12));
+  } finally {
+    graph.dispose();
+  }
+});
+
+test('X6 keeps the portal chevron beside a Shape, not a node-width away', async () => {
+  const { setNodeDualityActive } = await import('../dist/index.js');
+  const graph = new Graph({ container: document.getElementById('c'), width: 800, height: 400, async: false });
+  const chevronX = (node) => Number(/matrix\(1,0,0,1,(-?[\d.]+),/.exec(graph.findViewByCell(node).container.querySelector('.aim-portal-chevron').getAttribute('transform'))[1]);
+  try {
+    // The Shape is centred on x = 60 in these 120-wide nodes; the chevron sits 12 beyond its right edge.
+    for (const [kind, stereotype, expected] of [['plc', 'Venue', 94.5], ['plc', 'Stage', 100], ['plc', 'Bar', 90], ['per', 'System', 94], ['obj', 'Contract', 90]]) {
+      const node = graph.addNode(createAimNode({ id: `${kind}-${stereotype}`, kind, displayName: stereotype, stereotype, href: '/x', bounds: { x: 0, y: 0, width: 120, height: 110 } }));
+      setNodeDualityActive(node, true);
+      assert.equal(chevronX(node), expected, `${stereotype} awakened`);
+      setNodeDualityActive(node, false);
+      setNodeDualityActive(node, true);
+      assert.equal(chevronX(node), expected, `${stereotype} awakened again`);
+    }
+
+    // A card keeps its chevron inset from the right edge, and gets it back when a Shape is taken away.
+    const plain = graph.addNode(createAimNode({ id: 'plain', kind: 'plc', displayName: 'Hall', stereotype: 'Venue', href: '/x', bounds: { x: 0, y: 0, width: 160, height: 70 } }));
+    setNodeDualityActive(plain, true);
+    plain.setData({ ...plain.getData(), stereotype: '' });
+    setNodeDualityActive(plain, true);
+    assert.equal(chevronX(plain), plain.getSize().width - 12 + 1);
   } finally {
     graph.dispose();
   }
@@ -125,17 +151,23 @@ test('X6 renders a dormant persona on every archetype until the duality awakens'
   }
 });
 
-test('X6 renders a 1UCC role slot with its `: <Class>` tag and no underline, ring or dash', () => {
+test('X6 renders a 1UCC role slot with its `: <Class>` tag and no underline, ring or dash; the Generic Role is a dashed grey ring', () => {
   const graph = new Graph({ container: document.getElementById('c'), width: 800, height: 400, async: false });
   try {
     graph.addNode(createAimNode({ id: 'Signer', kind: 'per', displayName: 'Signer', slot: true, restriction: 'Person', bounds: { x: 0, y: 0, width: 120, height: 110 } }));
     graph.addNode(createAimNode({ id: 'Contract', kind: 'obj', displayName: 'Contract', slot: true, restriction: 'Document', bounds: { x: 200, y: 0, width: 160, height: 80 } }));
     graph.addNode(createAimNode({ id: 'Approver', kind: 'rol', displayName: 'Approver', bounds: { x: 400, y: 0, width: 22, height: 22 } }));
+    const dashed = (view) => [...view.querySelectorAll('[stroke-dasharray]')].filter(e => !['none', '0', ''].includes(e.getAttribute('stroke-dasharray')));
     for (const id of ['Signer', 'Contract', 'Approver']) {
       const view = document.querySelector(`[data-cell-id="${id}"]`);
       assert.equal(view.querySelector('.aim-slot-ring'), null, `${id} has no ring`);
-      assert.ok(![...view.querySelectorAll('[stroke-dasharray]')].some(e => !['none', '0', ''].includes(e.getAttribute('stroke-dasharray'))), `${id} has no dashed outline`);
+      if (id !== 'Approver') assert.equal(dashed(view).length, 0, `${id} has no dashed outline`);
     }
+    // The Generic Role alone is a dashed grey ring (RAI, 2026-10-06): its category is not chosen yet.
+    const ring = dashed(document.querySelector('[data-cell-id="Approver"]'));
+    assert.equal(ring.length, 1);
+    assert.equal(ring[0].tagName.toLowerCase(), 'circle');
+    assert.deepEqual([ring[0].getAttribute('stroke'), ring[0].getAttribute('stroke-dasharray')], [GenericRoleLine.stroke, GenericRoleLine.dash]);
     const obj = document.querySelector('[data-cell-id="Contract"]');
     // X6 writes spaces as U+00A0, so normalise before matching.
     assert.ok([...obj.querySelectorAll('text')].some(t => t.textContent.replace(/\u00A0/g, ' ').includes(': Document')));

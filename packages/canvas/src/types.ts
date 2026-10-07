@@ -143,6 +143,12 @@ export interface RaidNodeData {
 	/** Expected Class of a role slot (`aim-restriction`), shown quietly as `: <Class>` under the role name. */
 	readonly restriction?: string;
 
+	/**
+	 * The object's lifecycle state (`aim-state`), e.g. `ReadyToSign` or `Approved`. A Shape whose
+	 * drawing follows the state reads it here: a Contract shows a pen, then a tick.
+	 */
+	readonly state?: string;
+
 	/** Identifier of enclosing boundary box (if enclosed). */
 	readonly boundaryId?: string;
 }
@@ -243,7 +249,7 @@ export interface RaidEdgeData {
 
 /**
  * Supported color accents for edge AST expression pills.
- * - 'green': Cascais Heraldic Green (`CascaisPalette.HeraldicGreen`)
+ * - 'green': Cascais Heraldic Green (`CascaisPalette.TelemetryGreen`)
  * - 'red': Cascais Red (`CascaisPalette.CascaisRed`)
  * - 'anthracite': Cascais Warm Graphite / Anthracite (`CascaisPalette.WarmGraphite`)
  */
@@ -324,6 +330,7 @@ export const AimSvgContract = {
 	ATTR_UNBOUND: 'aim-unbound',
 	ATTR_SLOT: 'aim-slot',
 	ATTR_RESTRICTION: 'aim-restriction',
+	ATTR_STATE: 'aim-state',
 
 	// Boundary marking & attributes
 	ATTR_BOUNDARY: 'aim-boundary',

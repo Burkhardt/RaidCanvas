@@ -32,7 +32,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const React = (await import('react')).default;
 const { createRoot } = await import('react-dom/client');
-const { RaidCanvas } = await import('../dist/index.js');
+const { RaidCanvas, GenericRoleLine } = await import('../dist/index.js');
 
 const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" id="Guard_UCD" aim-archetype="OneUseCaseDiagram">
   <g aim-node="true" aim-id="Signer" aim-kind="obj" aim-slot="true" aim-restriction="Person" aim-display-name="Signer" transform="translate(40,40)"><rect width="160" height="80"/></g>
@@ -176,6 +176,29 @@ for (const stereotype of ['', 'Customer, initiates', 'Lead, Stage']) {
     }
   });
 }
+
+test('a Generic Role is the same bust-sized grey dashed ring when loaded, and after a trip to another category and back', async () => {
+  // A file saved when a role was a card: 170 x 50. The circle must not be drawn at that size.
+  const legacy = SVG.replace('aim-display-name="Approver" transform="translate(400,40)"><rect width="22" height="22"/>', 'aim-display-name="Approver" transform="translate(400,40)"><rect width="170" height="50"/>');
+  const { ref, unmount } = await mount(undefined, { svgContent: legacy });
+  const box = () => { const node = ref.current.getGraph().getCellById('Approver'); return { ...node.getPosition(), ...node.getSize() }; };
+  try {
+    const loaded = box();
+    assert.deepEqual([loaded.width, loaded.height], [46, 46], 'as tall as the Person bust');
+    assert.deepEqual([loaded.x + 23, loaded.y + 23], [485, 65], 'on the centre of the saved box');
+    const ring = () => ref.current.getGraph().getCellById('Approver').getAttrs().body;
+    assert.deepEqual([ring().stroke, ring().strokeDasharray], [GenericRoleLine.stroke, GenericRoleLine.dash]);
+
+    await React.act(() => ref.current.updateNode('Approver', { kind: 'per', slot: true }));
+    await settle();
+    await React.act(() => ref.current.updateNode('Approver', { kind: 'rol', slot: false }));
+    await settle();
+    assert.deepEqual(box(), loaded, 'the round trip changes nothing');
+    assert.deepEqual([ring().stroke, ring().strokeDasharray], [GenericRoleLine.stroke, GenericRoleLine.dash]);
+  } finally {
+    await unmount();
+  }
+});
 
 test('on a Place, Lead or Headliner never takes the Stage shape away', async () => {
   const { ref, unmount } = await mount(() => true, { svgContent: kindsSvg('') });

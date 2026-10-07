@@ -43,7 +43,7 @@ Not yet published. Governing change request: CR055 (AIA → RaidCanvas, Portugue
   - New `NetGoldStroke #AB8722` for seams, outlines, glyph strokes, boundaries and Inspector/Palette borders. At 3.06:1 on Calçada `#F4F4F0` (3.38:1 on white) it meets the WCAG 1.4.11 minimum of 3:1 for lines; Koyo's first pick, `#C59B27`, measured 2.35:1.
   - Amber `#F59E0B` is gone. Studio presets follow.
 - **Cascais theme module.** `CascaisTheme.ts` is the single source of every heraldic colour; no source file spells a gold, green or red hex of its own. Exports: `CascaisPalette`, `withAlpha`, `HeraldicWash`, `DualityWashStrength`. `aoaim-theme.css` mirrors it as `--aim-net-gold`, `--aim-net-gold-stroke`, `--aim-bandeira-verde` and `--aim-bandeira-vermelho`.
-- **Status vs flag (D2, D7).** `HeraldicGreen #10B981` and `CascaisRed #EF4444` stay as telemetry and are never laid out as a pair. In `raid-ui.css`, daisyUI `success` / `error` now use them, and the flag pair stays `primary` / `secondary`.
+- **Status vs flag (D2, D7).** `TelemetryGreen #10B981` (named `HeraldicGreen` before Koyo's C3 ruling of 2026-10-06; that name now means Verde `#1E5631`) and `CascaisRed #EF4444` stay as telemetry and are never laid out as a pair. In `raid-ui.css`, daisyUI `success` / `error` now use them, and the flag pair stays `primary` / `secondary`.
 
 ## Fixes
 

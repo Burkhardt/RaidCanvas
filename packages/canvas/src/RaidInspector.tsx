@@ -21,7 +21,7 @@ import { STATEMENT_KEY_PATTERN } from './types.js';
 import type { RaidWaypointSelection } from './RaidCanvas.js';
 import { RaidPropertyTree } from './RaidPropertyTree.js';
 import { computeExpressionPillColors } from './X6Shapes.js';
-import { CascaisPalette } from './CascaisTheme.js';
+import { CascaisPalette, DualityWashStrength, HeraldicWash, withAlpha } from './CascaisTheme.js';
 import { GENERIC_ROLE_LABEL } from './RaidPalette.js';
 import { hasStereotype, resolveStereotype, type StereotypeId } from './StereotypeIcons.js';
 import {
@@ -369,7 +369,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 		}
 		return {
 			text: edge?.directed === false ? 'AIM-EDGE' : 'AIM-ARROW',
-			bg: `${CascaisPalette.HeraldicGreen}15`,
+			bg: `${CascaisPalette.TelemetryGreen}15`,
 			color: '#059669',
 		};
 	};
@@ -570,7 +570,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					</div>
 
 					{/* Ontological Deep Link & Portuguese Bicolor Duality (Class Browser Portal) */}
-					<div style={{ padding: '10px 12px', background: boundary.href ? `${CascaisPalette.EmeraldShadow}15` : '#ECECE6', border: `1px solid ${boundary.href ? `${CascaisPalette.HeraldicGreen}60` : '#DCDCD4'}`, borderRadius: 6 }}>
+					<div style={{ padding: '10px 12px', background: '#ECECE6', border: `1px solid ${boundary.href ? CascaisPalette.BandeiraVerde : '#DCDCD4'}`, borderRadius: 6 }}>
 						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
 							<label style={{ ...labelStyle, marginBottom: 0 }}>Class Browser Link (aim-href)</label>
 							<span
@@ -579,11 +579,10 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 									fontWeight: 700,
 									padding: '1px 6px',
 									borderRadius: 3,
-									background: boundary.href ? `${CascaisPalette.HeraldicGreen}25` : '#E5E7EB',
-									color: boundary.href ? CascaisPalette.EmeraldDeep : '#6B7280',
+									...dualityStatusStyle(Boolean(boundary.href)),
 								}}
 							>
-								{boundary.href ? '🟢 DUALITY ACTIVE' : '⚪ MONOLITHIC'}
+								{boundary.href ? 'DUALITY ACTIVE' : 'MONOLITHIC'}
 							</span>
 						</div>
 
@@ -597,9 +596,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 
 						{boundary.href && boundary.href.trim().length > 0 ? (
 							<div style={{ marginTop: 8 }}>
-								<div style={{ fontSize: 10, color: CascaisPalette.EmeraldDeep, lineHeight: 1.4, marginBottom: 8 }}>
+								<div style={{ fontSize: 10, color: CascaisPalette.GraphiteMuted, lineHeight: 1.4, marginBottom: 8 }}>
 									<strong>Dynabook 2-Tap Model:</strong><br />
-									• <em>Tap 1:</em> Awakens Duality (Gold Seam &amp; Green Door).<br />
+									• <em>Tap 1:</em> Awakens Duality (Verde persona, Gold seam, Vermelho door).<br />
 									• <em>Tap 2 (Left):</em> Inspects Class in Inspector.<br />
 									• <em>Tap 2 (Right / ›):</em> Steps through to Class Browser.
 								</div>
@@ -629,9 +628,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 											padding: '5px 8px',
 											fontSize: 10,
 											fontWeight: 600,
-											background: `${CascaisPalette.HeraldicGreen}25`,
-											color: CascaisPalette.EmeraldDeep,
-											border: `1px solid ${CascaisPalette.HeraldicGreen}60`,
+											...portalActionStyle,
 											borderRadius: 4,
 											cursor: 'pointer',
 										}}
@@ -656,9 +653,9 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 										padding: '6px 10px',
 										fontSize: 11,
 										fontWeight: 600,
-										background: `${CascaisPalette.HeraldicGreen}20`,
+										background: `${CascaisPalette.TelemetryGreen}20`,
 										color: CascaisPalette.EmeraldDeep,
-										border: `1px solid ${CascaisPalette.HeraldicGreen}50`,
+										border: `1px solid ${CascaisPalette.TelemetryGreen}50`,
 										borderRadius: 4,
 										cursor: 'pointer',
 									}}
@@ -864,8 +861,8 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						<div
 							style={{
 								padding: '10px 12px',
-								background: node.href ? CascaisPalette.EmeraldMist : '#ECECE6',
-								border: `1px solid ${node.href ? CascaisPalette.HeraldicGreen : '#DCDCD4'}`,
+								background: '#ECECE6',
+								border: `1px solid ${node.href ? CascaisPalette.BandeiraVerde : '#DCDCD4'}`,
 								borderRadius: 6,
 							}}
 						>
@@ -877,11 +874,10 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 										fontWeight: 700,
 										padding: '1px 6px',
 										borderRadius: 3,
-										background: node.href ? `${CascaisPalette.HeraldicGreen}20` : '#9CA3AF20',
-										color: node.href ? CascaisPalette.EmeraldInk : '#6B7280',
+										...dualityStatusStyle(Boolean(node.href)),
 									}}
 								>
-									{node.href ? '🟢 DUALITY ACTIVE' : '⚪ MONOLITHIC'}
+									{node.href ? 'DUALITY ACTIVE' : 'MONOLITHIC'}
 								</span>
 							</div>
 
@@ -921,9 +917,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 												padding: '4px 6px',
 												fontSize: 10,
 												fontWeight: 600,
-												background: CascaisPalette.EmeraldPale,
-												color: CascaisPalette.EmeraldInk,
-												border: '1px solid #6EE7B7',
+												...portalActionStyle,
 												borderRadius: 4,
 												cursor: 'pointer',
 											}}
@@ -939,15 +933,16 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 					{/* Stereotype Icons */}
 					<div>
 						<label style={labelStyle}>Stereotype / Facet</label>
+						{/* Distinct keys: these two are siblings, and sharing the node id left a stale field of the last node behind. */}
 						<StereotypeListInput
-							key={selection.id}
+							key={`list-${selection.id}`}
 							stereotype={node.stereotype}
 							glyph={node.stereotypeGlyph}
 							onChange={(updates) => onUpdateNode?.(selection.id, updates)}
 						/>
 						{node.kind && GLYPH_KINDS.has(node.kind) && (
 							<StereotypeGlyphPicker
-								key={selection.id}
+								key={`glyphs-${selection.id}`}
 								multiple
 								glyph={node.stereotypeGlyph}
 								onChange={(stereotypeGlyph) => onUpdateNode?.(selection.id, { stereotypeGlyph })}
@@ -1033,7 +1028,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 						<div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4, padding: '10px', background: '#ECECE6', borderRadius: 6, border: '1px solid #DCDCD4' }}>
 							<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 								<span style={{ fontSize: 11, fontWeight: 700, color: '#1F2937' }}>Activity Conditions</span>
-								<span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: `${CascaisPalette.HeraldicGreen}20`, color: CascaisPalette.EmeraldDeep }}>ONE-ACTIVITY</span>
+								<span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: `${CascaisPalette.TelemetryGreen}20`, color: CascaisPalette.EmeraldDeep }}>ONE-ACTIVITY</span>
 							</div>
 
 							<div>
@@ -1121,7 +1116,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 										onClick={() => onUpdateEdge?.(selection.id, { directed: true })}
 										style={{
 											...buttonChoiceStyle,
-											borderColor: edge.directed !== false ? CascaisPalette.HeraldicGreen : '#D1D5DB',
+											borderColor: edge.directed !== false ? CascaisPalette.TelemetryGreen : '#D1D5DB',
 											background: edge.directed !== false ? CascaisPalette.EmeraldMist : '#FFFFFF',
 											color: edge.directed !== false ? CascaisPalette.EmeraldInk : '#4B5563',
 											fontWeight: edge.directed !== false ? 700 : 500,
@@ -1194,7 +1189,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 								<label style={labelStyle}>Capsule Color (Casçais Palette)</label>
 								<div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
 									{[
-										{ id: 'green', label: '🟢 Green', color: CascaisPalette.HeraldicGreen, desc: `Cascais Green (${CascaisPalette.HeraldicGreen})` },
+										{ id: 'green', label: '🟢 Green', color: CascaisPalette.TelemetryGreen, desc: `Cascais Green (${CascaisPalette.TelemetryGreen})` },
 										{ id: 'red', label: '🔴 Red', color: CascaisPalette.CascaisRed, desc: `Cascais Red (${CascaisPalette.CascaisRed})` },
 										{ id: 'anthracite', label: '⚫ Anthracite', color: '#1F2937', desc: 'Cascais Anthracite (#1F2937)' },
 										{ id: 'auto', label: '⚪ Auto', color: '#64748B', desc: 'Follows Evaluation State' },
@@ -1234,7 +1229,7 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 										onClick={() => onUpdateEdge?.(selection.id, { satisfied: true })}
 										style={{
 											...buttonChoiceStyle,
-											borderColor: edge.satisfied === true ? CascaisPalette.HeraldicGreen : '#D1D5DB',
+											borderColor: edge.satisfied === true ? CascaisPalette.TelemetryGreen : '#D1D5DB',
 											background: edge.satisfied === true ? CascaisPalette.EmeraldMist : '#FFFFFF',
 											color: edge.satisfied === true ? CascaisPalette.EmeraldInk : '#4B5563',
 											fontWeight: edge.satisfied === true ? 700 : 500,
@@ -1337,6 +1332,22 @@ export const RaidInspector: React.FC<RaidInspectorProps> = ({
 };
 
 /**
+ * The deep-link panel speaks the flag (Koyo C2, 2026-10-06), not a status colour: an awakened duality is
+ * Verde, as on the node's left half, and stepping through is Vermelho, because the button is the door.
+ */
+function dualityStatusStyle(active: boolean): React.CSSProperties {
+	return active
+		? { background: HeraldicWash.verde(DualityWashStrength.verde), color: CascaisPalette.BandeiraVerde }
+		: { background: withAlpha(CascaisPalette.GraphiteMuted, 0.12), color: CascaisPalette.GraphiteMuted };
+}
+
+const portalActionStyle: React.CSSProperties = {
+	background: CascaisPalette.BandeiraVermelho,
+	color: CascaisPalette.ChalkWhite,
+	border: `1px solid ${CascaisPalette.BandeiraVermelho}`,
+};
+
+/**
  * The stereotype list as one comma-separated text: the stereotype words first, then the node's
  * pictograms by file name (`Lead, Customer, Artist.svg`). Chips, the glyph picker and typing all
  * edit the same list, so the field always shows what is selected.
@@ -1356,7 +1367,9 @@ function stereotypeListText(stereotype: string | readonly string[] | undefined, 
 function glyphOfItem(item: string): string | undefined {
 	const entry = resolveStereotypeGlyph(item);
 	if (/\.svg$/i.test(item)) return entry?.file ?? item;
-	if (resolveStereotype(item) !== undefined || !entry) return undefined;
+	// An Object Shape is a stereotype word on an Object only, so it is asked for on that kind too:
+	// `Certificate` means the Shape, not the legacy pictogram that shares its name.
+	if (resolveStereotype(item) !== undefined || resolveStereotype(item, 'obj') !== undefined || !entry) return undefined;
 	return item.replace(/\s+/g, '').toLowerCase() === entry.id.toLowerCase() ? entry.file : undefined;
 }
 

@@ -157,6 +157,11 @@ test('CR053 node glyph picker selects several glyphs, and the stereotype text st
   await React.act(() => field().focus());
   await type(field(), 'Customer, Lead, Artist, Bridge, Computer.svg');
   assert.deepEqual(calls.pop().updates, { stereotype: 'Customer, Lead, Artist', stereotypeGlyph: 'Bridge.svg, Computer.svg' });
+  // An Object Shape word is a stereotype, not the legacy pictogram of the same name; its file still is one.
+  await type(field(), 'Certificate, Book');
+  assert.deepEqual(calls.pop().updates, { stereotype: 'Certificate', stereotypeGlyph: 'Book.svg' });
+  await type(field(), 'Certificate.svg');
+  assert.deepEqual(calls.pop().updates, { stereotype: '', stereotypeGlyph: 'Certificate.svg' });
   await type(field(), 'Customer, ');
   assert.equal(field().value, 'Customer, ', 'what is typed stays while the field has focus');
   assert.deepEqual(calls.pop().updates, { stereotype: 'Customer', stereotypeGlyph: '' });

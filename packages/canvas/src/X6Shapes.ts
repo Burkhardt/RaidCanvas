@@ -34,7 +34,15 @@ import {
   computeStereotypeGlyphLayout,
   GLYPH_EDGE_SIZE,
 } from './StereotypeGlyphs.js';
-import { CascaisPalette, DualityWashStrength, HeraldicWash } from './CascaisTheme.js';
+import { CascaisPalette, DualityWashStrength, GenericRoleLine, HeraldicWash } from './CascaisTheme.js';
+import {
+  SHAPE_DETAIL_WIDTH,
+  SHAPE_LINE_WIDTH,
+  shapeFigureOf,
+  shapeFigurePlacement,
+  shapeNodeWidth,
+  type ShapeFigure,
+} from './ShapeFigures.js';
 
 export { CascaisPalette };
 
@@ -263,11 +271,11 @@ export function registerAimShapes(): void {
       },
       persona: {
         display: 'none',
-        fill: HeraldicWash.verde(DualityWashStrength.card),
+        fill: HeraldicWash.verde(DualityWashStrength.verde),
         class: 'aim-portal-persona',
       },
       door: {
-        fill: HeraldicWash.vermelho(DualityWashStrength.card),
+        fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
         display: 'none',
         class: 'aim-portal-door',
       },
@@ -409,11 +417,11 @@ export function registerAimShapes(): void {
       },
       persona: {
         display: 'none',
-        fill: HeraldicWash.verde(DualityWashStrength.card),
+        fill: HeraldicWash.verde(DualityWashStrength.verde),
         class: 'aim-portal-persona',
       },
       door: {
-        fill: HeraldicWash.vermelho(DualityWashStrength.card),
+        fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
         display: 'none',
         class: 'aim-portal-door',
       },
@@ -569,11 +577,11 @@ export function registerAimShapes(): void {
       },
       persona: {
         display: 'none',
-        fill: HeraldicWash.verde(DualityWashStrength.card),
+        fill: HeraldicWash.verde(DualityWashStrength.verde),
         class: 'aim-portal-persona',
       },
       door: {
-        fill: HeraldicWash.vermelho(DualityWashStrength.card),
+        fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
         display: 'none',
         class: 'aim-portal-door',
       },
@@ -739,11 +747,11 @@ export function registerAimShapes(): void {
       },
       persona: {
         display: 'none',
-        fill: HeraldicWash.verde(DualityWashStrength.card),
+        fill: HeraldicWash.verde(DualityWashStrength.verde),
         class: 'aim-portal-persona',
       },
       door: {
-        fill: HeraldicWash.vermelho(DualityWashStrength.card),
+        fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
         display: 'none',
         class: 'aim-portal-door',
       },
@@ -912,11 +920,11 @@ export function registerAimShapes(): void {
       },
       persona: {
         display: 'none',
-        fill: HeraldicWash.verde(DualityWashStrength.person),
+        fill: HeraldicWash.verde(DualityWashStrength.verde),
         class: 'aim-portal-persona',
       },
       door: {
-        fill: HeraldicWash.vermelho(DualityWashStrength.person),
+        fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
         display: 'none',
         class: 'aim-portal-door',
       },
@@ -1071,11 +1079,11 @@ export function registerAimShapes(): void {
       },
       persona: {
         display: 'none',
-        fill: HeraldicWash.verde(DualityWashStrength.card),
+        fill: HeraldicWash.verde(DualityWashStrength.verde),
         class: 'aim-portal-persona',
       },
       door: {
-        fill: HeraldicWash.vermelho(DualityWashStrength.card),
+        fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
         fillRule: 'evenodd',
         display: 'none',
         class: 'aim-portal-door',
@@ -1152,11 +1160,16 @@ export function registerAimShapes(): void {
 
   // Roles are selectable relationship junctions, not domain persistence kinds.
   for (const kind of ['rol', 'rf']) {
+    const { width, height } = getDefaultNodeBounds(kind);
+    // The Generic Role is a grey dashed ring; the legacy RoleFiller stays a small solid dot.
+    const line = kind === 'rol'
+      ? { stroke: GenericRoleLine.stroke, strokeWidth: GenericRoleLine.strokeWidth, strokeDasharray: GenericRoleLine.dash }
+      : { stroke: CascaisPalette.WarmGraphite, strokeWidth: 2 };
     Shape.Circle.define({
-      shape: `aim-${kind}`, overwrite: true, width: 22, height: 22,
+      shape: `aim-${kind}`, overwrite: true, width, height,
       markup: [{ tagName: 'circle', selector: 'body' }, { tagName: 'text', selector: 'label' }],
       attrs: {
-        body: { refCx: '50%', refCy: '50%', refR: '50%', stroke: CascaisPalette.WarmGraphite, strokeWidth: 2, fill: kind === 'rf' ? CascaisPalette.AccentBlue : CascaisPalette.ChalkWhite },
+        body: { refCx: '50%', refCy: '50%', refR: '50%', ...line, fill: kind === 'rf' ? CascaisPalette.AccentBlue : CascaisPalette.ChalkWhite },
         label: { refX: 0.5, refY: -14, textAnchor: 'middle', textVerticalAnchor: 'middle', fontSize: 13, fontFamily: 'Inter, system-ui, sans-serif', fill: CascaisPalette.WarmGraphite },
       },
       ports: createOrthogonalPorts(),
@@ -1289,13 +1302,13 @@ export function registerAimShapes(): void {
       },
       persona: {
         display: 'none',
-        fill: HeraldicWash.verde(DualityWashStrength.card),
+        fill: HeraldicWash.verde(DualityWashStrength.verde),
         class: 'aim-portal-persona',
       },
       door: {
         d: '',
         display: 'none',
-        fill: HeraldicWash.vermelho(DualityWashStrength.boundary),
+        fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
         class: 'aim-portal-door',
       },
       seam: {
@@ -1388,13 +1401,13 @@ export function registerAimShapes(): void {
       },
       persona: {
         display: 'none',
-        fill: HeraldicWash.verde(DualityWashStrength.card),
+        fill: HeraldicWash.verde(DualityWashStrength.verde),
         class: 'aim-portal-persona',
       },
       door: {
         d: '',
         display: 'none',
-        fill: HeraldicWash.vermelho(DualityWashStrength.boundary),
+        fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
         class: 'aim-portal-door',
       },
       seam: {
@@ -1483,14 +1496,83 @@ export function registerAimShapes(): void {
  * CR055: the Persona wash is the portal door mirrored across the seam, so every silhouette (head and torso,
  * pin, rack, rounded card, ellipse) gets an exact left half without a second set of path geometry.
  */
-function personaWash(d: string, seamX: number, alpha: number, evenOdd = false) {
+function personaWash(d: string, seamX: number, evenOdd = false) {
   return {
     d,
     transform: `matrix(-1 0 0 1 ${2 * seamX} 0)`,
     display: 'block',
-    fill: HeraldicWash.verde(alpha),
+    fill: HeraldicWash.verde(DualityWashStrength.verde),
     ...(evenOdd ? { fillRule: 'evenodd' } : {}),
     class: 'aim-portal-persona',
+  };
+}
+
+/** The selectors every node that stands as a Shape is built from, in paint order. */
+const SHAPE_FIGURE_MARKUP = [
+  { tagName: 'rect', selector: 'body' },
+  { tagName: 'path', selector: 'iconFill' },
+  // The flag washes lie on the white ground and under the lines
+  { tagName: 'path', selector: 'persona' },
+  { tagName: 'path', selector: 'door' },
+  { tagName: 'line', selector: 'seam' },
+  { tagName: 'path', selector: 'iconStroke' },
+  { tagName: 'path', selector: 'iconDetail' },
+  { tagName: 'path', selector: 'iconAccent' },
+  { tagName: 'image', selector: 'glyph' },
+  ...EXTRA_GLYPH_MARKUP,
+  { tagName: 'text', selector: 'qualifier' },
+  { tagName: 'text', selector: 'label' },
+  { tagName: 'text', selector: 'chevron' },
+];
+
+/** Ink of a node's Shape: gold when it initiates, graphite otherwise. */
+function shapeInk(data: RaidNodeData): string {
+  return isInitiatingStereotype(data.stereotype) ? CascaisPalette.NetGoldStroke : CascaisPalette.WarmGraphite;
+}
+
+/** The drawing of any Shape, from its record: white ground, lines, detail, accent. */
+function shapeFigureIconAttrs(figure: ShapeFigure, data: RaidNodeData) {
+  const { x, y } = shapeFigurePlacement(figure, data.bounds.width);
+  const transform = `translate(${x}, ${y})`;
+  const ink = shapeInk(data);
+  const accent = figure.accent?.(data.state);
+  const stroke = { transform, stroke: ink, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' };
+  return {
+    iconFill: { d: figure.outline, transform, fill: CascaisPalette.ChalkWhite, fillRule: 'evenodd', 'fill-rule': 'evenodd', stroke: 'none', display: 'block', class: 'aim-stereotype-icon-fill' },
+    iconStroke: { ...stroke, d: figure.line, strokeWidth: SHAPE_LINE_WIDTH, display: 'block', class: 'aim-stereotype-icon-stroke' },
+    iconDetail: { ...stroke, d: figure.detail ?? '', strokeWidth: SHAPE_DETAIL_WIDTH, display: figure.detail ? 'block' : 'none', class: 'aim-stereotype-icon-detail' },
+    iconAccent: { d: accent?.d ?? '', transform, fill: accent?.color ?? ink, stroke: 'none', display: accent ? 'block' : 'none', class: 'aim-stereotype-icon-accent' },
+    iconPin: { d: '', display: 'none' },
+  };
+}
+
+/**
+ * The awakened duality of any Shape. Both washes are the Shape's own outline, clipped at the seam: the
+ * left half is the Persona, the right half the Portal door. Nothing is drawn twice and no Shape needs a
+ * half of its own.
+ */
+function shapeFigurePortalAttrs(figure: ShapeFigure, data: RaidNodeData) {
+  const { cx, x, y, width, height } = shapeFigurePlacement(figure, data.bounds.width);
+  const half = { d: figure.outline, transform: `translate(${x}, ${y})`, display: 'block', fillRule: 'evenodd', 'fill-rule': 'evenodd' };
+  return {
+    persona: { ...half, fill: HeraldicWash.verde(DualityWashStrength.verde), style: { clipPath: 'inset(0 50% 0 0)' }, class: 'aim-portal-persona' },
+    door: { ...half, fill: HeraldicWash.vermelho(DualityWashStrength.vermelho), style: { clipPath: 'inset(0 0 0 50%)' }, class: 'aim-portal-door' },
+    seam: { x1: cx, y1: y, x2: cx, y2: y + height, stroke: CascaisPalette.NetGoldStroke, strokeWidth: 1.5, display: 'block', class: 'aim-portal-seam' },
+    chevron: {
+      text: '›',
+      // Beside the Shape. X6 adds refX and refDx together, so the shape's default right-edge offset is cleared.
+      refX: cx + width / 2 + 12,
+      refDx: null,
+      refY: y + 20,
+      fill: HeraldicWash.vermelho(DualityWashStrength.chevron),
+      fontSize: 14,
+      fontWeight: 'bold',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+      textAnchor: 'middle',
+      textVerticalAnchor: 'middle',
+      display: 'block',
+      class: 'aim-portal-chevron',
+    },
   };
 }
 
@@ -1524,61 +1606,25 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
     };
   }
 
+  const figure = shapeFigureOf(data);
+  if (figure) return shapeFigurePortalAttrs(figure, data);
+
   const w = data.bounds.width;
   const h = data.bounds.height;
   const midX = Math.round(w / 2);
 
-  const resolvedStereotype = resolveStereotype(data.stereotype, data.kind);
-
   if (data.kind === 'per') {
     const cx = Math.round(w / 2);
-    if (resolvedStereotype === 'system') {
-      // Dual-chassis server rack right half: top chassis, connecting neck, bottom chassis
-      const systemRightHalf = `M ${cx} 11 H ${cx + 16} A 4 4 0 0 1 ${cx + 20} 15 V 23 A 4 4 0 0 1 ${cx + 16} 27 H ${cx + 9} V 33 H ${cx + 16} A 4 4 0 0 1 ${cx + 20} 37 V 45 A 4 4 0 0 1 ${cx + 16} 49 H ${cx} Z`;
-      return {
-        persona: personaWash(systemRightHalf, cx, DualityWashStrength.silhouette),
-        door: {
-          d: systemRightHalf,
-          display: 'block',
-          fill: HeraldicWash.vermelho(DualityWashStrength.silhouette),
-          class: 'aim-portal-door',
-        },
-        seam: {
-          x1: cx,
-          y1: 11,
-          x2: cx,
-          y2: 49,
-          stroke: CascaisPalette.NetGoldStroke,
-          strokeWidth: 1.5,
-          display: 'block',
-          class: 'aim-portal-seam',
-        },
-        chevron: {
-          text: '›',
-          // Beside the icon: refX and refDx add up in X6, so an absolute offset from the icon centre.
-          refX: cx + 32,
-          refY: 30,
-          fill: HeraldicWash.vermelho(DualityWashStrength.chevron),
-          fontSize: 14,
-          fontWeight: 'bold',
-          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-          textAnchor: 'middle',
-          textVerticalAnchor: 'middle',
-          display: 'block',
-          class: 'aim-portal-chevron',
-        },
-      };
-    }
     const headRight = `M ${cx} 8 A 12 12 0 0 1 ${cx} 32 Z`;
     const torsoRight = `M ${cx} 38 H ${cx + 11} a 10 10 0 0 1 10 10 v 6 H ${cx} Z`;
     // The whole flag on the human figure too (Koyo), at card-level subtlety so the head reads as tinted, not cut
     const personRight = `${headRight} ${torsoRight}`;
     return {
-      persona: personaWash(personRight, cx, DualityWashStrength.person),
+      persona: personaWash(personRight, cx),
       door: {
         d: personRight,
         display: 'block',
-        fill: HeraldicWash.vermelho(DualityWashStrength.person),
+        fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
         class: 'aim-portal-door',
       },
       seam: {
@@ -1608,140 +1654,15 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
     };
   }
 
-  if (data.kind === 'plc' && resolvedStereotype === 'venue') {
-    const effectiveW = w > 140 ? 120 : (w < 120 ? 120 : w);
-    const cx = Math.round(effectiveW / 2);
-    const iconY = 6;
-    // Right half of teardrop pin with inner aperture cutout (fill-rule evenodd) scaled to 45x54
-    const pinRightHalf = `M ${cx} 9 A 13.5 13.5 0 0 1 ${cx + 13.5} 22.5 C ${cx + 13.5} 32.25 ${cx + 7.5} 39.75 ${cx} 49.5 Z M ${cx} 27.75 A 5.25 5.25 0 0 0 ${cx} 17.25 Z`;
-    return {
-      persona: personaWash(pinRightHalf, cx, DualityWashStrength.silhouette, true),
-      door: {
-        d: pinRightHalf,
-        display: 'block',
-        fill: HeraldicWash.vermelho(DualityWashStrength.silhouette),
-        fillRule: 'evenodd',
-        'fill-rule': 'evenodd',
-        class: 'aim-portal-door',
-      },
-      seam: {
-        x1: cx,
-        y1: iconY,
-        x2: cx,
-        y2: iconY + 54,
-        stroke: CascaisPalette.NetGoldStroke,
-        strokeWidth: 1.5,
-        display: 'block',
-        class: 'aim-portal-seam',
-      },
-      chevron: {
-        text: '›',
-        // Beside the icon: refX and refDx add up in X6, so an absolute offset from the icon centre.
-        refX: cx + 34,
-        refY: 26,
-        fill: HeraldicWash.vermelho(DualityWashStrength.chevron),
-        fontSize: 14,
-        fontWeight: 'bold',
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        textAnchor: 'middle',
-        textVerticalAnchor: 'middle',
-        display: 'block',
-        class: 'aim-portal-chevron',
-      },
-    };
-  }
-
-  if (data.kind === 'plc' && resolvedStereotype === 'stage') {
-    const effectiveW = w > 140 ? 120 : (w < 120 ? 120 : w);
-    const cx = Math.round(effectiveW / 2);
-    const iconY = 6;
-    // Outer bounds right half: canopy roof slope + right truss tower + stage pad + centerline seam
-    const stageRightHalf = `M ${cx} ${iconY + 2.6} H ${cx + 14.4} L ${cx + 20.5} ${iconY + 9.6} V ${iconY + 40.2} H ${cx} Z`;
-    return {
-      persona: personaWash(stageRightHalf, cx, DualityWashStrength.silhouette),
-      door: {
-        d: stageRightHalf,
-        display: 'block',
-        fill: HeraldicWash.vermelho(DualityWashStrength.silhouette),
-        class: 'aim-portal-door',
-      },
-      seam: {
-        x1: cx,
-        y1: iconY + 2.6,
-        x2: cx,
-        y2: iconY + 40.2,
-        stroke: CascaisPalette.NetGoldStroke,
-        strokeWidth: 1.5,
-        display: 'block',
-        class: 'aim-portal-seam',
-      },
-      chevron: {
-        text: '›',
-        // Beside the icon: refX and refDx add up in X6, so an absolute offset from the icon centre.
-        refX: cx + 34,
-        refY: 26,
-        fill: HeraldicWash.vermelho(DualityWashStrength.chevron),
-        fontSize: 14,
-        fontWeight: 'bold',
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        textAnchor: 'middle',
-        textVerticalAnchor: 'middle',
-        display: 'block',
-        class: 'aim-portal-chevron',
-      },
-    };
-  }
-
-  if (data.kind === 'plc' && resolvedStereotype === 'bar') {
-    const effectiveW = w > 140 ? 120 : (w < 120 ? 120 : w);
-    const cx = Math.round(effectiveW / 2);
-    const iconY = 6;
-    // Right half of the glass: V-bowl right half from rim to stem vertex
-    const barRightHalf = `M ${cx} ${iconY + 8} H ${cx + 15} L ${cx} ${iconY + 28} Z`;
-    return {
-      persona: personaWash(barRightHalf, cx, DualityWashStrength.bar),
-      door: {
-        d: barRightHalf,
-        display: 'block',
-        fill: HeraldicWash.vermelho(DualityWashStrength.bar),
-        class: 'aim-portal-door',
-      },
-      seam: {
-        x1: cx,
-        y1: iconY + 8,
-        x2: cx,
-        y2: iconY + 44,
-        stroke: CascaisPalette.NetGoldStroke,
-        strokeWidth: 1.5,
-        display: 'block',
-        class: 'aim-portal-seam',
-      },
-      chevron: {
-        text: '›',
-        // Beside the icon: refX and refDx add up in X6, so an absolute offset from the icon centre.
-        refX: cx + 32,
-        refY: 26,
-        fill: HeraldicWash.vermelho(DualityWashStrength.chevron),
-        fontSize: 14,
-        fontWeight: 'bold',
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        textAnchor: 'middle',
-        textVerticalAnchor: 'middle',
-        display: 'block',
-        class: 'aim-portal-chevron',
-      },
-    };
-  }
-
   if ((data as any).kind === 'Class' || ((data as any).isBoundary && (data as any).kind !== 'Package')) {
     const r = 8;
     const pathD = `M ${midX} 0 H ${w - r} a ${r} ${r} 0 0 1 ${r} ${r} v ${h - 2 * r} a ${r} ${r} 0 0 1 -${r} ${r} H ${midX} Z`;
     return {
-      persona: personaWash(pathD, midX, DualityWashStrength.boundary),
+      persona: personaWash(pathD, midX),
       door: {
         d: pathD,
         display: 'block',
-        fill: HeraldicWash.vermelho(DualityWashStrength.boundary),
+        fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
         class: 'aim-portal-door',
       },
       seam: {
@@ -1782,11 +1703,11 @@ export function computePortalDoorAttrs(data: RaidNodeData, isActive = false) {
   }
 
   return {
-    persona: personaWash(pathD, midX, DualityWashStrength.card),
+    persona: personaWash(pathD, midX),
     door: {
       d: pathD,
       display: 'block',
-      fill: HeraldicWash.vermelho(DualityWashStrength.card),
+      fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
       class: 'aim-portal-door',
     },
     seam: {
@@ -1837,6 +1758,10 @@ export function setNodeDualityActive(node: Node, active: boolean): void {
   }
   node.setAttrByPath('door/d', attrs.door.d, opt);
   node.setAttrByPath('door/display', attrs.door.display, opt);
+  // A Shape's two halves are its one outline, placed and clipped at the seam.
+  if ((attrs.door as any).transform) node.setAttrByPath('door/transform', (attrs.door as any).transform, opt);
+  if ((attrs.door as any).style) node.setAttrByPath('door/style', (attrs.door as any).style, opt);
+  if ((attrs.persona as any).style) node.setAttrByPath('persona/style', (attrs.persona as any).style, opt);
   if ((attrs.door as any).fill) {
     node.setAttrByPath('door/fill', (attrs.door as any).fill, opt);
   }
@@ -1869,6 +1794,9 @@ export function setNodeDualityActive(node: Node, active: boolean): void {
  * - Preserves visibility in both dormant and awakened Duality states.
  */
 export function computeStereotypeIconAttrs(data: RaidNodeData) {
+  const figure = shapeFigureOf(data);
+  if (figure) return shapeFigureIconAttrs(figure, data);
+
   const resolved = resolveStereotype(data.stereotype, data.kind);
   if (!resolved) {
     return {
@@ -2051,101 +1979,12 @@ export function computeStereotypeIconAttrs(data: RaidNodeData) {
         },
       };
     }
-    if (resolved === 'system') {
-      return {
-        iconFill: {
-          d: paths.fillD,
-          transform: `translate(${cx - 22}, 8)`,
-          fill: CascaisPalette.ChalkWhite,
-          stroke: 'none',
-          display: 'block',
-          class: 'aim-stereotype-icon-fill',
-        },
-        iconStroke: {
-          d: paths.strokeD,
-          transform: `translate(${cx - 22}, 8)`,
-          stroke: strokeColor,
-          strokeWidth: 2.2,
-          strokeLinecap: 'round',
-          strokeLinejoin: 'round',
-          fill: 'none',
-          display: 'block',
-          class: 'aim-stereotype-icon-stroke',
-        },
-        iconPin: { d: '', display: 'none' },
-        iconAccent: {
-          d: paths.accentFillD ?? '',
-          transform: `translate(${cx - 22}, 8)`,
-          fill: strokeColor,
-          stroke: 'none',
-          display: paths.accentFillD ? 'block' : 'none',
-          class: 'aim-stereotype-icon-accent',
-        },
-      };
-    }
     return {
       iconFill: { d: '', display: 'none' },
       iconStroke: { d: '', display: 'none' },
       iconPin: { d: '', display: 'none' },
       iconAccent: { d: '', display: 'none' },
     };
-  }
-
-  if (data.kind === 'plc') {
-    const isFrameless = ['venue', 'stage', 'bar'].includes(resolved ?? '');
-    if (isFrameless) {
-      const effectiveW = (w > 140) ? 120 : (w < 120 ? 120 : w);
-      const cx = Math.round(effectiveW / 2);
-      const iconX = cx - Math.round(paths.width / 2);
-      const iconY = 6;
-
-      // Universal Initiator rule: With «initiates», NetGoldStroke; Without «initiates», WarmGraphite
-      let fillColor: string = CascaisPalette.ChalkWhite;
-      let accentColor: string = strokeColor;
-
-      if (resolved === 'bar') {
-        fillColor = CascaisPalette.ChalkWhite;
-        accentColor = strokeColor; // olive dot in pristine original stroke color
-      } else if (resolved === 'stage') {
-        fillColor = CascaisPalette.ChalkWhite;
-        accentColor = strokeColor; // stars on canopy
-      } else if (resolved === 'venue') {
-        fillColor = CascaisPalette.ChalkWhite;
-        accentColor = strokeColor;
-      }
-
-      return {
-        iconFill: {
-          d: paths.fillD,
-          transform: `translate(${iconX}, ${iconY})`,
-          fill: fillColor,
-          fillRule: 'evenodd',
-          'fill-rule': 'evenodd',
-          stroke: 'none',
-          display: paths.fillD ? 'block' : 'none',
-          class: 'aim-stereotype-icon-fill',
-        },
-        iconStroke: {
-          d: paths.strokeD,
-          transform: `translate(${iconX}, ${iconY})`,
-          stroke: strokeColor,
-          strokeWidth: resolved === 'venue' ? 1.8 : 1.4,
-          strokeLinecap: 'round',
-          strokeLinejoin: 'round',
-          fill: 'none',
-          display: paths.strokeD ? 'block' : 'none',
-          class: 'aim-stereotype-icon-stroke',
-        },
-        iconAccent: {
-          d: paths.starsD ?? paths.accentFillD ?? '',
-          transform: `translate(${iconX}, ${iconY})`,
-          fill: accentColor,
-          stroke: 'none',
-          display: (paths.starsD || paths.accentFillD) ? 'block' : 'none',
-          class: 'aim-stereotype-icon-accent',
-        },
-      };
-    }
   }
 
   // Structured cards: act, obj, uc, cls, rol
@@ -2374,13 +2213,13 @@ export function createAimBoundary(data: RaidBoundaryData): NodeMetadata {
       },
       persona: {
         display: 'none',
-        fill: HeraldicWash.verde(DualityWashStrength.card),
+        fill: HeraldicWash.verde(DualityWashStrength.verde),
         class: 'aim-portal-persona',
       },
       door: {
         d: '',
         display: 'none',
-        fill: HeraldicWash.vermelho(DualityWashStrength.boundary),
+        fill: HeraldicWash.vermelho(DualityWashStrength.vermelho),
         class: 'aim-portal-door',
       },
       seam: {
@@ -2462,7 +2301,8 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
 
   const resolvedStereotype = resolveStereotype(data.stereotype, data.kind);
   // Frameless Place glyphs (Venue, Stage, Bar) match the stature of the Actor glyph (~120x110).
-  const isFramelessPlc = data.kind === 'plc' && ['venue', 'stage', 'bar'].includes(resolvedStereotype ?? '');
+  const figure = shapeFigureOf(data);
+  const isFramelessPlc = figure !== undefined;
   // CR053: a known pictogram takes the place of the built-in stereotype icon (badge on cards,
   // silhouette on actors). A frameless Place keeps its Stage, Venue or Bar and shows pictograms as
   // badges beside it. Unknown names fall back silently.
@@ -2478,20 +2318,24 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
       }
     : computeStereotypeIconAttrs(data);
 
+  // A role circle has one size. Nodes cannot be resized by hand, so any other size is left over from a
+  // file saved when a role was still a card; the circle is drawn at its own size on that box's centre.
+  const isRoleCircle = data.kind === 'rol' || data.kind === 'rf';
+  const roleCircle = getDefaultNodeBounds(data.kind);
   const effectiveWidth = isFramelessPlc
-    ? (data.bounds.width > 140 || data.bounds.width < 120 ? 120 : data.bounds.width)
-    : data.bounds.width;
+    ? shapeNodeWidth(data.bounds.width)
+    : isRoleCircle ? roleCircle.width : data.bounds.width;
   const effectiveHeight = isFramelessPlc
     ? (data.bounds.height < 110 ? 110 : data.bounds.height)
-    : data.bounds.height;
+    : isRoleCircle ? roleCircle.height : data.bounds.height;
   const glyphAttrs = computeStereotypeGlyphAttrs(data, effectiveWidth, effectiveHeight, isFramelessPlc);
 
   const shapeName = `aim-${data.kind}`;
   const baseMetadata: NodeMetadata = {
     id: data.id,
     shape: shapeName,
-    x: data.bounds.x,
-    y: data.bounds.y,
+    x: isRoleCircle ? Math.round(data.bounds.x + (data.bounds.width - effectiveWidth) / 2) : data.bounds.x,
+    y: isRoleCircle ? Math.round(data.bounds.y + (data.bounds.height - effectiveHeight) / 2) : data.bounds.y,
     width: effectiveWidth,
     height: effectiveHeight,
     data,
@@ -2527,6 +2371,38 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
 
   // Archetype-specific customization
   const resultMetadata: NodeMetadata = (() => {
+    // A node that stands as a Shape is the same element whatever its archetype: the Shape on its
+    // invisible box, the Class and the name beneath it.
+    if (figure) {
+      const below = shapeFigurePlacement(figure, data.bounds.width);
+      const qualifierY = below.y + below.height + 10;
+      const qualifierLines = qualifierText ? qualifierText.split('\n').length : 0;
+      return {
+        ...baseMetadata,
+        markup: SHAPE_FIGURE_MARKUP,
+        attrs: {
+          ...portalAttrs,
+          ...stereoAttrs,
+          ...glyphAttrs,
+          body: {
+            fill: 'transparent',
+            stroke: 'none',
+            strokeWidth: 0,
+            pointerEvents: 'all',
+            style: { fill: 'transparent', stroke: 'none', strokeWidth: 0, pointerEvents: 'all' },
+            class: `aim-node aim-${data.kind} aim-frameless`,
+          },
+          qualifier: { text: qualifierText, fontStyle: 'italic', textDecoration: 'none', refX: 0.5, refY: qualifierY },
+          label: {
+            text: labelText,
+            textDecoration: isInstance ? 'underline' : 'none',
+            refX: 0.5,
+            refY: qualifierLines > 0 ? qualifierY + qualifierLines * 18 : below.y + below.height + 18,
+          },
+        },
+      };
+    }
+
     switch (data.kind) {
       case 'uc': {
       return {
@@ -2914,10 +2790,10 @@ export function computeExpressionPillColors(
 ): ExpressionPillColors {
   const normalized = expressionColor?.trim().toLowerCase();
 
-  if (normalized === 'green' || normalized === CascaisPalette.HeraldicGreen) {
+  if (normalized === 'green' || normalized === CascaisPalette.TelemetryGreen) {
     return {
       pillBg: CascaisPalette.EmeraldMist,
-      pillBorder: CascaisPalette.HeraldicGreen,
+      pillBorder: CascaisPalette.TelemetryGreen,
       pillText: CascaisPalette.EmeraldInk,
     };
   }
@@ -3256,6 +3132,8 @@ export function getDefaultNodeBounds(
     case 'plc':
       return { x, y, width: 120, height: 110 };
     case 'rol':
+      // The Generic Role stands as tall as the Person's whole bust (head top to shoulder line).
+      return { x, y, width: 46, height: 46 };
     case 'rf':
       return { x, y, width: 22, height: 22 };
     default:
