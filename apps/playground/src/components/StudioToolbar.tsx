@@ -71,7 +71,7 @@ export const StudioToolbar: React.FC<StudioToolbarProps> = ({
               RaidCanvas Studio
             </h1>
             <span style={{ fontSize: 10, color: '#64748B', fontWeight: 500 }}>
-              0.11.0 • DaisyUI / Tailwind
+              0.12.0 • DaisyUI / Tailwind
             </span>
           </div>
         </div>

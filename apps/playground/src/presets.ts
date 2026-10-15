@@ -1,4 +1,5 @@
 import { ROLE_PRESETS } from './rolePresets';
+import { CHAIN_PRESETS } from './chainPresets';
 export interface DiagramPreset {
   id: string;
   name: string;
@@ -121,6 +122,7 @@ export const PRESETS: DiagramPreset[] = [
     </svg>`,
   },
   ...ROLE_PRESETS,
+  ...CHAIN_PRESETS,
   {
     id: 'heraldic-duality',
     name: 'The Duality of the Object (Heraldic Mode)',

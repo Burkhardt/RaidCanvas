@@ -59,6 +59,26 @@ export {
   computeMaxLineLength,
 } from './X6Shapes.js';
 
+// Edge grammar: how every edge kind and line-changing stereotype is drawn (live and exported)
+export {
+  EDGE_KIND_LINES,
+  EDGE_STEREOTYPE_LINES,
+  EDGE_HEAD_PATHS,
+  EDGE_TAIL_PATHS,
+  ACTIVITY_RELATIONS,
+  edgeStereotypeOf,
+  edgeLineOf,
+  edgeLabelOf,
+  edgeHeadMarkerId,
+  edgeTailMarkerId,
+  type EdgeLine,
+  type MarkerPath,
+  type MarkerFill,
+  type EdgeHead,
+  type EdgeTail,
+  type EdgeStereotype,
+} from './EdgeGrammar.js';
+
 // The Shape element: every free-standing stereotype Shape, drawn from one record each
 export {
   SHAPE_FIGURES,

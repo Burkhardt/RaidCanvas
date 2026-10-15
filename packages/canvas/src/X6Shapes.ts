@@ -13,7 +13,6 @@ import { classAttributeLines, isInstanceNode, restrictionTag } from './RoleModel
 import { Graph, Shape, Node, Edge, type NodeMetadata, type EdgeMetadata } from '@antv/x6';
 import type {
   AimOntologyKind,
-  AimEdgeKind,
   AimRoutingMode,
   RaidNodeData,
   RaidEdgeData,
@@ -35,6 +34,7 @@ import {
   GLYPH_EDGE_SIZE,
 } from './StereotypeGlyphs.js';
 import { CascaisPalette, DualityWashStrength, GenericRoleLine, HeraldicWash } from './CascaisTheme.js';
+import { EDGE_HEAD_PATHS, EDGE_TAIL_PATHS, edgeLabelOf, edgeLineOf, type EdgeHead, type EdgeTail, type MarkerPath } from './EdgeGrammar.js';
 import {
   SHAPE_DETAIL_WIDTH,
   SHAPE_LINE_WIDTH,
@@ -2778,22 +2778,17 @@ export function computeExpressionPillColors(
 export function createAimEdge(data: RaidEdgeData, showExpressions = true): EdgeMetadata {
   registerAimShapes();
 
+  // One grammar for every edge, shared with the export: the kind's line, or its stereotype's
+  // (`«invokes»`, `«spawns»`, `«precedes»`, `«observes»`).
   const isDirected = data.directed !== false;
-  const isObserves = Boolean(
-    (data.label && String(data.label).toLowerCase().includes('observes')) ||
-    (data.stereotype && String(data.stereotype).toLowerCase().includes('observes'))
-  );
-  const baseEdgeStyling = getEdgeStyling(data.kind);
+  const line = edgeLineOf(data);
+  const label = edgeLabelOf(data);
   const edgeAttrs: Record<string, unknown> = {
-    ...baseEdgeStyling,
-    ...(isDirected ? {} : { targetMarker: null }),
-    ...(isObserves
-      ? {
-          strokeDasharray: '6,3,2,3', // Supervisory monitoring telemetry line (ADR-0008)
-          strokeWidth: 1.5,
-          stroke: CascaisPalette.WarmGraphite,
-        }
-      : {}),
+    stroke: CascaisPalette.WarmGraphite,
+    strokeWidth: 1.5,
+    strokeDasharray: line.dash ?? 'none',
+    targetMarker: x6EdgeHead(line.head),
+    sourceMarker: line.tail ? x6EdgeTail(line.tail) : null,
   };
   const routing = data.routing ?? 'manhattan';
 
@@ -2836,11 +2831,11 @@ export function createAimEdge(data: RaidEdgeData, showExpressions = true): EdgeM
       const edgeLabels: any[] = [];
       const hasExpression = Boolean(showExpressions && data.expression && data.expression.trim().length > 0);
 
-      if (data.label) {
+      if (label) {
         edgeLabels.push({
           attrs: {
             text: {
-              text: data.label,
+              text: label,
               fill: CascaisPalette.TextSecondary,
               fontSize: 11,
             },
@@ -2856,8 +2851,8 @@ export function createAimEdge(data: RaidEdgeData, showExpressions = true): EdgeM
         );
 
         // Compose tooltip: "Label: expression" or just expression
-        const tooltipText = data.label
-          ? `${data.label}: ${data.expression}`
+        const tooltipText = label
+          ? `${label}: ${data.expression}`
           : data.expression!;
 
         edgeLabels.push({
@@ -2912,7 +2907,7 @@ export function createAimEdge(data: RaidEdgeData, showExpressions = true): EdgeM
       const glyphEntry = resolveStereotypeGlyph(data.stereotypeGlyph);
       const glyphHref = glyphEntry ? getStereotypeGlyphUrl(glyphEntry.file) : undefined;
       if (glyphEntry && glyphHref) {
-        const stacked = (data.label ? 1 : 0) + (hasExpression ? 1 : 0);
+        const stacked = (label ? 1 : 0) + (hasExpression ? 1 : 0);
         const half = GLYPH_EDGE_SIZE / 2;
         edgeLabels.push({
           markup: [
@@ -2962,82 +2957,31 @@ export function createAimEdge(data: RaidEdgeData, showExpressions = true): EdgeM
 }
 
 /**
- * Returns SVG path stroke and marker attributes based on AimEdgeKind.
+ * A marker for X6, from the same geometry the export uses. X6 wants the point touching the node at the
+ * origin and the body along +x; it turns the end marker round itself but not the start marker, while the
+ * export turns the start marker round. Mirroring the drawing through its anchor (10, 5) gives the same
+ * picture on the same side of the line in both. `name: null` clears the edge shape's default `classic`
+ * head, which X6 would otherwise draw instead of this path.
  */
-function getEdgeStyling(kind: AimEdgeKind): Record<string, unknown> {
-  switch (kind) {
-    case 'dependency':
-      return {
-        stroke: CascaisPalette.WarmGraphite,
-        strokeWidth: 1.5,
-        strokeDasharray: '5,5',
-        targetMarker: {
-          name: 'block',
-          args: {
-            size: 8,
-            open: true,
-          },
-        },
-      };
+function x6Marker({ d, fill }: MarkerPath): Record<string, unknown> {
+  return {
+    name: null,
+    tagName: 'path',
+    d: d.replace(/(-?[\d.]+) (-?[\d.]+)/g, (_pair, x: string, y: string) => `${10 - Number(x)} ${5 - Number(y)}`),
+    fill: fill === 'ink' ? CascaisPalette.WarmGraphite : fill === 'paper' ? CascaisPalette.ChalkWhite : 'none',
+    stroke: CascaisPalette.WarmGraphite,
+    strokeWidth: 1.5,
+    strokeLinejoin: 'round',
+    strokeLinecap: 'round',
+  };
+}
 
-    case 'generalization':
-      return {
-        stroke: CascaisPalette.WarmGraphite,
-        strokeWidth: 1.5,
-        targetMarker: {
-          name: 'classic',
-          size: 10,
-          fill: CascaisPalette.ChalkWhite,
-        },
-      };
+function x6EdgeHead(head: EdgeHead): Record<string, unknown> | null {
+  return head === 'none' ? null : x6Marker(EDGE_HEAD_PATHS[head]);
+}
 
-    case 'realization':
-      return {
-        stroke: CascaisPalette.WarmGraphite,
-        strokeWidth: 1.5,
-        strokeDasharray: '5,5',
-        targetMarker: {
-          name: 'classic',
-          size: 10,
-          fill: CascaisPalette.ChalkWhite,
-        },
-      };
-
-    case 'aggregation':
-      return {
-        stroke: CascaisPalette.WarmGraphite,
-        strokeWidth: 1.5,
-        sourceMarker: {
-          name: 'diamond',
-          size: 10,
-          fill: CascaisPalette.ChalkWhite,
-        },
-        targetMarker: null,
-      };
-
-    case 'composition':
-      return {
-        stroke: CascaisPalette.WarmGraphite,
-        strokeWidth: 1.5,
-        sourceMarker: {
-          name: 'diamond',
-          size: 10,
-          fill: CascaisPalette.WarmGraphite,
-        },
-        targetMarker: null,
-      };
-
-    case 'association':
-    default:
-      return {
-        stroke: CascaisPalette.WarmGraphite,
-        strokeWidth: 1.5,
-        targetMarker: {
-          name: 'classic',
-          size: 7,
-        },
-      };
-  }
+function x6EdgeTail(tail: EdgeTail): Record<string, unknown> {
+  return x6Marker(EDGE_TAIL_PATHS[tail]);
 }
 
 /**

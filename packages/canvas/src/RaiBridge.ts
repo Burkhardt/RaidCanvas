@@ -55,6 +55,7 @@ import {
 	GLYPH_EDGE_SIZE,
 } from './StereotypeGlyphs.js';
 import { DualityWashStrength, GenericRoleLine, HeraldicWash } from './CascaisTheme.js';
+import { EDGE_HEAD_PATHS, EDGE_TAIL_PATHS, edgeHeadMarkerId, edgeLabelOf, edgeLineOf, edgeTailMarkerId, type MarkerPath } from './EdgeGrammar.js';
 import { renderShapeFigureSvg, shapeFigureOf, shapeFigurePlacement, shapeNodeWidth } from './ShapeFigures.js';
 
 /**
@@ -139,6 +140,22 @@ export function escapeXmlAttr(str: string): string {
 		.replace(/>/g, '&gt;')
 		.replace(/"/g, '&quot;')
 		.replace(/'/g, '&apos;');
+}
+
+/**
+ * Every edge marker the grammar knows, heads and tails, as SVG `<marker>` elements. They share one box
+ * touching the node at (10, 5); `auto-start-reverse` turns a tail round at the start of the line.
+ */
+function edgeMarkersSvg(): { id: string; svg: string }[] {
+	const marker = (id: string, { d, fill }: MarkerPath) => ({
+		id,
+		svg: `<marker id="${id}" viewBox="-1 -1 12 13" refX="10" refY="5" markerWidth="8" markerHeight="8.7" orient="auto-start-reverse">`
+			+ `<path d="${d}" fill="${fill === 'ink' ? CascaisPalette.WarmGraphite : fill === 'paper' ? CascaisPalette.ChalkWhite : 'none'}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" /></marker>`,
+	});
+	return [
+		...(Object.entries(EDGE_HEAD_PATHS) as [keyof typeof EDGE_HEAD_PATHS, MarkerPath][]).map(([head, path]) => marker(edgeHeadMarkerId(head), path)),
+		...(Object.entries(EDGE_TAIL_PATHS) as [keyof typeof EDGE_TAIL_PATHS, MarkerPath][]).map(([tail, path]) => marker(edgeTailMarkerId(tail), path)),
+	];
 }
 
 export class RaiBridge {
@@ -890,37 +907,12 @@ export class RaiBridge {
 			defs = doc.createElementNS('http://www.w3.org/2000/svg', 'defs');
 			doc.documentElement.insertBefore(defs, doc.documentElement.firstChild);
 		}
-		if (!doc.querySelector('#arrow-classic')) {
-			const marker = doc.createElementNS('http://www.w3.org/2000/svg', 'marker');
-			marker.setAttribute('id', 'arrow-classic');
-			marker.setAttribute('viewBox', '0 0 10 10');
-			marker.setAttribute('refX', '10');
-			marker.setAttribute('refY', '5');
-			marker.setAttribute('markerWidth', '7');
-			marker.setAttribute('markerHeight', '7');
-			marker.setAttribute('orient', 'auto-start-reverse');
-			const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
-			path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
-			path.setAttribute('fill', CascaisPalette.WarmGraphite);
-			marker.appendChild(path);
-			defs.appendChild(marker);
-		}
-		if (!doc.querySelector('#arrow-hollow')) {
-			const marker = doc.createElementNS('http://www.w3.org/2000/svg', 'marker');
-			marker.setAttribute('id', 'arrow-hollow');
-			marker.setAttribute('viewBox', '0 0 12 12');
-			marker.setAttribute('refX', '12');
-			marker.setAttribute('refY', '6');
-			marker.setAttribute('markerWidth', '9');
-			marker.setAttribute('markerHeight', '9');
-			marker.setAttribute('orient', 'auto-start-reverse');
-			const polygon = doc.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-			polygon.setAttribute('points', '0 0, 12 6, 0 12');
-			polygon.setAttribute('fill', CascaisPalette.ChalkWhite);
-			polygon.setAttribute('stroke', CascaisPalette.WarmGraphite);
-			polygon.setAttribute('stroke-width', '1.5');
-			marker.appendChild(polygon);
-			defs.appendChild(marker);
+		// Every edge head the grammar knows, so any edge in the file can point at its marker.
+		for (const { id, svg: markerSvg } of edgeMarkersSvg()) {
+			if (doc.querySelector(`#${id}`)) continue;
+			const holder = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${markerSvg}</svg>`, 'image/svg+xml');
+			const marker = holder.documentElement.firstElementChild;
+			if (marker) defs.appendChild(doc.importNode(marker, true));
 		}
 
 		// Ensure AOAIM style rules are present
@@ -1329,20 +1321,15 @@ export class RaiBridge {
 			pathEl.setAttribute('stroke', CascaisPalette.WarmGraphite);
 			pathEl.setAttribute('stroke-width', '1.5');
 
-			const isObserves = (edge.stereotype && edge.stereotype.toLowerCase().includes('observes')) ||
-				(edge.label && edge.label.toLowerCase().includes('observes'));
-			if (edge.kind === 'dependency') {
-				pathEl.setAttribute('stroke-dasharray', '5,5');
-			} else if (isObserves) {
-				pathEl.setAttribute('stroke-dasharray', '6,3,2,3');
-			} else {
-				pathEl.removeAttribute('stroke-dasharray');
-			}
+			const line = edgeLineOf(edge);
+			if (line.dash) pathEl.setAttribute('stroke-dasharray', line.dash);
+			else pathEl.removeAttribute('stroke-dasharray');
 
-			const markerEnd = edge.kind === 'generalization' ? 'url(#arrow-hollow)' : 'url(#arrow-classic)';
 			el.setAttribute('aim-directed', String(edge.directed !== false));
-			if (edge.directed === false) pathEl.removeAttribute('marker-end');
-			else pathEl.setAttribute('marker-end', markerEnd);
+			if (line.head === 'none') pathEl.removeAttribute('marker-end');
+			else pathEl.setAttribute('marker-end', `url(#${edgeHeadMarkerId(line.head)})`);
+			if (line.tail) pathEl.setAttribute('marker-start', `url(#${edgeTailMarkerId(line.tail)})`);
+			else pathEl.removeAttribute('marker-start');
 
 			if (edge.expression !== undefined) {
 				el.setAttribute(AimSvgContract.ATTR_EXPRESSION, edge.expression);
@@ -1376,7 +1363,8 @@ export class RaiBridge {
 						})();
 
 			// Update or inject edge label
-			if (edge.label) {
+			const edgeLabel = edgeLabelOf(edge);
+			if (edgeLabel) {
 				let textEl = el.querySelector('text.aim-edge-label') ?? el.querySelector('text');
 				if (!textEl) {
 					textEl = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -1388,7 +1376,7 @@ export class RaiBridge {
 				textEl.setAttribute('font-size', '11');
 				textEl.setAttribute('fill', CascaisPalette.TextSecondary);
 				textEl.setAttribute('text-anchor', 'middle');
-				textEl.textContent = edge.label;
+				textEl.textContent = edgeLabel;
 			}
 
 			// Update or inject edge AST expression capsule pill
@@ -1420,7 +1408,7 @@ export class RaiBridge {
 			const glyphBox = edgeGlyphPlacement(
 				edge,
 				midPoint,
-				edge.label ? midPoint.y - (pillShown ? 14 : 8) - 11 : pillShown ? midPoint.y - 9 : undefined,
+				edgeLabel ? midPoint.y - (pillShown ? 14 : 8) - 11 : pillShown ? midPoint.y - 9 : undefined,
 			);
 			if (glyphBox) {
 				const imageEl = doc.createElementNS('http://www.w3.org/2000/svg', 'image');
@@ -1711,12 +1699,7 @@ export class RaiBridge {
 
 		// Definitions & Markers
 		svg += `  <defs>\n`;
-		svg += `    <marker id="arrow-classic" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">\n`;
-		svg += `      <path d="M 0 0 L 10 5 L 0 10 z" fill="${CascaisPalette.WarmGraphite}" />\n`;
-		svg += `    </marker>\n`;
-		svg += `    <marker id="arrow-hollow" viewBox="0 0 12 12" refX="12" refY="6" markerWidth="9" markerHeight="9" orient="auto-start-reverse">\n`;
-		svg += `      <polygon points="0 0, 12 6, 0 12" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.WarmGraphite}" stroke-width="1.5" />\n`;
-		svg += `    </marker>\n`;
+		for (const { svg: markerSvg } of edgeMarkersSvg()) svg += `    ${markerSvg}\n`;
 		if (options.embedStyles !== false) {
 			svg += `    <style>\n`;
 			svg += `      .aim-node { cursor: pointer; transition: filter 0.15s ease; }\n`;
@@ -1734,10 +1717,11 @@ export class RaiBridge {
 		svg += `  <g class="aim-edges-layer">\n`;
 		for (const edge of model.edges) {
 			const bendsFormatted = this.formatBendPoints(edge.bendPoints);
-			const isObserves = (edge.stereotype && edge.stereotype.toLowerCase().includes('observes')) ||
-				(edge.label && edge.label.toLowerCase().includes('observes'));
-			const strokeDash = edge.kind === 'dependency' ? ' stroke-dasharray="5,5"' : isObserves ? ' stroke-dasharray="6,3,2,3"' : '';
-			const markerEnd = edge.directed === false ? '' : edge.kind === 'generalization' ? ' marker-end="url(#arrow-hollow)"' : ' marker-end="url(#arrow-classic)"';
+			const line = edgeLineOf(edge);
+			const edgeLabel = edgeLabelOf(edge);
+			const strokeDash = line.dash ? ` stroke-dasharray="${line.dash}"` : '';
+			const markerEnd = (line.head === 'none' ? '' : ` marker-end="url(#${edgeHeadMarkerId(line.head)})"`)
+				+ (line.tail ? ` marker-start="url(#${edgeTailMarkerId(line.tail)})"` : '');
 
 			// Path data construction
 			let pathD = edge.pathData;
@@ -1777,14 +1761,14 @@ export class RaiBridge {
 							return { x: 50, y: 50 };
 						})();
 			const pillShown = Boolean(edge.expression && model.showExpressions !== false);
-			if (edge.label) {
-				svg += `      <text x="${midPoint.x}" y="${midPoint.y - (pillShown ? 20 : 8)}" font-size="11" fill="${CascaisPalette.TextSecondary}" text-anchor="middle">${escapeXmlText(edge.label)}</text>\n`;
+			if (edgeLabel) {
+				svg += `      <text x="${midPoint.x}" y="${midPoint.y - (pillShown ? 20 : 8)}" font-size="11" fill="${CascaisPalette.TextSecondary}" text-anchor="middle">${escapeXmlText(edgeLabel)}</text>\n`;
 			}
 			// CR053: edge pictogram above the label / pill
 			const glyphBox = edgeGlyphPlacement(
 				edge,
 				midPoint,
-				edge.label ? midPoint.y - (pillShown ? 20 : 8) - 11 : pillShown ? midPoint.y - 10 : undefined,
+				edgeLabel ? midPoint.y - (pillShown ? 20 : 8) - 11 : pillShown ? midPoint.y - 10 : undefined,
 			);
 			if (glyphBox) {
 				svg += `      <image href="${escapeXmlAttr(glyphBox.url)}" x="${glyphBox.x}" y="${glyphBox.y}" width="${glyphBox.size}" height="${glyphBox.size}" preserveAspectRatio="xMidYMid meet" class="aim-stereotype-glyph aim-stereotype-glyph-edge" />\n`;
