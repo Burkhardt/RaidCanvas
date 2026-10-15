@@ -39,6 +39,8 @@
 - **0.12.0, published 2026-10-15:** the edge grammar (`EdgeGrammar.ts`): one table for every edge, live and exported, with the Activity triad «invokes» (dashed, open arrow), «spawns» (dashed, hook at the start, open arrow), «precedes» (solid, open arrow). Studio preset *Activity Chaining*. 215 tests.
 - **Proposal** for navigation into child Activities and the Living Stage editor and debugger: `AIA/doc/PROPOSAL_ALAN_Activity_Chaining_Navigation_and_Living_Stage_Editor.md`. Waiting on answers to its §6 (the `this.exec` clash in ADR-0010, the debugger relay, touch-first navigation, publishing 0.12.0, a CR to Zébio for projecting the relations).
 
+- **2026-10-15:** 0.12.0 published; workbench on it. Rita has the Engenho contract (`PROMPT_ALAN_TO_RITA_…` §5–6) and is building Option B and `this.run()`. Zébio ships CR063 with the relation as the label (`«spawns»`); the workbench lifts it into `aim-stereotype`. **G3 built** in the workbench (AIA `f316158`): step into related Activities through the door or the Inspector's Step into, breadcrumb strip, URL `?activity=…&via=…`. Next for the Glass: G4 editor once Engenho's Option B lands, and a `context.d.ts` relay endpoint to ask Zébio for.
+
 ## Open
 
 1. **A publish workflow.** Agreed with RAI: a GitHub Action that builds, tests and publishes on a version tag. RAI adds the npm token as a repository secret. Until then RAI publishes by hand as `dr2rai`; the registry takes about five minutes to show a new version.
