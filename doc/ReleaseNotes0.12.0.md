@@ -2,7 +2,7 @@
 
 Date: 2026-10-14 · Package: `@dr2rai/raid-canvas@0.12.0`
 
-Not yet published. Asked for in `PROMPT_ALAN_RAID_CANVAS_ACTIVITY_CHAINING_AND_DEBUGGER_EDITOR.md` (Adele and RAI); notation from the Ontology Compendium v1.9 §10.2 (the Triad of Activity relationships). The navigation half of that request and the Living Stage editor are a proposal first: `AIA/doc/PROPOSAL_ALAN_Activity_Chaining_Navigation_and_Living_Stage_Editor.md`.
+Published to npm on 2026-10-15 from commit `f32364e` (tag `v0.12.0`); aia-workbench is on it. Asked for in `PROMPT_ALAN_RAID_CANVAS_ACTIVITY_CHAINING_AND_DEBUGGER_EDITOR.md` (Adele and RAI); notation from the Ontology Compendium v1.9 §10.2 (the Triad of Activity relationships). The navigation half of that request and the Living Stage editor are a proposal first: `AIA/doc/PROPOSAL_ALAN_Activity_Chaining_Navigation_and_Living_Stage_Editor.md`.
 
 ## Changes
 

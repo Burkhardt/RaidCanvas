@@ -36,7 +36,7 @@
 
 ## Since then (2026-10-14)
 
-- **0.12.0, not published:** the edge grammar (`EdgeGrammar.ts`): one table for every edge, live and exported, with the Activity triad «invokes» (dashed, open arrow), «spawns» (dashed, hook at the start, open arrow), «precedes» (solid, open arrow). Studio preset *Activity Chaining*. 215 tests.
+- **0.12.0, published 2026-10-15:** the edge grammar (`EdgeGrammar.ts`): one table for every edge, live and exported, with the Activity triad «invokes» (dashed, open arrow), «spawns» (dashed, hook at the start, open arrow), «precedes» (solid, open arrow). Studio preset *Activity Chaining*. 215 tests.
 - **Proposal** for navigation into child Activities and the Living Stage editor and debugger: `AIA/doc/PROPOSAL_ALAN_Activity_Chaining_Navigation_and_Living_Stage_Editor.md`. Waiting on answers to its §6 (the `this.exec` clash in ADR-0010, the debugger relay, touch-first navigation, publishing 0.12.0, a CR to Zébio for projecting the relations).
 
 ## Open
