@@ -1,0 +1,52 @@
+# Publishes @dr2rai/raid-canvas to npm when a version tag (v0.14.0, …) is pushed.
+#
+# npm trusted publishing: npm trusts this workflow directly through GitHub's OIDC token, so the
+# repository holds no npm token and nothing expires. One-time setup on npmjs.com: the package's
+# Settings → Trusted Publisher → GitHub Actions, owner `Burkhardt`, repository `RaidCanvas`,
+# workflow `publish.yml`. Provenance is attached automatically.
+name: Publish canvas
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+  id-token: write # the OIDC token npm exchanges for a one-time publish credential
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4 # the version comes from "packageManager" in package.json
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: The tag names the version in package.json
+        run: |
+          version="$(node -p "require('./packages/canvas/package.json').version")"
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match @dr2rai/raid-canvas ${version}."
+            exit 1
+          fi
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build and test the canvas
+        run: |
+          pnpm --filter @dr2rai/raid-canvas run build
+          pnpm --filter @dr2rai/raid-canvas run test
+
+      # Trusted publishing needs npm 11.5.1 or later; pinned so a release never depends on whatever is newest.
+      - run: npm install --global npm@11.21.0
+
+      - name: Publish
+        working-directory: packages/canvas
+        run: npm publish --access public

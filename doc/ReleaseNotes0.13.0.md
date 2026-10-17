@@ -2,7 +2,7 @@
 
 Date: 2026-10-16 · Package: `@dr2rai/raid-canvas@0.13.0`
 
-Go to publish from RAI and Adele on 2026-10-17. Tagged `v0.13.0` at `49be301`; built, tested (205/205) and packed (`npm pack --dry-run`: 214 files, 590 kB), waiting for `npm publish` from the `dr2rai` account. Asked for in `AIA/doc/PROMPT_ALAN_WORKBENCH_ACTIVITY_EXEC_UI.md` (Adele and RAI): after **Run Exec**, the Activity shows `Done`, and a «precedes» successor whose precondition the run satisfied shows ready. aia-workbench (`c931ecf`) already sends each Activity's live state from the engine's evaluation as `aim-state`; with 0.12.0 it is carried but not drawn.
+Published to npm by RAI on 2026-10-17 (tag `v0.13.0` at `49be301`), on RAI's and Adele's go. Asked for in `AIA/doc/PROMPT_ALAN_WORKBENCH_ACTIVITY_EXEC_UI.md` (Adele and RAI): after **Run Exec**, the Activity shows `Done`, and a «precedes» successor whose precondition the run satisfied shows ready. aia-workbench (`c931ecf`) already sends each Activity's live state from the engine's evaluation as `aim-state`; with 0.12.0 it is carried but not drawn.
 
 ## Changes
 
