@@ -1,9 +1,10 @@
-# Publishes @dr2rai/raid-canvas to npm when a version tag (v0.14.0, …) is pushed.
+# Stages @dr2rai/raid-canvas on npm when a version tag (v0.14.0, …) is pushed; a maintainer then
+# approves it with 2FA on npmjs.com, and only that makes it public.
 #
-# npm trusted publishing: npm trusts this workflow directly through GitHub's OIDC token, so the
-# repository holds no npm token and nothing expires. One-time setup on npmjs.com: the package's
-# Settings → Trusted Publisher → GitHub Actions, owner `Burkhardt`, repository `RaidCanvas`,
-# workflow `publish.yml`. Provenance is attached automatically.
+# npm trusted publishing: npm trusts this workflow through GitHub's OIDC token, so the repository
+# holds no npm token and nothing expires. The trusted publisher (npmjs.com → the package's Settings →
+# Trusted Publisher: GitHub Actions, `Burkhardt/RaidCanvas`, `publish.yml`) grants "npm stage
+# publish" only, so CI can stage a release but never publish one by itself. Provenance is attached.
 name: Publish canvas
 
 on:
@@ -47,6 +48,6 @@ jobs:
       # Trusted publishing needs npm 11.5.1 or later; pinned so a release never depends on whatever is newest.
       - run: npm install --global npm@11.21.0
 
-      - name: Publish
+      - name: Stage for approval
         working-directory: packages/canvas
-        run: npm publish --access public
+        run: npm stage publish
