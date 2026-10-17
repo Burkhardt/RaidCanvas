@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" id="States" aim-archetype="ActivityDiagram" aim-show-expressions="true">
+  <defs>
+    <marker id="arrow-classic" viewBox="-1 -1 12 13" refX="10" refY="5" markerWidth="8" markerHeight="8.7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 Z" fill="#1F2937" stroke="#1F2937" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" /></marker>
+    <marker id="arrow-open" viewBox="-1 -1 12 13" refX="10" refY="5" markerWidth="8" markerHeight="8.7" orient="auto-start-reverse"><path d="M 1 1 L 10 5 L 1 9" fill="none" stroke="#1F2937" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" /></marker>
+    <marker id="arrow-hollow" viewBox="-1 -1 12 13" refX="10" refY="5" markerWidth="8" markerHeight="8.7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 Z" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" /></marker>
+    <marker id="tail-diamond-open" viewBox="-1 -1 12 13" refX="10" refY="5" markerWidth="8" markerHeight="8.7" orient="auto-start-reverse"><path d="M 0 5 L 5 2 L 10 5 L 5 8 Z" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" /></marker>
+    <marker id="tail-diamond-filled" viewBox="-1 -1 12 13" refX="10" refY="5" markerWidth="8" markerHeight="8.7" orient="auto-start-reverse"><path d="M 0 5 L 5 2 L 10 5 L 5 8 Z" fill="#1F2937" stroke="#1F2937" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" /></marker>
+    <marker id="tail-hook" viewBox="-1 -1 12 13" refX="10" refY="5" markerWidth="8" markerHeight="8.7" orient="auto-start-reverse"><path d="M 10 5 L 4 5 C 0 5 0 11 4 11" fill="none" stroke="#1F2937" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" /></marker>
+    <style>
+      .aim-node { cursor: pointer; transition: filter 0.15s ease; }
+      .aim-portal-seam { stroke: #AB8722; stroke-width: 1.5; pointer-events: none; }
+      a:active > .aim-portal-door { fill: rgba(210, 43, 43, 0.18); } a:active > .aim-portal-chevron { fill: #D22B2B; } @media (hover: hover) and (pointer: fine) { .aim-node:hover { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); } a:hover > .aim-portal-door { fill: rgba(210, 43, 43, 0.18); } a:hover > .aim-portal-chevron { fill: #D22B2B; } }
+      .aim-edge { fill: none; stroke: #1F2937; stroke-width: 1.5; }
+      text { font-family: Inter, system-ui, sans-serif; }
+      .aim-node[aim-instance="true"] text.aim-name, .aim-node[aim-instance="true"] tspan.aim-name { text-decoration: underline; }
+    </style>
+  </defs>
+
+  <!-- Edges -->
+  <g class="aim-edges-layer">
+    <g aim-edge="true" aim-id="e1" aim-edge-kind="dependency" aim-source="imp" aim-target="pick" aim-directed="true" aim-stereotype="precedes" aim-bends="">
+      <path d="M 200 310 L 265 310 L 265 310 L 330 310" class="aim-edge" fill="none" stroke="#1F2937" stroke-width="1.5" marker-end="url(#arrow-open)" />
+      <text x="265" y="302" font-size="11" fill="#4B5563" text-anchor="middle">«precedes»</text>
+    </g>
+    <g aim-edge="true" aim-id="e2" aim-edge-kind="dependency" aim-source="pick" aim-target="pub" aim-directed="true" aim-stereotype="precedes" aim-bends="">
+      <path d="M 500 310 L 565 310 L 565 310 L 630 310" class="aim-edge" fill="none" stroke="#1F2937" stroke-width="1.5" marker-end="url(#arrow-open)" />
+      <text x="565" y="302" font-size="11" fill="#4B5563" text-anchor="middle">«precedes»</text>
+    </g>
+  </g>
+
+  <!-- Nodes -->
+  <g class="aim-nodes-layer">
+    <g aim-node="true" aim-id="n0" aim-kind="act" aim-display-name="Created" aim-instance="true" aim-state="Created" transform="translate(30, 30)">
+      <rect width="170" height="60" rx="12" ry="12" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.5"><title>Created</title></rect>
+      <text class="aim-name" x="85" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Created</text>
+    </g>
+    <g aim-node="true" aim-id="n1" aim-kind="act" aim-display-name="Blocked" aim-instance="true" aim-state="Blocked" transform="translate(230, 30)">
+      <rect width="170" height="60" rx="12" ry="12" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.5" stroke-dasharray="6,4"><title>Blocked</title></rect>
+      <text class="aim-name" x="85" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Blocked</text>
+    </g>
+    <g aim-node="true" aim-id="n2" aim-kind="act" aim-display-name="Unblocked" aim-instance="true" aim-state="Unblocked" transform="translate(430, 30)">
+      <rect width="170" height="60" rx="12" ry="12" fill="#F0FDF4" stroke="#047857" stroke-width="2.5"><title>Ready</title></rect>
+      <text class="aim-name" x="85" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Unblocked</text>
+    </g>
+    <g aim-node="true" aim-id="n3" aim-kind="act" aim-display-name="Doing" aim-instance="true" aim-state="Doing" transform="translate(630, 30)">
+      <rect width="170" height="60" rx="12" ry="12" fill="#FFFFFF" stroke="#EF4444" stroke-width="2"><title>Doing</title></rect>
+      <text class="aim-name" x="85" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Doing</text>
+    </g>
+    <g aim-node="true" aim-id="n4" aim-kind="act" aim-display-name="Concluded" aim-instance="true" aim-state="Concluded" transform="translate(30, 140)">
+      <rect width="170" height="60" rx="12" ry="12" fill="#FFFFFF" stroke="#AB8722" stroke-width="3"><title>Concluded</title></rect>
+      <text class="aim-name" x="85" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Concluded</text>
+    </g>
+    <g aim-node="true" aim-id="n5" aim-kind="act" aim-display-name="Done" aim-instance="true" aim-state="Done" transform="translate(230, 140)">
+      <rect width="170" height="60" rx="12" ry="12" fill="#D1FAE5" stroke="#AB8722" stroke-width="3"><title>Done</title></rect>
+      <text class="aim-name" x="85" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Done</text>
+    </g>
+    <g aim-node="true" aim-id="n6" aim-kind="act" aim-display-name="Archived" aim-instance="true" aim-state="Archived" transform="translate(430, 140)">
+      <rect width="170" height="60" rx="12" ry="12" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5" stroke-dasharray="2,3"><title>Archived</title></rect>
+      <text class="aim-name" x="85" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Archived</text>
+    </g>
+    <g aim-node="true" aim-id="n7" aim-kind="act" aim-display-name="(no state)" aim-instance="true" transform="translate(630, 140)">
+      <rect width="170" height="60" rx="12" ry="12" fill="#FFFFFF" stroke="#EF4444" stroke-width="2"></rect>
+      <text class="aim-name" x="85" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">(no state)</text>
+    </g>
+    <g aim-node="true" aim-id="imp" aim-kind="act" aim-display-name="Import Photos" aim-instance="true" aim-state="Done" transform="translate(30, 280)">
+      <rect width="170" height="60" rx="12" ry="12" fill="#D1FAE5" stroke="#AB8722" stroke-width="3"><title>Done</title></rect>
+      <text class="aim-name" x="85" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Import Photos</text>
+    </g>
+    <g aim-node="true" aim-id="pick" aim-kind="act" aim-display-name="Pick Web Images" aim-instance="true" aim-state="Unblocked" transform="translate(330, 280)">
+      <rect width="170" height="60" rx="12" ry="12" fill="#F0FDF4" stroke="#047857" stroke-width="2.5"><title>Ready</title></rect>
+      <text class="aim-name" x="85" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Pick Web Images</text>
+    </g>
+    <g aim-node="true" aim-id="pub" aim-kind="act" aim-display-name="Publish Show" aim-instance="true" aim-state="Blocked" transform="translate(630, 280)">
+      <rect width="170" height="60" rx="12" ry="12" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.5" stroke-dasharray="6,4"><title>Blocked</title></rect>
+      <text class="aim-name" x="85" y="30" font-size="13" font-weight="600" fill="#111827" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Publish Show</text>
+    </g>
+  </g>
+</svg>

@@ -1,6 +1,6 @@
 {
   "name": "@dr2rai/raid-canvas",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Interactive AntV X6 diagram canvas for AOAIM (.raid) models and ontological SVG contracts",
   "author": "Dr. Rainer Burkhardt <Rainer@Burkhardt.com> (https://github.com/Burkhardt)",
   "contributors": [
@@ -33,7 +33,7 @@
     "build": "tsc -b --force && node scripts/build-styles.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "test": "node --test test/canvas.test.mjs test/RaidCanvas.test.mjs test/semanticRules.test.mjs test/Inspector.test.mjs test/x6Render.test.mjs"
+    "test": "node --test test/activityStates.test.mjs test/edgeGrammar.test.mjs test/shapeElement.test.mjs test/roleSlots.test.mjs test/canvas.test.mjs test/RaidCanvas.test.mjs test/semanticRules.test.mjs test/Inspector.test.mjs test/x6Render.test.mjs"
   },
   "dependencies": {
     "@antv/x6": "^3.1.8",

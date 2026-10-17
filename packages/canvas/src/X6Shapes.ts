@@ -1,3 +1,4 @@
+import { activityLookOf } from './ActivityStates.js';
 import { classAttributeLines, isInstanceNode, restrictionTag } from './RoleModel.js';
 /**
  * @file X6Shapes.ts
@@ -2463,6 +2464,7 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
     }
 
     case 'act': {
+      const actLook = activityLookOf(data.state);
       return {
         ...baseMetadata,
         attrs: {
@@ -2470,9 +2472,11 @@ export function createAimNode(data: RaidNodeData): NodeMetadata {
           ...stereoAttrs,
           ...glyphAttrs,
           body: {
-            fill: CascaisPalette.ChalkWhite,
-            stroke: CascaisPalette.CascaisRed,
-            strokeWidth: 2,
+            // 0.13.0: the lifecycle state decides the frame (ActivityStates); no state keeps the old one.
+            fill: actLook.fill,
+            stroke: actLook.stroke,
+            strokeWidth: actLook.strokeWidth,
+            strokeDasharray: actLook.dash ?? null,
             rx: 12,
             ry: 12,
             class: 'aim-node aim-act',

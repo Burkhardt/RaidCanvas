@@ -1,3 +1,4 @@
+import { activityLookOf } from './ActivityStates.js';
 import { projectRoleAttributes, classAttributeLines, isInstanceNode, restrictionTag } from './RoleModel.js';
 /**
  * @file RaiBridge.ts
@@ -1533,7 +1534,8 @@ export class RaiBridge {
 			}
 			svg += this.renderSvgText(rawDisplayName, cardTextCx, ry, 13, 'bold', textColor, isInstance, node.qualifier, cardTextWidth);
 		} else if (node.kind === 'act') {
-			svg += `      <rect width="${width}" height="${height}" rx="12" ry="12" fill="${CascaisPalette.ChalkWhite}" stroke="${CascaisPalette.CascaisRed}" stroke-width="2"${unboundAttrs} />\n`;
+			const look = activityLookOf(node.state);
+			svg += `      <rect width="${width}" height="${height}" rx="12" ry="12" fill="${look.fill}" stroke="${look.stroke}" stroke-width="${look.strokeWidth}"${look.dash ? ` stroke-dasharray="${look.dash}"` : ''}${unboundAttrs}>${node.state ? `<title>${escapeXmlText(look.label)}</title>` : ''}</rect>\n`;
 			if (drawBuiltInIcon) {
 				svg += renderStereotypeIconSvg(node.stereotype, 12, iconY);
 			}

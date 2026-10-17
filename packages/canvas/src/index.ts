@@ -34,6 +34,7 @@ export {
 
 // Cascais theme: the single source of every heraldic colour (CR055)
 export { CascaisPalette, DualityWashStrength, GenericRoleLine, HeraldicWash, withAlpha } from './CascaisTheme.js';
+export { ACTIVITY_DEFAULT_LOOK, ACTIVITY_STATE_LOOKS, activityLookOf, type ActivityLook } from './ActivityStates.js';
 
 // AntV X6 Custom Shapes & Port Registrations
 export {
