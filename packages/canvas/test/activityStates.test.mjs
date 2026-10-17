@@ -6,6 +6,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
+import { readFileSync } from 'node:fs';
 import { RaiBridge, CascaisPalette, ACTIVITY_DEFAULT_LOOK, ACTIVITY_STATE_LOOKS, activityLookOf, createAimNode } from '../dist/index.js';
 
 const jsdom = new JSDOM();
@@ -71,5 +72,18 @@ describe('the export', () => {
     assert.match(rectOf('Plain'), new RegExp(`stroke="${CascaisPalette.CascaisRed}" stroke-width="2"`));
     const states = Object.fromEntries(bridge.extractMetamodel(svg).nodes.map((n) => [n.id, n.state]));
     assert.deepEqual(states, { Imported: 'Done', Next: 'Unblocked', Plain: undefined });
+  });
+});
+
+describe('the theme stylesheet', () => {
+  // A CSS rule beats an SVG presentation attribute, and jsdom applies no CSS, so the live canvas can
+  // look right in every other test and still draw every Activity red. 0.13.0 shipped exactly that.
+  test('sets no fill, stroke or stroke width on an Activity frame', () => {
+    const css = readFileSync(new URL('../src/styles/aoaim-theme.css', import.meta.url), 'utf8');
+    const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(([, selector]) => /\.aim-act\b/.test(selector) && !/:hover/.test(selector));
+    assert.ok(rules.length > 0, 'the Activity rule is still there for its corner radius');
+    for (const [, selector, body] of rules) {
+      assert.doesNotMatch(body, /(^|[;\s])(fill|stroke|stroke-width)\s*:/, `${selector.trim()} must leave the frame to ActivityStates`);
+    }
   });
 });

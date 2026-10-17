@@ -102,13 +102,12 @@
   }
 }
 
-/* 2. Activity Nodes ('act') */
+/* 2. Activity Nodes ('act')
+ * No fill, stroke or stroke-width here (0.13.1): an Activity's frame shows its lifecycle state, set
+ * per node by ActivityStates as SVG attributes, and a class rule would override them all. */
 .aim-node[aim-act],
 .aim-node[aim-kind="act"],
 .aim-act {
-  fill: var(--aim-chalk-white);
-  stroke: var(--aim-danger-crimson);
-  stroke-width: 2px;
   rx: var(--aim-radius-act);
   ry: var(--aim-radius-act);
 }
